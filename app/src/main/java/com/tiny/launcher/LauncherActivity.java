@@ -1,3 +1,4 @@
+cat << 'EOF' > app/src/main/java/com/tiny/launcher/LauncherActivity.java
 package com.tiny.launcher;
 
 import android.app.Activity;
@@ -16,17 +17,18 @@ import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.Settings;
 import android.text.InputType;
+import android.util.DisplayMetrics;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.AnimationUtils;
-import android.widget.AdapterView;
 import android.widget.BaseAdapter;
 import android.widget.EditText;
 import android.widget.GridView;
@@ -44,11 +46,16 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 
 public class LauncherActivity extends Activity {
+
+    // --- Modern Java 17 Record for Data Model ---
+    public record AppModel(String name, Drawable icon, String packageName, boolean isLeanback) {}
 
     // --- UI Controls ---
     private ImageSwitcher wallpaperSwitcher;
@@ -63,7 +70,7 @@ public class LauncherActivity extends Activity {
     private SharedPreferences prefs;
 
     // --- Dynamic Theming ---
-    private int currentAccentColor = Color.parseColor("#007AFF"); // Default TV Blue
+    private int currentAccentColor = Color.parseColor("#007AFF"); // Default Accent Blue
 
     // --- Timers & Handlers ---
     private final Handler clockHandler = new Handler(Looper.getMainLooper());
@@ -74,8 +81,9 @@ public class LauncherActivity extends Activity {
     // --- Wallpapers & State ---
     private final List<File> wallpaperFiles = new ArrayList<>();
     private int currentWallpaperIndex = 0;
-    private int selectedMovePosition = -1; // For moving app tiles
+    private int selectedMovePosition = -1;
 
+    // Receiver to auto-refresh app grid on install/uninstall
     private final BroadcastReceiver packageReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -88,36 +96,31 @@ public class LauncherActivity extends Activity {
         super.onCreate(savedInstanceState);
         prefs = getSharedPreferences("BareLauncherPrefs", MODE_PRIVATE);
 
-        // --- 1. Root Frame (Layout Stack) ---
+        // --- 1. Root Frame Layout ---
         rootLayout = new LinearLayout(this);
         rootLayout.setOrientation(LinearLayout.VERTICAL);
         rootLayout.setBackgroundColor(Color.BLACK);
 
-        // --- 2. Wallpaper ImageSwitcher (With Slide Animation) ---
+        // --- 2. Wallpaper ImageSwitcher ---
         wallpaperSwitcher = new ImageSwitcher(this);
         wallpaperSwitcher.setLayoutParams(new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-        wallpaperSwitcher.setFactory(new ViewSwitcher.ViewFactory() {
-            @Override
-            public View makeView() {
-                ImageView iv = new ImageView(LauncherActivity.this);
-                iv.setScaleType(ImageView.ScaleType.CENTER_CROP);
-                iv.setLayoutParams(new ImageSwitcher.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-                return iv;
-            }
+        wallpaperSwitcher.setFactory(() -> {
+            ImageView iv = new ImageView(LauncherActivity.this);
+            iv.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            iv.setLayoutParams(new ImageSwitcher.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            return iv;
         });
 
-        // Set Slide-In Animations
         wallpaperSwitcher.setInAnimation(AnimationUtils.loadAnimation(this, android.R.anim.slide_in_left));
         wallpaperSwitcher.setOutAnimation(AnimationUtils.loadAnimation(this, android.R.anim.slide_out_right));
 
-        // Container Layout on top of Wallpaper
         LinearLayout mainOverlay = new LinearLayout(this);
         mainOverlay.setOrientation(LinearLayout.VERTICAL);
         mainOverlay.setPadding(50, 30, 50, 30);
 
-        // --- 3. Single-Row Top Widget (Weather, Clock, Date, Settings Gear) ---
+        // --- 3. Top Status Row (Weather, Clock, Settings) ---
         topWidgetRow = new LinearLayout(this);
         topWidgetRow.setOrientation(LinearLayout.HORIZONTAL);
         topWidgetRow.setGravity(Gravity.CENTER_VERTICAL);
@@ -136,7 +139,6 @@ public class LauncherActivity extends Activity {
         LinearLayout.LayoutParams flexParams = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f);
         clockTextView.setLayoutParams(flexParams);
 
-        // Settings Gear Icon
         settingsGear = new ImageView(this);
         settingsGear.setImageResource(android.R.drawable.ic_menu_preferences);
         settingsGear.setFocusable(true);
@@ -148,7 +150,7 @@ public class LauncherActivity extends Activity {
         topWidgetRow.addView(settingsGear);
         mainOverlay.addView(topWidgetRow);
 
-        // --- 4. Main App Grid View ---
+        // --- 4. Main App Grid ---
         gridView = new GridView(this);
         gridView.setNumColumns(4);
         gridView.setHorizontalSpacing(30);
@@ -162,24 +164,24 @@ public class LauncherActivity extends Activity {
         adapter = new AppAdapter(this, appList);
         gridView.setAdapter(adapter);
 
-        // --- 5. Tile Click & Long-Press Handlers ---
+        // --- 5. Tile Click & Long-Press Logic ---
         gridView.setOnItemClickListener((parent, view, position, id) -> {
             resetIdleTimer();
             if (selectedMovePosition != -1) {
                 // Move App Mode
                 Collections.swap(appList, selectedMovePosition, position);
-                saveAppOrder();
                 selectedMovePosition = -1;
                 adapter.notifyDataSetChanged();
             } else {
                 // Launch App
                 AppModel app = appList.get(position);
-                Intent launchIntent = getPackageManager().getLaunchIntentForPackage(app.packageName);
-                if (launchIntent != null) startActivity(launchIntent);
+                Intent launchIntent = getPackageManager().getLaunchIntentForPackage(app.packageName());
+                if (launchIntent != null) {
+                    startActivity(launchIntent);
+                }
             }
         });
 
-        // Long-Press App Tile (Parental PIN Protected)
         gridView.setOnItemLongClickListener((parent, view, position, id) -> {
             resetIdleTimer();
             checkPinAndExecute(() -> showAppContextMenu(position));
@@ -193,26 +195,51 @@ public class LauncherActivity extends Activity {
         setupIdleAutoTimer();
     }
 
-    // --- Dynamic Tile Accent Color Extractor (Palette) ---
+    // --- Dynamic Tile Accent Extractor ---
     private void extractAccentColorFromBitmap(Bitmap bitmap) {
         if (bitmap == null) return;
         Palette.from(bitmap).generate(palette -> {
             if (palette != null) {
                 int defaultColor = Color.parseColor("#007AFF");
                 currentAccentColor = palette.getVibrantColor(palette.getDominantColor(defaultColor));
-                adapter.notifyDataSetChanged(); // Refresh tile outlines with new dynamic accent color
+                adapter.notifyDataSetChanged();
             }
         });
     }
 
-    // --- Wallpaper Rotation & Folder Engine ---
+    // --- Safe Low-RAM Wallpaper Downsampling ---
+    private Bitmap decodeSampledBitmapFromFile(String filePath, int reqWidth, int reqHeight) {
+        BitmapFactory.Options options = new BitmapFactory.Options();
+        options.inJustDecodeBounds = true;
+        BitmapFactory.decodeFile(filePath, options);
+
+        options.inSampleSize = calculateInSampleSize(options, reqWidth, reqHeight);
+        options.inJustDecodeBounds = false;
+        return BitmapFactory.decodeFile(filePath, options);
+    }
+
+    private int calculateInSampleSize(BitmapFactory.Options options, int reqWidth, int reqHeight) {
+        final int height = options.outHeight;
+        final int width = options.outWidth;
+        int inSampleSize = 1;
+
+        if (height > reqHeight || width > reqWidth) {
+            final int halfHeight = height / 2;
+            final int halfWidth = width / 2;
+            while ((halfHeight / inSampleSize) >= reqHeight && (halfWidth / inSampleSize) >= reqWidth) {
+                inSampleSize *= 2;
+            }
+        }
+        return inSampleSize;
+    }
+
     private void loadWallpapers() {
         wallpaperFiles.clear();
         String folderPath = prefs.getString("WallpaperFolder", "/sdcard/Pictures/Wallpapers");
         File dir = new File(folderPath);
 
         if (dir.exists() && dir.isDirectory()) {
-            File[] files = dir.listFiles((d, name) -> name.endsWith(".jpg") || name.endsWith(".png"));
+            File[] files = dir.listFiles((d, name) -> name.toLowerCase().endsWith(".jpg") || name.toLowerCase().endsWith(".png"));
             if (files != null) Collections.addAll(wallpaperFiles, files);
         }
 
@@ -227,43 +254,45 @@ public class LauncherActivity extends Activity {
             public void run() {
                 if (wallpaperFiles.isEmpty()) return;
                 File file = wallpaperFiles.get(currentWallpaperIndex);
-                Bitmap bitmap = BitmapFactory.decodeFile(file.getAbsolutePath());
+
+                DisplayMetrics metrics = getResources().getDisplayMetrics();
+                Bitmap bitmap = decodeSampledBitmapFromFile(file.getAbsolutePath(), metrics.widthPixels, metrics.heightPixels);
 
                 if (bitmap != null) {
                     wallpaperSwitcher.setImageDrawable(new BitmapDrawable(getResources(), bitmap));
-                    extractAccentColorFromBitmap(bitmap); // Extract dynamic accent color for app tiles
+                    extractAccentColorFromBitmap(bitmap);
                 }
 
                 currentWallpaperIndex = (currentWallpaperIndex + 1) % wallpaperFiles.size();
-                wallpaperHandler.postDelayed(this, 30000); // Rotate every 30 seconds
+                wallpaperHandler.postDelayed(this, 30000); // 30 sec rotation
             }
         };
         wallpaperHandler.post(wallpaperRunnable);
     }
 
-    // --- Idle Auto-Hide UI Mode ---
+    // --- Idle Screen Dimming Engine ---
     private void setupIdleAutoTimer() {
-        idleRunnable = () -> gridView.animate().alpha(0.0f).setDuration(600).start(); // Hide app grid when idle
+        idleRunnable = () -> gridView.animate().alpha(0.0f).setDuration(600).start();
         resetIdleTimer();
     }
 
     private void resetIdleTimer() {
         if (gridView.getAlpha() < 1.0f) {
-            gridView.animate().alpha(1.0f).setDuration(200).start(); // Show app grid when remote key pressed
+            gridView.animate().alpha(1.0f).setDuration(200).start();
         }
         idleHandler.removeCallbacks(idleRunnable);
-        idleHandler.postDelayed(idleRunnable, 30000); // 30 seconds idle timeout
+        idleHandler.postDelayed(idleRunnable, 30000);
     }
 
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
-        resetIdleTimer(); // Any remote button press wakes up the UI
+        resetIdleTimer();
         return super.dispatchKeyEvent(event);
     }
 
-    // --- Parental Control PIN Check ---
+    // --- Parental Control Verification ---
     private void checkPinAndExecute(Runnable onSuccess) {
-        String savedPin = prefs.getString("ParentalPin", "0000"); // Default PIN: 0000
+        String savedPin = prefs.getString("ParentalPin", "0000");
 
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("🔒 Parental Control");
@@ -284,30 +313,28 @@ public class LauncherActivity extends Activity {
         builder.show();
     }
 
-    // --- Long-Press Context Menu ---
+    // --- Long-Press Tile Menu ---
     private void showAppContextMenu(int position) {
         AppModel app = appList.get(position);
         String[] options = {"↔️ Move App", "⚙️ App Info", "🗑️ Uninstall App", "🙈 Hide App"};
 
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Options for " + app.name);
+        builder.setTitle("Options for " + app.name());
         builder.setItems(options, (dialog, which) -> {
             switch (which) {
-                case 0: // Move App
+                case 0 -> {
                     selectedMovePosition = position;
                     new AlertDialog.Builder(this).setMessage("Click another tile to swap positions!").show();
-                    break;
-                case 1: // App Info
-                    Intent infoIntent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + app.packageName));
+                }
+                case 1 -> {
+                    Intent infoIntent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + app.packageName()));
                     startActivity(infoIntent);
-                    break;
-                case 2: // Uninstall App
-                    Intent uninstIntent = new Intent(Intent.ACTION_DELETE, Uri.parse("package:" + app.packageName));
+                }
+                case 2 -> {
+                    Intent uninstIntent = new Intent(Intent.ACTION_DELETE, Uri.parse("package:" + app.packageName()));
                     startActivity(uninstIntent);
-                    break;
-                case 3: // Hide App
-                    hideApp(app.packageName);
-                    break;
+                }
+                case 3 -> hideApp(app.packageName());
             }
         });
         builder.show();
@@ -317,16 +344,15 @@ public class LauncherActivity extends Activity {
         Set<String> hidden = new HashSet<>(prefs.getStringSet("HiddenApps", new HashSet<>()));
         hidden.add(packageName);
         prefs.edit().putStringSet("HiddenApps", hidden).apply();
-        loadInstalledApps(); // Refresh grid
+        loadInstalledApps();
     }
 
-    // --- Settings & Unhide Dialog ---
     private void openSettingsDialog() {
-        String[] options = {"👁️ Unhide Apps", "🔑 Change Parental PIN", "📂 Set Wallpaper Folder"};
+        String[] options = {"👁️ Unhide Apps", "🔑 Change Parental PIN"};
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Settings");
         builder.setItems(options, (dialog, which) -> {
-            if (which == 0) { // Unhide Apps
+            if (which == 0) {
                 Set<String> hidden = prefs.getStringSet("HiddenApps", new HashSet<>());
                 if (hidden.isEmpty()) {
                     new AlertDialog.Builder(this).setMessage("No hidden apps!").show();
@@ -342,7 +368,7 @@ public class LauncherActivity extends Activity {
                     });
                     unhideBuilder.show();
                 }
-            } else if (which == 1) { // Change PIN
+            } else if (which == 1) {
                 final EditText input = new EditText(this);
                 input.setInputType(InputType.TYPE_CLASS_NUMBER);
                 new AlertDialog.Builder(this).setTitle("New 4-Digit PIN").setView(input)
@@ -352,32 +378,42 @@ public class LauncherActivity extends Activity {
         builder.show();
     }
 
-    // --- Load TV Apps (Excluding Hidden Ones) ---
+    // --- Merged App Fetcher (Leanback TV + Sideloaded Phone Apps) ---
     private void loadInstalledApps() {
         appList.clear();
         PackageManager pm = getPackageManager();
         Set<String> hidden = prefs.getStringSet("HiddenApps", new HashSet<>());
 
-        Intent mainIntent = new Intent(Intent.ACTION_MAIN, null);
-        mainIntent.addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER);
-        List<ResolveInfo> activities = pm.queryIntentActivities(mainIntent, 0);
+        Map<String, AppModel> discoveredApps = new LinkedHashMap<>();
 
-        if (activities.isEmpty()) {
-            mainIntent.removeCategory(Intent.CATEGORY_LEANBACK_LAUNCHER);
-            mainIntent.addCategory(Intent.CATEGORY_LAUNCHER);
-            activities = pm.queryIntentActivities(mainIntent, 0);
-        }
+        // 1. Fetch TV Leanback Launcher Apps
+        Intent tvIntent = new Intent(Intent.ACTION_MAIN, null);
+        tvIntent.addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER);
+        List<ResolveInfo> tvActivities = pm.queryIntentActivities(tvIntent, 0);
 
-        for (ResolveInfo ri : activities) {
+        for (ResolveInfo ri : tvActivities) {
             String pkg = ri.activityInfo.packageName;
             if (pkg.equals(getPackageName()) || hidden.contains(pkg)) continue;
-
             String name = ri.loadLabel(pm).toString();
             Drawable icon = ri.loadIcon(pm);
-            appList.add(new AppModel(name, icon, pkg));
+            discoveredApps.put(pkg, new AppModel(name, icon, pkg, true));
         }
 
-        adapter.notifyDataSetChanged();
+        // 2. Fetch Sideloaded Standard Apps
+        Intent standardIntent = new Intent(Intent.ACTION_MAIN, null);
+        standardIntent.addCategory(Intent.CATEGORY_LAUNCHER);
+        List<ResolveInfo> standardActivities = pm.queryIntentActivities(standardIntent, 0);
+
+        for (ResolveInfo ri : standardActivities) {
+            String pkg = ri.activityInfo.packageName;
+            if (pkg.equals(getPackageName()) || hidden.contains(pkg) || discoveredApps.containsKey(pkg)) continue;
+            String name = ri.loadLabel(pm).toString();
+            Drawable icon = ri.loadIcon(pm);
+            discoveredApps.put(pkg, new AppModel(name, icon, pkg, false));
+        }
+
+        appList.addAll(discoveredApps.values());
+        if (adapter != null) adapter.notifyDataSetChanged();
     }
 
     private void startLiveClock() {
@@ -389,12 +425,18 @@ public class LauncherActivity extends Activity {
         clockHandler.post(clockRunnable);
     }
 
+    // --- Android 14 (API 34) Safe Broadcast Receiver Registration ---
     private void registerPackageReceiver() {
         IntentFilter filter = new IntentFilter();
         filter.addAction(Intent.ACTION_PACKAGE_ADDED);
         filter.addAction(Intent.ACTION_PACKAGE_REMOVED);
         filter.addDataScheme("package");
-        registerReceiver(packageReceiver, filter);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(packageReceiver, filter, Context.RECEIVER_EXPORTED);
+        } else {
+            registerReceiver(packageReceiver, filter);
+        }
     }
 
     @Override
@@ -408,19 +450,10 @@ public class LauncherActivity extends Activity {
 
     @Override
     public void onBackPressed() {
-        resetIdleTimer(); // Intercept back button
+        resetIdleTimer();
     }
 
-    // --- Inner Models & Adapter ---
-    private static class AppModel {
-        final String name;
-        final Drawable icon;
-        final String packageName;
-        AppModel(String name, Drawable icon, String packageName) {
-            this.name = name; this.icon = icon; this.packageName = packageName;
-        }
-    }
-
+    // --- Modern Focus Grid Adapter ---
     private class AppAdapter extends BaseAdapter {
         private final Context context;
         private final List<AppModel> list;
@@ -446,20 +479,17 @@ public class LauncherActivity extends Activity {
                 container.setFocusable(true);
                 container.setFocusableInTouchMode(true);
 
-                // Dynamic Accent Color Focus Listener
                 container.setOnFocusChangeListener((v, hasFocus) -> {
                     resetIdleTimer();
                     GradientDrawable drawable = new GradientDrawable();
                     drawable.setCornerRadius(16f);
 
                     if (hasFocus) {
-                        drawable.setColor(currentAccentColor); // Dynamic accent from active wallpaper!
-                        v.setScaleX(1.12f);
-                        v.setScaleY(1.12f);
+                        drawable.setColor(currentAccentColor);
+                        v.animate().scaleX(1.12f).scaleY(1.12f).setDuration(150).start();
                     } else {
-                        drawable.setColor(Color.parseColor("#CC1A1A1A")); // Translucent dark
-                        v.setScaleX(1.0f);
-                        v.setScaleY(1.0f);
+                        drawable.setColor(Color.parseColor("#CC1A1A1A"));
+                        v.animate().scaleX(1.0f).scaleY(1.0f).setDuration(150).start();
                     }
                     v.setBackground(drawable);
                 });
@@ -480,10 +510,11 @@ public class LauncherActivity extends Activity {
             ImageView iconView = (ImageView) container.getChildAt(0);
             TextView textView = (TextView) container.getChildAt(1);
 
-            iconView.setImageDrawable(item.icon);
-            textView.setText(item.name);
+            iconView.setImageDrawable(item.icon());
+            textView.setText(item.name());
 
             return container;
         }
     }
 }
+EOF

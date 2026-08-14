@@ -463,7 +463,7 @@ public class LauncherActivity extends Activity {
 
         @Override public int getCount() { return list.size(); }
         @Override public Object getItem(int position) { return list.get(position); }
-        @Override public Long getItemId(int position) { return (long) position; }
+        @Override public long getItemId(int position) { return (long) position; }
 
         @Override
         public View getView(int position, View convertView, ViewGroup parent) {

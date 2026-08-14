@@ -35,9 +35,6 @@ import android.widget.ImageSwitcher;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.ViewSwitcher;
-
-import androidx.palette.graphics.Palette;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
@@ -53,7 +50,7 @@ import java.util.Set;
 
 public class LauncherActivity extends Activity {
 
-    // --- Modern Java 17 Record for Data Model ---
+    // --- Pure Java 17 Record ---
     public record AppModel(String name, Drawable icon, String packageName, boolean isLeanback) {}
 
     // --- UI Controls ---
@@ -82,7 +79,6 @@ public class LauncherActivity extends Activity {
     private int currentWallpaperIndex = 0;
     private int selectedMovePosition = -1;
 
-    // Receiver to auto-refresh app grid on install/uninstall
     private final BroadcastReceiver packageReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -119,7 +115,7 @@ public class LauncherActivity extends Activity {
         mainOverlay.setOrientation(LinearLayout.VERTICAL);
         mainOverlay.setPadding(50, 30, 50, 30);
 
-        // --- 3. Top Status Row (Weather, Clock, Settings) ---
+        // --- 3. Top Status Row ---
         topWidgetRow = new LinearLayout(this);
         topWidgetRow.setOrientation(LinearLayout.HORIZONTAL);
         topWidgetRow.setGravity(Gravity.CENTER_VERTICAL);
@@ -167,12 +163,10 @@ public class LauncherActivity extends Activity {
         gridView.setOnItemClickListener((parent, view, position, id) -> {
             resetIdleTimer();
             if (selectedMovePosition != -1) {
-                // Move App Mode
                 Collections.swap(appList, selectedMovePosition, position);
                 selectedMovePosition = -1;
                 adapter.notifyDataSetChanged();
             } else {
-                // Launch App
                 AppModel app = appList.get(position);
                 Intent launchIntent = getPackageManager().getLaunchIntentForPackage(app.packageName());
                 if (launchIntent != null) {
@@ -194,19 +188,35 @@ public class LauncherActivity extends Activity {
         setupIdleAutoTimer();
     }
 
-    // --- Dynamic Tile Accent Extractor ---
+    // --- Pure Java HSV Vibrant Accent Extractor ---
     private void extractAccentColorFromBitmap(Bitmap bitmap) {
         if (bitmap == null) return;
-        Palette.from(bitmap).generate(palette -> {
-            if (palette != null) {
-                int defaultColor = Color.parseColor("#007AFF");
-                currentAccentColor = palette.getVibrantColor(palette.getDominantColor(defaultColor));
-                adapter.notifyDataSetChanged();
+        new Thread(() -> {
+            int width = bitmap.getWidth();
+            int height = bitmap.getHeight();
+            int maxSatPixel = Color.parseColor("#007AFF");
+            float maxSat = -1f;
+
+            for (int x = 0; x < width; x += Math.max(1, width / 20)) {
+                for (int y = 0; y < height; y += Math.max(1, height / 20)) {
+                    int pixel = bitmap.getPixel(x, y);
+                    float[] hsv = new float[3];
+                    Color.colorToHSV(pixel, hsv);
+                    if (hsv[1] > maxSat && hsv[2] > 0.3f && hsv[2] < 0.9f) {
+                        maxSat = hsv[1];
+                        maxSatPixel = pixel;
+                    }
+                }
             }
-        });
+
+            int finalColor = maxSatPixel;
+            runOnUiThread(() -> {
+                currentAccentColor = finalColor;
+                if (adapter != null) adapter.notifyDataSetChanged();
+            });
+        }).start();
     }
 
-    // --- Safe Low-RAM Wallpaper Downsampling ---
     private Bitmap decodeSampledBitmapFromFile(String filePath, int reqWidth, int reqHeight) {
         BitmapFactory.Options options = new BitmapFactory.Options();
         options.inJustDecodeBounds = true;
@@ -263,13 +273,12 @@ public class LauncherActivity extends Activity {
                 }
 
                 currentWallpaperIndex = (currentWallpaperIndex + 1) % wallpaperFiles.size();
-                wallpaperHandler.postDelayed(this, 30000); // 30 sec rotation
+                wallpaperHandler.postDelayed(this, 30000);
             }
         };
         wallpaperHandler.post(wallpaperRunnable);
     }
 
-    // --- Idle Screen Dimming Engine ---
     private void setupIdleAutoTimer() {
         idleRunnable = () -> gridView.animate().alpha(0.0f).setDuration(600).start();
         resetIdleTimer();
@@ -289,7 +298,6 @@ public class LauncherActivity extends Activity {
         return super.dispatchKeyEvent(event);
     }
 
-    // --- Parental Control Verification ---
     private void checkPinAndExecute(Runnable onSuccess) {
         String savedPin = prefs.getString("ParentalPin", "0000");
 
@@ -312,7 +320,6 @@ public class LauncherActivity extends Activity {
         builder.show();
     }
 
-    // --- Long-Press Tile Menu ---
     private void showAppContextMenu(int position) {
         AppModel app = appList.get(position);
         String[] options = {"↔️ Move App", "⚙️ App Info", "🗑️ Uninstall App", "🙈 Hide App"};
@@ -377,7 +384,6 @@ public class LauncherActivity extends Activity {
         builder.show();
     }
 
-    // --- Merged App Fetcher (Leanback TV + Sideloaded Phone Apps) ---
     private void loadInstalledApps() {
         appList.clear();
         PackageManager pm = getPackageManager();
@@ -385,7 +391,6 @@ public class LauncherActivity extends Activity {
 
         Map<String, AppModel> discoveredApps = new LinkedHashMap<>();
 
-        // 1. Fetch TV Leanback Launcher Apps
         Intent tvIntent = new Intent(Intent.ACTION_MAIN, null);
         tvIntent.addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER);
         List<ResolveInfo> tvActivities = pm.queryIntentActivities(tvIntent, 0);
@@ -398,7 +403,6 @@ public class LauncherActivity extends Activity {
             discoveredApps.put(pkg, new AppModel(name, icon, pkg, true));
         }
 
-        // 2. Fetch Sideloaded Standard Apps
         Intent standardIntent = new Intent(Intent.ACTION_MAIN, null);
         standardIntent.addCategory(Intent.CATEGORY_LAUNCHER);
         List<ResolveInfo> standardActivities = pm.queryIntentActivities(standardIntent, 0);
@@ -424,7 +428,6 @@ public class LauncherActivity extends Activity {
         clockHandler.post(clockRunnable);
     }
 
-    // --- Android 14 (API 34) Safe Broadcast Receiver Registration ---
     private void registerPackageReceiver() {
         IntentFilter filter = new IntentFilter();
         filter.addAction(Intent.ACTION_PACKAGE_ADDED);
@@ -452,7 +455,6 @@ public class LauncherActivity extends Activity {
         resetIdleTimer();
     }
 
-    // --- Modern Focus Grid Adapter ---
     private class AppAdapter extends BaseAdapter {
         private final Context context;
         private final List<AppModel> list;

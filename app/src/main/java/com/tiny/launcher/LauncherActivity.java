@@ -1,4 +1,3 @@
-cat << 'EOF' > app/src/main/java/com/tiny/launcher/LauncherActivity.java
 package com.tiny.launcher;
 
 import android.app.Activity;
@@ -517,4 +516,3 @@ public class LauncherActivity extends Activity {
         }
     }
 }
-EOF

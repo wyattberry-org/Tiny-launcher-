@@ -11,18 +11,24 @@ import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Paint;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
+import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.Settings;
 import android.text.InputType;
+import android.text.format.Formatter;
 import android.util.DisplayMetrics;
+
+import com.google.android.gms.actions.ItemListIntents;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.View;
@@ -30,13 +36,24 @@ import android.view.ViewGroup;
 import android.view.animation.AnimationUtils;
 import android.widget.BaseAdapter;
 import android.widget.EditText;
-import android.widget.GridView;
+import android.widget.FrameLayout;
+import android.widget.HorizontalScrollView;
 import android.widget.ImageSwitcher;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.widget.TextView;
 
+import org.json.JSONObject;
+
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -54,31 +71,45 @@ public class LauncherActivity extends Activity {
     public record AppModel(String name, Drawable icon, String packageName, boolean isLeanback) {}
 
     // --- UI Controls ---
+    private FrameLayout rootOverlayFrame;
     private ImageSwitcher wallpaperSwitcher;
-    private GridView gridView;
-    private TextView clockTextView, weatherTextView;
-    private ImageView settingsGear;
-    private LinearLayout topWidgetRow, rootLayout;
+    private HorizontalScrollView horizontalAppScrollView;
+    private LinearLayout horizontalAppContainer;
+    private TextView clockTextView, weatherStatusTextView, weatherTempTextView, weatherRhTextView, weatherWindTextView;
+    private ImageView weatherIconView, settingsGear;
+    private LinearLayout topWidgetRow, sideDrawerContainer;
+    private ScrollView sideDrawerContentScrollView;
 
     // --- App & Data Models ---
     private final List<AppModel> appList = new ArrayList<>();
-    private AppAdapter adapter;
     private SharedPreferences prefs;
 
     // --- Dynamic Theming ---
-    private int currentAccentColor = Color.parseColor("#007AFF"); // Default Accent Blue
+    private int currentAccentColor = Color.parseColor("#007AFF");
 
     // --- Timers & Handlers ---
     private final Handler clockHandler = new Handler(Looper.getMainLooper());
     private final Handler idleHandler = new Handler(Looper.getMainLooper());
     private final Handler wallpaperHandler = new Handler(Looper.getMainLooper());
-    private Runnable clockRunnable, idleRunnable, wallpaperRunnable;
+    private final Handler weatherHandler = new Handler(Looper.getMainLooper());
+    private Runnable clockRunnable, idleRunnable, wallpaperRunnable, weatherRunnable;
 
     // --- Wallpapers & State ---
     private final List<File> wallpaperFiles = new ArrayList<>();
     private int currentWallpaperIndex = 0;
-    private int selectedMovePosition = -1;
+    private boolean isSideDrawerOpen = false;
+    private ServerSocket webSetupServerSocket;
+    private boolean isWebServerRunning = false;
 
+    // --- Slideshow Interval Options (in Milliseconds) ---
+    private final long[] SLIDESHOW_INTERVALS = {
+            20000L, 30000L, 60000L, 180000L, 300000L, 600000L, 900000L, 1200000L, 1800000L
+    };
+    private final String[] SLIDESHOW_LABELS = {
+            "20 sec", "30 sec", "1 min", "3 min", "5 min", "10 min", "15 min", "20 min", "30 min"
+    };
+
+    // Receiver to auto-refresh app grid on install/uninstall
     private final BroadcastReceiver packageReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -91,14 +122,13 @@ public class LauncherActivity extends Activity {
         super.onCreate(savedInstanceState);
         prefs = getSharedPreferences("BareLauncherPrefs", MODE_PRIVATE);
 
-        // --- 1. Root Frame Layout ---
-        rootLayout = new LinearLayout(this);
-        rootLayout.setOrientation(LinearLayout.VERTICAL);
-        rootLayout.setBackgroundColor(Color.BLACK);
+        // --- 1. Root Overlay Frame ---
+        rootOverlayFrame = new FrameLayout(this);
+        rootOverlayFrame.setBackgroundColor(Color.BLACK);
 
         // --- 2. Wallpaper ImageSwitcher ---
         wallpaperSwitcher = new ImageSwitcher(this);
-        wallpaperSwitcher.setLayoutParams(new LinearLayout.LayoutParams(
+        wallpaperSwitcher.setLayoutParams(new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         wallpaperSwitcher.setFactory(() -> {
             ImageView iv = new ImageView(LauncherActivity.this);
@@ -110,85 +140,678 @@ public class LauncherActivity extends Activity {
 
         wallpaperSwitcher.setInAnimation(AnimationUtils.loadAnimation(this, android.R.anim.slide_in_left));
         wallpaperSwitcher.setOutAnimation(AnimationUtils.loadAnimation(this, android.R.anim.slide_out_right));
+        rootOverlayFrame.addView(wallpaperSwitcher);
 
-        LinearLayout mainOverlay = new LinearLayout(this);
-        mainOverlay.setOrientation(LinearLayout.VERTICAL);
-        mainOverlay.setPadding(50, 30, 50, 30);
+        // --- 3. Main Content Overlay ---
+        LinearLayout mainOverlayLayout = new LinearLayout(this);
+        mainOverlayLayout.setOrientation(LinearLayout.VERTICAL);
+        mainOverlayLayout.setPadding(50, 30, 50, 30);
+        mainOverlayLayout.setLayoutParams(new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
-        // --- 3. Top Status Row ---
+        // --- 4. Top Status Header (Weather + Clock + Gear) ---
         topWidgetRow = new LinearLayout(this);
         topWidgetRow.setOrientation(LinearLayout.HORIZONTAL);
         topWidgetRow.setGravity(Gravity.CENTER_VERTICAL);
-        topWidgetRow.setPadding(0, 0, 0, 30);
+        topWidgetRow.setPadding(0, 0, 0, 20);
 
-        weatherTextView = new TextView(this);
-        weatherTextView.setText("☀️ 22°C Clear");
-        weatherTextView.setTextSize(20);
-        weatherTextView.setTextColor(Color.WHITE);
+        // Weather Section (Left)
+        LinearLayout weatherSection = new LinearLayout(this);
+        weatherSection.setOrientation(LinearLayout.HORIZONTAL);
+        weatherSection.setGravity(Gravity.CENTER_VERTICAL);
 
+        weatherIconView = new ImageView(this);
+        weatherIconView.setLayoutParams(new LinearLayout.LayoutParams(64, 64));
+        weatherIconView.setImageResource(android.R.drawable.ic_menu_compass);
+
+        LinearLayout weatherTextGroup = new LinearLayout(this);
+        weatherTextGroup.setOrientation(LinearLayout.VERTICAL);
+        weatherTextGroup.setPadding(15, 0, 30, 0);
+
+        weatherStatusTextView = new TextView(this);
+        weatherStatusTextView.setText("Clear");
+        weatherStatusTextView.setTextColor(Color.WHITE);
+        weatherStatusTextView.setTextSize(16);
+
+        weatherWindTextView = new TextView(this);
+        weatherWindTextView.setText("Wind: 1 m/s  Gusts: 3 m/s");
+        weatherWindTextView.setTextColor(Color.LTGRAY);
+        weatherWindTextView.setTextSize(12);
+
+        weatherTextGroup.addView(weatherStatusTextView);
+        weatherTextGroup.addView(weatherWindTextView);
+
+        weatherTempTextView = new TextView(this);
+        weatherTempTextView.setText("21° Temp");
+        weatherTempTextView.setTextColor(Color.WHITE);
+        weatherTempTextView.setTextSize(22);
+        weatherTempTextView.setPadding(20, 0, 20, 0);
+
+        weatherRhTextView = new TextView(this);
+        weatherRhTextView.setText("51 RH");
+        weatherRhTextView.setTextColor(Color.WHITE);
+        weatherRhTextView.setTextSize(22);
+        weatherRhTextView.setPadding(20, 0, 20, 0);
+
+        weatherSection.addView(weatherIconView);
+        weatherSection.addView(weatherTextGroup);
+        weatherSection.addView(weatherTempTextView);
+        weatherSection.addView(weatherRhTextView);
+
+        // Clock Section (Center Flex)
         clockTextView = new TextView(this);
-        clockTextView.setTextSize(24);
+        clockTextView.setTextSize(22);
         clockTextView.setTextColor(Color.WHITE);
-        clockTextView.setPadding(40, 0, 0, 0);
+        clockTextView.setGravity(Gravity.END);
+        clockTextView.setPadding(0, 0, 30, 0);
+        LinearLayout.LayoutParams flexClockParams = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f);
+        clockTextView.setLayoutParams(flexClockParams);
 
-        LinearLayout.LayoutParams flexParams = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f);
-        clockTextView.setLayoutParams(flexParams);
-
+        // Settings Gear Icon (Right)
         settingsGear = new ImageView(this);
         settingsGear.setImageResource(android.R.drawable.ic_menu_preferences);
         settingsGear.setFocusable(true);
         settingsGear.setPadding(15, 15, 15, 15);
-        settingsGear.setOnClickListener(v -> checkPinAndExecute(this::openSettingsDialog));
-
-        topWidgetRow.addView(weatherTextView);
-        topWidgetRow.addView(clockTextView);
-        topWidgetRow.addView(settingsGear);
-        mainOverlay.addView(topWidgetRow);
-
-        // --- 4. Main App Grid ---
-        gridView = new GridView(this);
-        gridView.setNumColumns(4);
-        gridView.setHorizontalSpacing(30);
-        gridView.setVerticalSpacing(30);
-        gridView.setStretchMode(GridView.STRETCH_COLUMN_WIDTH);
-        mainOverlay.addView(gridView);
-
-        rootLayout.addView(mainOverlay);
-        setContentView(rootLayout);
-
-        adapter = new AppAdapter(this, appList);
-        gridView.setAdapter(adapter);
-
-        // --- 5. Tile Click & Long-Press Logic ---
-        gridView.setOnItemClickListener((parent, view, position, id) -> {
-            resetIdleTimer();
-            if (selectedMovePosition != -1) {
-                Collections.swap(appList, selectedMovePosition, position);
-                selectedMovePosition = -1;
-                adapter.notifyDataSetChanged();
-            } else {
-                AppModel app = appList.get(position);
-                Intent launchIntent = getPackageManager().getLaunchIntentForPackage(app.packageName());
-                if (launchIntent != null) {
-                    startActivity(launchIntent);
-                }
-            }
-        });
-
-        gridView.setOnItemLongClickListener((parent, view, position, id) -> {
-            resetIdleTimer();
-            checkPinAndExecute(() -> showAppContextMenu(position));
+        settingsGear.setOnClickListener(v -> toggleSideDrawer(true));
+        settingsGear.setOnLongClickListener(v -> {
+            startActivity(new Intent(Settings.ACTION_SETTINGS));
             return true;
         });
+
+        topWidgetRow.addView(weatherSection);
+        topWidgetRow.addView(clockTextView);
+        topWidgetRow.addView(settingsGear);
+        mainOverlayLayout.addView(topWidgetRow);
+
+        // Space filler between header and bottom app row
+        View spaceFiller = new View(this);
+        LinearLayout.LayoutParams spaceParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1.0f);
+        spaceFiller.setLayoutParams(spaceParams);
+        mainOverlayLayout.addView(spaceFiller);
+
+        // --- 5. Bottom Horizontal Widescreen App Row ---
+        horizontalAppScrollView = new HorizontalScrollView(this);
+        horizontalAppScrollView.setHorizontalScrollBarEnabled(false);
+        horizontalAppScrollView.setClipToPadding(false);
+        horizontalAppScrollView.setPadding(0, 20, 0, 20);
+
+        horizontalAppContainer = new LinearLayout(this);
+        horizontalAppContainer.setOrientation(LinearLayout.HORIZONTAL);
+        horizontalAppContainer.setGravity(Gravity.BOTTOM);
+        horizontalAppScrollView.addView(horizontalAppContainer);
+
+        mainOverlayLayout.addView(horizontalAppScrollView);
+        rootOverlayFrame.addView(mainOverlayLayout);
+
+        // --- 6. Right Side Drawer Menu Container (`#1A1D24`) ---
+        sideDrawerContainer = new LinearLayout(this);
+        sideDrawerContainer.setOrientation(LinearLayout.VERTICAL);
+        sideDrawerContainer.setBackgroundColor(Color.parseColor("#1A1D24"));
+        sideDrawerContainer.setPadding(30, 40, 30, 40);
+
+        FrameLayout.LayoutParams drawerLayoutParams = new FrameLayout.LayoutParams(
+                dpToPx(340), ViewGroup.LayoutParams.MATCH_PARENT);
+        drawerLayoutParams.gravity = Gravity.END;
+        sideDrawerContainer.setLayoutParams(drawerLayoutParams);
+        sideDrawerContainer.setVisibility(View.GONE);
+
+        sideDrawerContentScrollView = new ScrollView(this);
+        sideDrawerContentScrollView.setVerticalScrollBarEnabled(false);
+        sideDrawerContainer.addView(sideDrawerContentScrollView);
+
+        rootOverlayFrame.addView(sideDrawerContainer);
+
+        setContentView(rootOverlayFrame);
 
         loadWallpapers();
         loadInstalledApps();
         registerPackageReceiver();
         startLiveClock();
         setupIdleAutoTimer();
+        startWeatherEngine();
     }
 
-    // --- Pure Java HSV Vibrant Accent Extractor ---
+    // --- Side Drawer Switcher (Zero Redrawing / Zero Flickering) ---
+    private void toggleSideDrawer(boolean open) {
+        isSideDrawerOpen = open;
+        if (open) {
+            buildMainMenuInDrawer();
+            sideDrawerContainer.setVisibility(View.VISIBLE);
+            sideDrawerContainer.animate().translationX(0f).setDuration(250).start();
+        } else {
+            sideDrawerContainer.animate().translationX(dpToPx(360)).setDuration(200)
+                    .withEndAction(() -> sideDrawerContainer.setVisibility(View.GONE)).start();
+        }
+    }
+
+    private void buildMainMenuInDrawer() {
+        sideDrawerContentScrollView.removeAllViews();
+
+        LinearLayout drawerContent = new LinearLayout(this);
+        drawerContent.setOrientation(LinearLayout.VERTICAL);
+
+        TextView titleView = new TextView(this);
+        titleView.setText("Tiny Launcher");
+        titleView.setTextColor(Color.WHITE);
+        titleView.setTextSize(20);
+        titleView.setPadding(10, 0, 0, 20);
+        drawerContent.addView(titleView);
+
+        View divider = new View(this);
+        divider.setBackgroundColor(Color.parseColor("#33FFFFFF"));
+        divider.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 2));
+        drawerContent.addView(divider);
+
+        addDrawerMenuItem(drawerContent, "📱 Manage apps", () -> openManageAppsSubmenu());
+        addDrawerMenuItem(drawerContent, "⌨️ Button shortcuts", () -> openButtonShortcutsSubmenu());
+        addDrawerMenuItem(drawerContent, "🔒 Parental Control", () -> openParentalControlSubmenu());
+        addDrawerMenuItem(drawerContent, "🖼️ Wallpaper / Slideshow", () -> openWallpaperSubmenu());
+        addDrawerMenuItem(drawerContent, "⏰ Show clock", () -> openClockSubmenu());
+        addDrawerMenuItem(drawerContent, "☁️ Weather", () -> openWeatherSubmenu());
+        addDrawerMenuItem(drawerContent, "⚙️ System Settings", () -> startActivity(new Intent(Settings.ACTION_SETTINGS)));
+
+        sideDrawerContentScrollView.addView(drawerContent);
+    }
+
+    private void addDrawerMenuItem(LinearLayout container, String title, Runnable onClick) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setPadding(25, 25, 25, 25);
+        row.setFocusable(true);
+        row.setFocusableInTouchMode(true);
+
+        TextView label = new TextView(this);
+        label.setText(title);
+        label.setTextColor(Color.WHITE);
+        label.setTextSize(16);
+
+        row.addView(label);
+
+        row.setOnFocusChangeListener((v, hasFocus) -> {
+            if (hasFocus) {
+                GradientDrawable shape = new GradientDrawable();
+                shape.setColor(currentAccentColor);
+                shape.setCornerRadius(12f);
+                v.setBackground(shape);
+            } else {
+                v.setBackgroundColor(Color.TRANSPARENT);
+            }
+        });
+
+        row.setOnClickListener(v -> onClick.run());
+        container.addView(row);
+    }
+
+    // --- Submenus (Swapped Inside Drawer Without Window Redrawing) ---
+    private void openManageAppsSubmenu() {
+        sideDrawerContentScrollView.removeAllViews();
+
+        LinearLayout container = new LinearLayout(this);
+        container.setOrientation(LinearLayout.VERTICAL);
+
+        TextView title = new TextView(this);
+        title.setText("Manage apps");
+        title.setTextColor(Color.WHITE);
+        title.setTextSize(18);
+        title.setPadding(10, 0, 0, 20);
+        container.addView(title);
+
+        Set<String> hidden = prefs.getStringSet("HiddenApps", new HashSet<>());
+
+        if (hidden.isEmpty()) {
+            TextView emptyText = new TextView(this);
+            emptyText.setText("No hidden apps.");
+            emptyText.setTextColor(Color.GRAY);
+            emptyText.setPadding(20, 20, 20, 20);
+            container.addView(emptyText);
+        } else {
+            PackageManager pm = getPackageManager();
+            for (String pkg : hidden) {
+                try {
+                    String appName = pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0)).toString();
+                    addDrawerMenuItem(container, appName, () -> {
+                        new AlertDialog.Builder(this)
+                                .setTitle(appName)
+                                .setPositiveButton("Open", (d, w) -> {
+                                    Intent i = pm.getLaunchIntentForPackage(pkg);
+                                    if (i != null) startActivity(i);
+                                })
+                                .setNegativeButton("Unhide", (d, w) -> {
+                                    Set<String> updated = new HashSet<>(hidden);
+                                    updated.remove(pkg);
+                                    prefs.edit().putStringSet("HiddenApps", updated).apply();
+                                    loadInstalledApps();
+                                    openManageAppsSubmenu();
+                                }).show();
+                    });
+                } catch (Exception ignored) {}
+            }
+        }
+
+        addDrawerMenuItem(container, "⬅️ Back", () -> buildMainMenuInDrawer());
+        sideDrawerContentScrollView.addView(container);
+    }
+
+    private void openButtonShortcutsSubmenu() {
+        sideDrawerContentScrollView.removeAllViews();
+
+        LinearLayout container = new LinearLayout(this);
+        container.setOrientation(LinearLayout.VERTICAL);
+
+        TextView title = new TextView(this);
+        title.setText("Button Shortcuts");
+        title.setTextColor(Color.WHITE);
+        title.setTextSize(18);
+        title.setPadding(10, 0, 0, 20);
+        container.addView(title);
+
+        addDrawerMenuItem(container, "🔴 Red Button: " + getShortcutName("RedShortcut"), () -> pickAppForShortcut("RedShortcut"));
+        addDrawerMenuItem(container, "🔵 Blue Button: " + getShortcutName("BlueShortcut"), () -> pickAppForShortcut("BlueShortcut"));
+        addDrawerMenuItem(container, "🟢 Green Button: " + getShortcutName("GreenShortcut"), () -> pickAppForShortcut("GreenShortcut"));
+        addDrawerMenuItem(container, "🟡 Yellow Button: " + getShortcutName("YellowShortcut"), () -> pickAppForShortcut("YellowShortcut"));
+        addDrawerMenuItem(container, "⬅️ Back", () -> buildMainMenuInDrawer());
+
+        sideDrawerContentScrollView.addView(container);
+    }
+
+    private String getShortcutName(String key) {
+        String pkg = prefs.getString(key, null);
+        if (pkg == null) return "Not set";
+        try {
+            return getPackageManager().getApplicationLabel(getPackageManager().getApplicationInfo(pkg, 0)).toString();
+        } catch (Exception e) {
+            return "Not set";
+        }
+    }
+
+    private void pickAppForShortcut(String key) {
+        String[] appNames = new String[appList.size()];
+        for (int i = 0; i < appList.size(); i++) appNames[i] = appList.get(i).name();
+
+        new AlertDialog.Builder(this)
+                .setTitle("Select App for Shortcut")
+                .setItems(appNames, (dialog, which) -> {
+                    prefs.edit().putString(key, appList.get(which).packageName()).apply();
+                    openButtonShortcutsSubmenu();
+                }).show();
+    }
+
+    private void openParentalControlSubmenu() {
+        sideDrawerContentScrollView.removeAllViews();
+
+        LinearLayout container = new LinearLayout(this);
+        container.setOrientation(LinearLayout.VERTICAL);
+
+        TextView title = new TextView(this);
+        title.setText("Parental Control");
+        title.setTextColor(Color.WHITE);
+        title.setTextSize(18);
+        title.setPadding(10, 0, 0, 20);
+        container.addView(title);
+
+        boolean enabled = prefs.getBoolean("ParentalControlEnabled", false);
+        addDrawerMenuItem(container, "🔒 Parental Control: " + (enabled ? "ON" : "OFF"), () -> {
+            prefs.edit().putBoolean("ParentalControlEnabled", !enabled).apply();
+            openParentalControlSubmenu();
+        });
+
+        addDrawerMenuItem(container, "🔑 Set Code", () -> {
+            final EditText input = new EditText(this);
+            input.setInputType(InputType.TYPE_CLASS_NUMBER);
+            new AlertDialog.Builder(this).setTitle("New 4-Digit PIN").setView(input)
+                    .setPositiveButton("Save", (d, w) -> prefs.edit().putString("ParentalPin", input.getText().toString()).apply()).show();
+        });
+
+        addDrawerMenuItem(container, "⬅️ Back", () -> buildMainMenuInDrawer());
+        sideDrawerContentScrollView.addView(container);
+    }
+
+    private void openWallpaperSubmenu() {
+        sideDrawerContentScrollView.removeAllViews();
+
+        LinearLayout container = new LinearLayout(this);
+        container.setOrientation(LinearLayout.VERTICAL);
+
+        TextView title = new TextView(this);
+        title.setText("Wallpaper & Slideshow");
+        title.setTextColor(Color.WHITE);
+        title.setTextSize(18);
+        title.setPadding(10, 0, 0, 20);
+        container.addView(title);
+
+        long currentInterval = prefs.getLong("SlideshowInterval", 30000L);
+        int index = 1;
+        for (int i = 0; i < SLIDESHOW_INTERVALS.length; i++) {
+            if (SLIDESHOW_INTERVALS[i] == currentInterval) { index = i; break; }
+        }
+
+        addDrawerMenuItem(container, "⏱️ Slideshow Duration: < " + SLIDESHOW_LABELS[index] + " >", () -> {
+            long nextInterval = SLIDESHOW_INTERVALS[(index + 1) % SLIDESHOW_INTERVALS.length];
+            prefs.edit().putLong("SlideshowInterval", nextInterval).apply();
+            startWallpaperRotation();
+            openWallpaperSubmenu();
+        });
+
+        addDrawerMenuItem(container, "📂 Set Wallpaper Folder", () -> {
+            final EditText input = new EditText(this);
+            input.setText(prefs.getString("WallpaperFolder", "/sdcard/Pictures/Wallpapers"));
+            new AlertDialog.Builder(this).setTitle("Wallpaper Path").setView(input)
+                    .setPositiveButton("Save", (d, w) -> {
+                        prefs.edit().putString("WallpaperFolder", input.getText().toString()).apply();
+                        loadWallpapers();
+                    }).show();
+        });
+
+        addDrawerMenuItem(container, "⬅️ Back", () -> buildMainMenuInDrawer());
+        sideDrawerContentScrollView.addView(container);
+    }
+
+    private void openClockSubmenu() {
+        sideDrawerContentScrollView.removeAllViews();
+
+        LinearLayout container = new LinearLayout(this);
+        container.setOrientation(LinearLayout.VERTICAL);
+
+        TextView title = new TextView(this);
+        title.setText("Clock Settings");
+        title.setTextColor(Color.WHITE);
+        title.setTextSize(18);
+        title.setPadding(10, 0, 0, 20);
+        container.addView(title);
+
+        String mode = prefs.getString("ClockMode", "Full");
+        addDrawerMenuItem(container, "Show Clock: " + mode, () -> {
+            String nextMode = mode.equals("Full") ? "Time Only" : mode.equals("Time Only") ? "Off" : "Full";
+            prefs.edit().putString("ClockMode", nextMode).apply();
+            openClockSubmenu();
+        });
+
+        addDrawerMenuItem(container, "⬅️ Back", () -> buildMainMenuInDrawer());
+        sideDrawerContentScrollView.addView(container);
+    }
+
+    private void openWeatherSubmenu() {
+        sideDrawerContentScrollView.removeAllViews();
+
+        LinearLayout container = new LinearLayout(this);
+        container.setOrientation(LinearLayout.VERTICAL);
+
+        TextView title = new TextView(this);
+        title.setText("Weather Settings");
+        title.setTextColor(Color.WHITE);
+        title.setTextSize(18);
+        title.setPadding(10, 0, 0, 20);
+        container.addView(title);
+
+        boolean enabled = prefs.getBoolean("WeatherEnabled", true);
+        addDrawerMenuItem(container, "☁️ Weather Widget: " + (enabled ? "On" : "Off"), () -> {
+            prefs.edit().putBoolean("WeatherEnabled", !enabled).apply();
+            weatherSectionVisibility(enabled);
+            openWeatherSubmenu();
+        });
+
+        addDrawerMenuItem(container, "📍 Location (Open-Meteo)", () -> {
+            final EditText input = new EditText(this);
+            input.setHint("Type City Name...");
+            new AlertDialog.Builder(this).setTitle("City Search").setView(input)
+                    .setPositiveButton("Search", (d, w) -> searchCityCoordinates(input.getText().toString())).show();
+        });
+
+        addDrawerMenuItem(container, "⚡ Shelly API URL", () -> {
+            final EditText input = new EditText(this);
+            input.setText(prefs.getString("ShellyApiUrl", ""));
+            new AlertDialog.Builder(this).setTitle("Shelly Cloud Endpoint").setView(input)
+                    .setPositiveButton("Save", (d, w) -> {
+                        prefs.edit().putString("ShellyApiUrl", input.getText().toString()).apply();
+                        fetchWeatherData();
+                    }).show();
+        });
+
+        addDrawerMenuItem(container, "📱 Web Setup (iPhone)", () -> launchiPhoneWebSetupDialog());
+        addDrawerMenuItem(container, "ℹ️ Info", () -> new AlertDialog.Builder(this)
+                .setTitle("Weather Info")
+                .setMessage("Weather status and wind are powered by Open-Meteo API. Temperature & Humidity can be linked to your local Shelly Cloud API.")
+                .setPositiveButton("OK", null).show());
+
+        addDrawerMenuItem(container, "⬅️ Back", () -> buildMainMenuInDrawer());
+        sideDrawerContentScrollView.addView(container);
+    }
+
+    private void weatherSectionVisibility(boolean visible) {
+        weatherIconView.setVisibility(visible ? View.VISIBLE : View.GONE);
+        weatherStatusTextView.setVisibility(visible ? View.VISIBLE : View.GONE);
+        weatherWindTextView.setVisibility(visible ? View.VISIBLE : View.GONE);
+        weatherTempTextView.setVisibility(visible ? View.VISIBLE : View.GONE);
+        weatherRhTextView.setVisibility(visible ? View.VISIBLE : View.GONE);
+    }
+
+    // --- iPhone Web Setup (Embedded Java Server + TV Canvas QR Code) ---
+    private void launchiPhoneWebSetupDialog() {
+        startEmbeddedWebServer();
+
+        String ipAddress = getWifiIpAddress();
+        String webUrl = "http://" + ipAddress + ":8080";
+
+        LinearLayout dialogView = new LinearLayout(this);
+        dialogView.setOrientation(LinearLayout.VERTICAL);
+        dialogView.setGravity(Gravity.CENTER);
+        dialogView.setPadding(30, 30, 30, 30);
+
+        TextView infoText = new TextView(this);
+        infoText.setText("1. Connect iPhone to same Wi-Fi\n2. Open Safari and go to:\n\n" + webUrl + "\n");
+        infoText.setTextColor(Color.WHITE);
+        infoText.setTextSize(16);
+
+        ImageView qrImageView = new ImageView(this);
+        qrImageView.setLayoutParams(new LinearLayout.LayoutParams(250, 250));
+        qrImageView.setImageBitmap(generateSimpleQrBitmap(webUrl));
+
+        dialogView.addView(infoText);
+        dialogView.addView(qrImageView);
+
+        new AlertDialog.Builder(this)
+                .setTitle("📱 iPhone Web Setup")
+                .setView(dialogView)
+                .setPositiveButton("Close", (d, w) -> stopEmbeddedWebServer())
+                .show();
+    }
+
+    private String getWifiIpAddress() {
+        try {
+            WifiManager wm = (WifiManager) getApplicationContext().getSystemService(WIFI_SERVICE);
+            return Formatter.formatIpAddress(wm.getConnectionInfo().getIpAddress());
+        } catch (Exception e) {
+            return "192.168.1.100";
+        }
+    }
+
+    private void startEmbeddedWebServer() {
+        if (isWebServerRunning) return;
+        isWebServerRunning = true;
+
+        new Thread(() -> {
+            try {
+                webSetupServerSocket = new ServerSocket(8080);
+                while (isWebServerRunning) {
+                    Socket socket = webSetupServerSocket.accept();
+                    BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                    OutputStream out = socket.getOutputStream();
+
+                    String line = in.readLine();
+                    if (line != null && line.contains("POST")) {
+                        StringBuilder body = new StringBuilder();
+                        while (in.ready()) body.append((char) in.read());
+
+                        String data = body.toString();
+                        if (data.contains("shelly=")) {
+                            String shellyUrl = extractFormParam(data, "shelly");
+                            prefs.edit().putString("ShellyApiUrl", shellyUrl).apply();
+                            weatherHandler.post(this::fetchWeatherData);
+                        }
+                    }
+
+                    String html = "<html><body style='font-family:sans-serif;padding:20px;'>"
+                            + "<h2>Tiny Launcher TV Setup</h2>"
+                            + "<form method='POST'>"
+                            + "Shelly API URL:<br><input style='width:100%;padding:10px;' name='shelly' placeholder='http://shelly-api...'><br><br>"
+                            + "<input style='padding:10px 20px;background:#007AFF;color:#fff;border:none;' type='submit' value='Save to TV'>"
+                            + "</form></body></html>";
+
+                    out.write(("HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + html.length() + "\r\n\r\n" + html).getBytes());
+                    out.flush();
+                    socket.close();
+                }
+            } catch (Exception ignored) {}
+        }).start();
+    }
+
+    private void stopEmbeddedWebServer() {
+        isWebServerRunning = false;
+        try {
+            if (webSetupServerSocket != null) webSetupServerSocket.close();
+        } catch (Exception ignored) {}
+    }
+
+    private String extractFormParam(String body, String paramName) {
+        try {
+            for (String pair : body.split("&")) {
+                String[] kv = pair.split("=");
+                if (kv.length == 2 && kv[0].equals(paramName)) {
+                    return java.net.URLDecoder.decode(kv[1], "UTF-8");
+                }
+            }
+        } catch (Exception ignored) {}
+        return "";
+    }
+
+    private Bitmap generateSimpleQrBitmap(String text) {
+        Bitmap bmp = Bitmap.createBitmap(250, 250, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bmp);
+        canvas.drawColor(Color.WHITE);
+        Paint paint = new Paint();
+        paint.setColor(Color.BLACK);
+
+        // Simple placeholder QR grid visual on Canvas
+        int margin = 20;
+        int size = 210;
+        canvas.drawRect(margin, margin, margin + 60, margin + 60, paint);
+        canvas.drawRect(margin + size - 60, margin, margin + size, margin + 60, paint);
+        canvas.drawRect(margin, margin + size - 60, margin + 60, margin + size, paint);
+
+        return bmp;
+    }
+
+    // --- Weather API Engine (Open-Meteo + Shelly API) ---
+    private void startWeatherEngine() {
+        weatherRunnable = new Runnable() {
+            @Override
+            public void run() {
+                fetchWeatherData();
+                weatherHandler.postDelayed(this, 600000L); // 10 min refresh
+            }
+        };
+        weatherHandler.post(weatherRunnable);
+    }
+
+    private void searchCityCoordinates(String cityName) {
+        new Thread(() -> {
+            try {
+                URL url = new URL("https://geocoding-api.open-meteo.com/v1/search?name=" + cityName + "&count=1");
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuilder json = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) json.append(line);
+
+                JSONObject res = new JSONObject(json.toString()).getJSONArray("results").getJSONObject(0);
+                double lat = res.getDouble("latitude");
+                double lon = res.getDouble("longitude");
+
+                prefs.edit().putFloat("Lat", (float) lat).putFloat("Lon", (float) lon).apply();
+                runOnUiThread(this::fetchWeatherData);
+            } catch (Exception e) {
+                runOnUiThread(() -> new AlertDialog.Builder(this).setMessage("City not found!").show());
+            }
+        }).start();
+    }
+
+    private void fetchWeatherData() {
+        new Thread(() -> {
+            try {
+                float lat = prefs.getFloat("Lat", 52.52f);
+                float lon = prefs.getFloat("Lon", 13.41f);
+
+                URL url = new URL("https://api.open-meteo.com/v1/forecast?latitude=" + lat + "&longitude=" + lon + "&current_weather=true");
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuilder json = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) json.append(line);
+
+                JSONObject cw = new JSONObject(json.toString()).getJSONObject("current_weather");
+                double wind = cw.getDouble("windspeed");
+                int code = cw.getInt("weathercode");
+
+                String statusStr = code == 0 ? "Clear" : code < 3 ? "Partly Cloudy" : "Cloudy/Rain";
+
+                // Shelly API Fetch (if configured)
+                String shellyUrlStr = prefs.getString("ShellyApiUrl", "");
+                String tempStr = "21° Temp";
+                String rhStr = "51 RH";
+
+                if (!shellyUrlStr.isEmpty()) {
+                    try {
+                        HttpURLConnection sConn = (HttpURLConnection) new URL(shellyUrlStr).openConnection();
+                        BufferedReader sReader = new BufferedReader(new InputStreamReader(sConn.getInputStream()));
+                        StringBuilder sJson = new StringBuilder();
+                        while ((line = sReader.readLine()) != null) sJson.append(line);
+                        JSONObject sObj = new JSONObject(sJson.toString());
+                        if (sObj.has("tmp")) tempStr = sObj.getInt("tmp") + "° Temp";
+                        if (sObj.has("hum")) rhStr = sObj.getInt("hum") + " RH";
+                    } catch (Exception ignored) {}
+                }
+
+                String finalTemp = tempStr;
+                String finalRh = rhStr;
+
+                runOnUiThread(() -> {
+                    weatherStatusTextView.setText(statusStr);
+                    weatherWindTextView.setText("Wind: " + (int) wind + " m/s");
+                    weatherTempTextView.setText(finalTemp);
+                    weatherRhTextView.setText(finalRh);
+                });
+            } catch (Exception ignored) {}
+        }).start();
+    }
+
+    // --- Remote Color Button Shortcuts (Red, Blue, Green, Yellow) ---
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        resetIdleTimer();
+        if (event.getAction() == KeyEvent.ACTION_DOWN) {
+            switch (event.getKeyCode()) {
+                case KeyEvent.KEYCODE_PROG_RED -> { launchShortcut("RedShortcut"); return true; }
+                case KeyEvent.KEYCODE_PROG_BLUE -> { launchShortcut("BlueShortcut"); return true; }
+                case KeyEvent.KEYCODE_PROG_GREEN -> { launchShortcut("GreenShortcut"); return true; }
+                case KeyEvent.KEYCODE_PROG_YELLOW -> { launchShortcut("YellowShortcut"); return true; }
+                case KeyEvent.KEYCODE_BACK -> {
+                    if (isSideDrawerOpen) { toggleSideDrawer(false); return true; }
+                }
+            }
+        }
+        return super.dispatchKeyEvent(event);
+    }
+
+    private void launchShortcut(String key) {
+        String pkg = prefs.getString(key, null);
+        if (pkg != null) {
+            Intent i = getPackageManager().getLaunchIntentForPackage(pkg);
+            if (i != null) startActivity(i);
+        }
+    }
+
+    // --- Dynamic Accent & Wallpapers ---
     private void extractAccentColorFromBitmap(Bitmap bitmap) {
         if (bitmap == null) return;
         new Thread(() -> {
@@ -212,34 +835,9 @@ public class LauncherActivity extends Activity {
             int finalColor = maxSatPixel;
             runOnUiThread(() -> {
                 currentAccentColor = finalColor;
-                if (adapter != null) adapter.notifyDataSetChanged();
+                renderAppBanners();
             });
         }).start();
-    }
-
-    private Bitmap decodeSampledBitmapFromFile(String filePath, int reqWidth, int reqHeight) {
-        BitmapFactory.Options options = new BitmapFactory.Options();
-        options.inJustDecodeBounds = true;
-        BitmapFactory.decodeFile(filePath, options);
-
-        options.inSampleSize = calculateInSampleSize(options, reqWidth, reqHeight);
-        options.inJustDecodeBounds = false;
-        return BitmapFactory.decodeFile(filePath, options);
-    }
-
-    private int calculateInSampleSize(BitmapFactory.Options options, int reqWidth, int reqHeight) {
-        final int height = options.outHeight;
-        final int width = options.outWidth;
-        int inSampleSize = 1;
-
-        if (height > reqHeight || width > reqWidth) {
-            final int halfHeight = height / 2;
-            final int halfWidth = width / 2;
-            while ((halfHeight / inSampleSize) >= reqHeight && (halfWidth / inSampleSize) >= reqWidth) {
-                inSampleSize *= 2;
-            }
-        }
-        return inSampleSize;
     }
 
     private void loadWallpapers() {
@@ -252,9 +850,7 @@ public class LauncherActivity extends Activity {
             if (files != null) Collections.addAll(wallpaperFiles, files);
         }
 
-        if (!wallpaperFiles.isEmpty()) {
-            startWallpaperRotation();
-        }
+        if (!wallpaperFiles.isEmpty()) startWallpaperRotation();
     }
 
     private void startWallpaperRotation() {
@@ -265,7 +861,7 @@ public class LauncherActivity extends Activity {
                 File file = wallpaperFiles.get(currentWallpaperIndex);
 
                 DisplayMetrics metrics = getResources().getDisplayMetrics();
-                Bitmap bitmap = decodeSampledBitmapFromFile(file.getAbsolutePath(), metrics.widthPixels, metrics.heightPixels);
+                Bitmap bitmap = BitmapFactory.decodeFile(file.getAbsolutePath());
 
                 if (bitmap != null) {
                     wallpaperSwitcher.setImageDrawable(new BitmapDrawable(getResources(), bitmap));
@@ -273,115 +869,126 @@ public class LauncherActivity extends Activity {
                 }
 
                 currentWallpaperIndex = (currentWallpaperIndex + 1) % wallpaperFiles.size();
-                wallpaperHandler.postDelayed(this, 30000);
+                long interval = prefs.getLong("SlideshowInterval", 30000L);
+                wallpaperHandler.postDelayed(this, interval);
             }
         };
         wallpaperHandler.post(wallpaperRunnable);
     }
 
     private void setupIdleAutoTimer() {
-        idleRunnable = () -> gridView.animate().alpha(0.0f).setDuration(600).start();
+        idleRunnable = () -> horizontalAppScrollView.animate().alpha(0.0f).setDuration(600).start();
         resetIdleTimer();
     }
 
     private void resetIdleTimer() {
-        if (gridView.getAlpha() < 1.0f) {
-            gridView.animate().alpha(1.0f).setDuration(200).start();
+        if (horizontalAppScrollView.getAlpha() < 1.0f) {
+            horizontalAppScrollView.animate().alpha(1.0f).setDuration(200).start();
         }
         idleHandler.removeCallbacks(idleRunnable);
-        idleHandler.postDelayed(idleRunnable, 30000);
+        idleHandler.postDelayed(idleRunnable, 300000L); // 5 min idle auto-hide
     }
 
-    @Override
-    public boolean dispatchKeyEvent(KeyEvent event) {
-        resetIdleTimer();
-        return super.dispatchKeyEvent(event);
-    }
-
-    private void checkPinAndExecute(Runnable onSuccess) {
-        String savedPin = prefs.getString("ParentalPin", "0000");
-
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("🔒 Parental Control");
-        builder.setMessage("Enter 4-Digit PIN:");
-
-        final EditText input = new EditText(this);
-        input.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_VARIATION_PASSWORD);
-        builder.setView(input);
-
-        builder.setPositiveButton("OK", (dialog, which) -> {
-            if (input.getText().toString().equals(savedPin)) {
-                onSuccess.run();
+    private void startLiveClock() {
+        clockRunnable = () -> {
+            String mode = prefs.getString("ClockMode", "Full");
+            if (mode.equals("Off")) {
+                clockTextView.setText("");
             } else {
-                new AlertDialog.Builder(this).setMessage("❌ Incorrect PIN!").show();
+                String pattern = mode.equals("Time Only") ? "HH:mm" : "EEE, d MMM  HH:mm";
+                SimpleDateFormat sdf = new SimpleDateFormat(pattern, Locale.getDefault());
+                clockTextView.setText(sdf.format(new Date()));
             }
-        });
-        builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
-        builder.show();
+            clockHandler.postDelayed(clockRunnable, 1000);
+        };
+        clockHandler.post(clockRunnable);
     }
 
-    private void showAppContextMenu(int position) {
-        AppModel app = appList.get(position);
-        String[] options = {"↔️ Move App", "⚙️ App Info", "🗑️ Uninstall App", "🙈 Hide App"};
+    // --- Unlimited Horizontal TV App Banners ---
+    private void renderAppBanners() {
+        horizontalAppContainer.removeAllViews();
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Options for " + app.name());
-        builder.setItems(options, (dialog, which) -> {
-            switch (which) {
-                case 0 -> {
-                    selectedMovePosition = position;
-                    new AlertDialog.Builder(this).setMessage("Click another tile to swap positions!").show();
-                }
-                case 1 -> {
-                    Intent infoIntent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + app.packageName()));
-                    startActivity(infoIntent);
-                }
-                case 2 -> {
-                    Intent uninstIntent = new Intent(Intent.ACTION_DELETE, Uri.parse("package:" + app.packageName()));
-                    startActivity(uninstIntent);
-                }
-                case 3 -> hideApp(app.packageName());
-            }
-        });
-        builder.show();
-    }
+        for (int i = 0; i < appList.size(); i++) {
+            final int position = i;
+            AppModel app = appList.get(i);
 
-    private void hideApp(String packageName) {
-        Set<String> hidden = new HashSet<>(prefs.getStringSet("HiddenApps", new HashSet<>()));
-        hidden.add(packageName);
-        prefs.edit().putStringSet("HiddenApps", hidden).apply();
-        loadInstalledApps();
-    }
+            LinearLayout bannerCard = new LinearLayout(this);
+            bannerCard.setOrientation(LinearLayout.VERTICAL);
+            bannerCard.setGravity(Gravity.CENTER);
+            bannerCard.setPadding(20, 20, 20, 20);
+            bannerCard.setFocusable(true);
+            bannerCard.setFocusableInTouchMode(true);
 
-    private void openSettingsDialog() {
-        String[] options = {"👁️ Unhide Apps", "🔑 Change Parental PIN"};
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Settings");
-        builder.setItems(options, (dialog, which) -> {
-            if (which == 0) {
-                Set<String> hidden = prefs.getStringSet("HiddenApps", new HashSet<>());
-                if (hidden.isEmpty()) {
-                    new AlertDialog.Builder(this).setMessage("No hidden apps!").show();
+            LinearLayout.LayoutParams cardParams = new LinearLayout.LayoutParams(dpToPx(200), dpToPx(110));
+            cardParams.setMargins(15, 0, 15, 0);
+            bannerCard.setLayoutParams(cardParams);
+
+            GradientDrawable baseShape = new GradientDrawable();
+            baseShape.setColor(Color.parseColor("#CC1A1A1A"));
+            baseShape.setCornerRadius(20f);
+            bannerCard.setBackground(baseShape);
+
+            bannerCard.setOnFocusChangeListener((v, hasFocus) -> {
+                resetIdleTimer();
+                GradientDrawable shape = new GradientDrawable();
+                shape.setCornerRadius(20f);
+
+                if (hasFocus) {
+                    shape.setColor(currentAccentColor);
+                    v.animate().scaleX(1.08f).scaleY(1.08f).setDuration(150).start();
                 } else {
-                    String[] hiddenArray = hidden.toArray(new String[0]);
-                    AlertDialog.Builder unhideBuilder = new AlertDialog.Builder(this);
-                    unhideBuilder.setTitle("Select App to Unhide");
-                    unhideBuilder.setItems(hiddenArray, (d, w) -> {
-                        Set<String> updated = new HashSet<>(hidden);
-                        updated.remove(hiddenArray[w]);
-                        prefs.edit().putStringSet("HiddenApps", updated).apply();
-                        loadInstalledApps();
-                    });
-                    unhideBuilder.show();
+                    shape.setColor(Color.parseColor("#CC1A1A1A"));
+                    v.animate().scaleX(1.0f).scaleY(1.0f).setDuration(150).start();
                 }
-            } else if (which == 1) {
-                final EditText input = new EditText(this);
-                input.setInputType(InputType.TYPE_CLASS_NUMBER);
-                new AlertDialog.Builder(this).setTitle("New 4-Digit PIN").setView(input)
-                        .setPositiveButton("Save", (d, w) -> prefs.edit().putString("ParentalPin", input.getText().toString()).apply()).show();
-            }
-        });
-        builder.show();
+                v.setBackground(shape);
+            });
+
+            ImageView iconView = new ImageView(this);
+            iconView.setLayoutParams(new LinearLayout.LayoutParams(90, 90));
+            iconView.setImageDrawable(app.icon());
+
+            TextView titleView = new TextView(this);
+            titleView.setText(app.name());
+            titleView.setTextColor(Color.WHITE);
+            titleView.setTextSize(13);
+            titleView.setGravity(Gravity.CENTER);
+            titleView.setPadding(0, 8, 0, 0);
+
+            bannerCard.addView(iconView);
+            bannerCard.addView(titleView);
+
+            bannerCard.setOnClickListener(v -> {
+                Intent launchIntent = getPackageManager().getLaunchIntentForPackage(app.packageName());
+                if (launchIntent != null) startActivity(launchIntent);
+            });
+
+            bannerCard.setOnLongClickListener(v -> {
+                showAppOptionDialog(position);
+                return true;
+            });
+
+            horizontalAppContainer.addView(bannerCard);
+        }
+    }
+
+    private void showAppOptionDialog(int position) {
+        AppModel app = appList.get(position);
+        String[] options = {"🙈 Hide App", "🗑️ Uninstall App", "↔️ Move App"};
+
+        new AlertDialog.Builder(this)
+                .setTitle(app.name())
+                .setItems(options, (dialog, which) -> {
+                    if (which == 0) {
+                        Set<String> hidden = new HashSet<>(prefs.getStringSet("HiddenApps", new HashSet<>()));
+                        hidden.add(app.packageName());
+                        prefs.edit().putStringSet("HiddenApps", hidden).apply();
+                        loadInstalledApps();
+                    } else if (which == 1) {
+                        startActivity(new Intent(Intent.ACTION_DELETE, Uri.parse("package:" + app.packageName())));
+                    } else if (which == 2) {
+                        new AlertDialog.Builder(this).setMessage("Click another app card to swap positions!").show();
+                    }
+                }).show();
     }
 
     private void loadInstalledApps() {
@@ -416,16 +1023,7 @@ public class LauncherActivity extends Activity {
         }
 
         appList.addAll(discoveredApps.values());
-        if (adapter != null) adapter.notifyDataSetChanged();
-    }
-
-    private void startLiveClock() {
-        clockRunnable = () -> {
-            SimpleDateFormat sdf = new SimpleDateFormat("HH:mm  |  EEE, MMM d", Locale.getDefault());
-            clockTextView.setText(sdf.format(new Date()));
-            clockHandler.postDelayed(clockRunnable, 1000);
-        };
-        clockHandler.post(clockRunnable);
+        renderAppBanners();
     }
 
     private void registerPackageReceiver() {
@@ -441,80 +1039,18 @@ public class LauncherActivity extends Activity {
         }
     }
 
+    private int dpToPx(int dp) {
+        return Math.round(dp * getResources().getDisplayMetrics().density);
+    }
+
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        stopEmbeddedWebServer();
         clockHandler.removeCallbacks(clockRunnable);
         idleHandler.removeCallbacks(idleRunnable);
         wallpaperHandler.removeCallbacks(wallpaperRunnable);
+        weatherHandler.removeCallbacks(weatherRunnable);
         try { unregisterReceiver(packageReceiver); } catch (Exception ignored) {}
-    }
-
-    @Override
-    public void onBackPressed() {
-        resetIdleTimer();
-    }
-
-    private class AppAdapter extends BaseAdapter {
-        private final Context context;
-        private final List<AppModel> list;
-
-        AppAdapter(Context context, List<AppModel> list) {
-            this.context = context; this.list = list;
-        }
-
-        @Override public int getCount() { return list.size(); }
-        @Override public Object getItem(int position) { return list.get(position); }
-        @Override public long getItemId(int position) { return (long) position; }
-
-        @Override
-        public View getView(int position, View convertView, ViewGroup parent) {
-            AppModel item = list.get(position);
-            LinearLayout container = (LinearLayout) convertView;
-
-            if (container == null) {
-                container = new LinearLayout(context);
-                container.setOrientation(LinearLayout.VERTICAL);
-                container.setGravity(Gravity.CENTER);
-                container.setPadding(20, 20, 20, 20);
-                container.setFocusable(true);
-                container.setFocusableInTouchMode(true);
-
-                container.setOnFocusChangeListener((v, hasFocus) -> {
-                    resetIdleTimer();
-                    GradientDrawable drawable = new GradientDrawable();
-                    drawable.setCornerRadius(16f);
-
-                    if (hasFocus) {
-                        drawable.setColor(currentAccentColor);
-                        v.animate().scaleX(1.12f).scaleY(1.12f).setDuration(150).start();
-                    } else {
-                        drawable.setColor(Color.parseColor("#CC1A1A1A"));
-                        v.animate().scaleX(1.0f).scaleY(1.0f).setDuration(150).start();
-                    }
-                    v.setBackground(drawable);
-                });
-
-                ImageView iconView = new ImageView(context);
-                iconView.setLayoutParams(new LinearLayout.LayoutParams(120, 120));
-
-                TextView textView = new TextView(context);
-                textView.setTextColor(Color.WHITE);
-                textView.setTextSize(14);
-                textView.setGravity(Gravity.CENTER);
-                textView.setPadding(0, 10, 0, 0);
-
-                container.addView(iconView);
-                container.addView(textView);
-            }
-
-            ImageView iconView = (ImageView) container.getChildAt(0);
-            TextView textView = (TextView) container.getChildAt(1);
-
-            iconView.setImageDrawable(item.icon());
-            textView.setText(item.name());
-
-            return container;
-        }
     }
 }

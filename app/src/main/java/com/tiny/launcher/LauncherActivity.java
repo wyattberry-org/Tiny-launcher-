@@ -480,10 +480,11 @@ public class LauncherActivity extends Activity {
         container.addView(title);
 
         long currentInterval = prefs.getLong("SlideshowInterval", 30000L);
-        int index = 1;
+        int currentIndex = 1;
         for (int i = 0; i < SLIDESHOW_INTERVALS.length; i++) {
-            if (SLIDESHOW_INTERVALS[i] == currentInterval) { index = i; break; }
+            if (SLIDESHOW_INTERVALS[i] == currentInterval) { currentIndex = i; break; }
         }
+        final int index = currentIndex;
 
         addDrawerMenuItem(container, "⏱️ Slideshow Duration: < " + SLIDESHOW_LABELS[index] + " >", () -> {
             long nextInterval = SLIDESHOW_INTERVALS[(index + 1) % SLIDESHOW_INTERVALS.length];

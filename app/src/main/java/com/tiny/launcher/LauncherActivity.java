@@ -945,7 +945,7 @@ public class LauncherActivity extends Activity {
 
             ImageView iconView = new ImageView(this);
             iconView.setLayoutParams(new LinearLayout.LayoutParams(90, 90));
-            iconView.setImageDrawable(app.icon());
+            iconView.setImageDrawable(getCustomDrawableForPackage(app.packageName(), app.icon()));
 
             TextView titleView = new TextView(this);
             titleView.setText(app.name());
@@ -1053,4 +1053,54 @@ public class LauncherActivity extends Activity {
         weatherHandler.removeCallbacks(weatherRunnable);
         try { unregisterReceiver(packageReceiver); } catch (Exception ignored) {}
     }
+
+    private android.graphics.drawable.Drawable getCustomDrawableForPackage(String pkg, android.graphics.drawable.Drawable fallback) {
+        if (pkg == null) return fallback;
+        String resName = null;
+        String p = pkg.toLowerCase();
+
+        if (p.contains("youtube.tv") || p.contains("smarttube")) resName = "ic_youtube_tv";
+        else if (p.contains("youtube.kids")) resName = "ic_youtube_kids";
+        else if (p.contains("youtube")) resName = "ic_youtube";
+        else if (p.contains("kodi")) resName = "ic_kodi";
+        else if (p.contains("stremio")) resName = "ic_stremio";
+        else if (p.contains("spotify")) resName = "ic_spotify";
+        else if (p.contains("tizentube")) resName = "ic_tizentube";
+        else if (p.contains("tivitime") || p.contains("tivi")) resName = "ic_tivitime";
+        else if (p.contains("streamflix")) resName = "ic_streamflix";
+        else if (p.contains("nova")) resName = "ic_nova_tv";
+        else if (p.contains("nuvio")) resName = "ic_nuvio";
+        else if (p.contains("weyd")) resName = "ic_weyd";
+        else if (p.contains("aptoide")) resName = "ic_aptoide_tv";
+        else if (p.contains("aurora")) resName = "ic_aurora_store";
+        else if (p.contains("play.store") || p.contains("vending")) resName = "ic_google_play_store";
+        else if (p.contains("cxinventor") || p.contains("cxfile")) resName = "ic_cx_file_explorer";
+        else if (p.contains("solidexplorer")) resName = "ic_solid_explorer";
+        else if (p.contains("estrongs") || p.contains("esfile")) resName = "ic_es_file_explorer";
+        else if (p.contains("xplore") || p.contains("lonelycat")) resName = "ic_xplore";
+        else if (p.contains("downloader")) resName = "ic_downloader";
+        else if (p.contains("buttonmapper")) resName = "ic_button_mapper";
+        else if (p.contains("projectivy")) resName = "ic_projectivy_launcher";
+        else if (p.contains("settings")) resName = "ic_settings_icon";
+        else if (p.contains("photos") || p.contains("gallery")) resName = "ic_google_photos";
+        else if (p.contains("synology")) resName = "ic_synology_photos";
+        else if (p.contains("immich")) resName = "ic_immich";
+        else if (p.contains("mxtech.videoplayer.pro")) resName = "ic_mx_player_pro";
+        else if (p.contains("mxtech.videoplayer")) resName = "ic_mx_player_tv";
+        else if (p.contains("nplayer")) resName = "ic_n_player";
+        else if (p.contains("nvplayer")) resName = "ic_nv_player";
+
+        if (resName != null) {
+            int resId = getResources().getIdentifier(resName, "drawable", getPackageName());
+            if (resId != 0) {
+                try {
+                    return getDrawable(resId);
+                } catch (Exception e) {
+                    // Fallback to default
+                }
+            }
+        }
+        return fallback;
+    }
+
 }

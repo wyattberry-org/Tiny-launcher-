@@ -905,7 +905,7 @@ public class LauncherActivity extends Activity {
     }
 
     // --- Unlimited Horizontal TV App Banners ---
-        private void renderAppBanners() {
+            private void renderAppBanners() {
         horizontalAppContainer.removeAllViews();
         for (int i = 0; i < appList.size(); i++) {
             final int position = i; AppModel app = appList.get(i);
@@ -913,15 +913,15 @@ public class LauncherActivity extends Activity {
             itemContainer.setOrientation(LinearLayout.VERTICAL);
             itemContainer.setGravity(Gravity.CENTER_HORIZONTAL);
             LinearLayout.LayoutParams itemParams = new LinearLayout.LayoutParams(-2, -2);
-            itemParams.setMargins(dpToPx(8), 0, dpToPx(8), dpToPx(22));
+            itemParams.setMargins(dpToPx(6), 0, dpToPx(6), dpToPx(8));
             itemContainer.setLayoutParams(itemParams);
 
             android.widget.FrameLayout bannerCard = new android.widget.FrameLayout(this);
             bannerCard.setFocusable(true); bannerCard.setFocusableInTouchMode(true);
-            bannerCard.setLayoutParams(new android.widget.FrameLayout.LayoutParams(dpToPx(160), dpToPx(90)));
+            bannerCard.setLayoutParams(new android.widget.FrameLayout.LayoutParams(dpToPx(140), dpToPx(79)));
             GradientDrawable baseShape = new GradientDrawable();
             baseShape.setColor(Color.parseColor("#CC1A1A1A"));
-            baseShape.setCornerRadius(dpToPx(10));
+            baseShape.setCornerRadius(dpToPx(8));
             bannerCard.setBackground(baseShape);
 
             ImageView iconView = new ImageView(this);
@@ -931,17 +931,19 @@ public class LauncherActivity extends Activity {
             bannerCard.addView(iconView);
 
             TextView titleView = new TextView(this);
-            titleView.setText(app.name()); titleView.setTextColor(Color.WHITE);
-            titleView.setTextSize(11); titleView.setGravity(Gravity.CENTER);
-            titleView.setSingleLine(true); titleView.setEllipsize(android.text.TextUtils.TruncateAt.END);
-            titleView.setPadding(0, dpToPx(6), 0, 0);
+            titleView.setText(app.name()); titleView.setTextColor(Color.YELLOW);
+            titleView.setTextSize(22); titleView.setTypeface(null, android.graphics.Typeface.BOLD);
+            titleView.setGravity(Gravity.CENTER); titleView.setSingleLine(true);
+            titleView.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            titleView.setPadding(0, dpToPx(12), 0, 0);
+            titleView.setVisibility(View.INVISIBLE);
 
             bannerCard.setOnFocusChangeListener((v, hasFocus) -> {
                 resetIdleTimer();
                 GradientDrawable shape = new GradientDrawable();
-                shape.setCornerRadius(dpToPx(10));
+                shape.setCornerRadius(dpToPx(8));
                 shape.setColor(hasFocus ? currentAccentColor : Color.parseColor("#CC1A1A1A"));
-                titleView.setTextColor(hasFocus ? Color.YELLOW : Color.WHITE);
+                titleView.setVisibility(hasFocus ? View.VISIBLE : View.INVISIBLE);
                 v.animate().scaleX(hasFocus ? 1.08f : 1.0f).scaleY(hasFocus ? 1.08f : 1.0f).setDuration(150).start();
                 v.setBackground(shape);
             });

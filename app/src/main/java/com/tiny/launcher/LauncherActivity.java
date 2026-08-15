@@ -28,7 +28,6 @@ import android.text.InputType;
 import android.text.format.Formatter;
 import android.util.DisplayMetrics;
 
-import com.google.android.gms.actions.ItemListIntents;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.View;

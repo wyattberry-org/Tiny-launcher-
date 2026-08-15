@@ -8,6 +8,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
@@ -23,12 +25,15 @@ jobs:
         with:
           gradle-version: '8.7'
 
-      - name: Build Debug APK
+      - name: Build APK (Signed with Debug Key)
         run: gradle assembleDebug --no-daemon
 
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
+      - name: Prepare APK Output
+        run: cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/TinyLauncher.apk
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
         with:
-          name: TinyLauncher-APK
-          path: app/build/outputs/apk/debug/*.apk
-          retention-days: 30
+          tag_name: v1.0.${{ github.run_number }}
+          name: TinyLauncher v1.0.${{ github.run_number }}
+          files: app/build/outputs/apk/debug/TinyLauncher.apk

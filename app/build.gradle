@@ -14,6 +14,22 @@ android {
         versionName "1.0"
     }
 
+    signingConfigs {
+        release {
+            storeFile file("release.keystore")
+            storePassword "tinylauncher"
+            keyAlias "tinylauncher"
+            keyPassword "tinylauncher"
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.release
+        }
+    }
+
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
@@ -21,5 +37,5 @@ android {
 }
 
 dependencies {
-    // 100% Pure Java - Zero Kotlin Dependencies
+    // 100% Pure Java - Zero Dependencies
 }

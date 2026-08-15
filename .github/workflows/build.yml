@@ -1,4 +1,4 @@
-name: Build TinyLauncher APK
+name: Build TinyLauncher Release APK
 
 on:
   push:
@@ -9,7 +9,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
@@ -25,15 +25,18 @@ jobs:
         with:
           gradle-version: '8.7'
 
-      - name: Build APK (Signed with Debug Key)
-        run: gradle assembleDebug --no-daemon
+      - name: Generate Release Keystore
+        run: |
+          keytool -genkey -v -keystore app/release.keystore -alias tinylauncher -keyalg RSA -keysize 2048 -validity 10000 -storepass tinylauncher -keypass tinylauncher -dname "CN=TinyLauncher, OU=Dev, O=Tiny, L=City, S=State, C=US"
+
+      - name: Build Signed Release APK
+        run: gradle assembleRelease --no-daemon
 
       - name: Prepare APK Output
-        run: cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/TinyLauncher.apk
+        run: cp app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/TinyLauncher.apk
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+      - name: Upload Release Artifact
+        uses: actions/upload-artifact@v4
         with:
-          tag_name: v1.0.${{ github.run_number }}
-          name: TinyLauncher v1.0.${{ github.run_number }}
-          files: app/build/outputs/apk/debug/TinyLauncher.apk
+          name: TinyLauncher-Release-APK
+          path: app/build/outputs/apk/release/TinyLauncher.apk

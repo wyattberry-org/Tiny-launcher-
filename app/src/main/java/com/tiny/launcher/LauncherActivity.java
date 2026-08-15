@@ -919,7 +919,7 @@ public class LauncherActivity extends Activity {
             bannerCard.setFocusable(true);
             bannerCard.setFocusableInTouchMode(true);
 
-            LinearLayout.LayoutParams cardParams = new LinearLayout.LayoutParams(dpToPx(200), dpToPx(110));
+            LinearLayout.LayoutParams cardParams = new LinearLayout.LayoutParams(dpToPx(180), dpToPx(101));
             cardParams.setMargins(15, 0, 15, 0);
             bannerCard.setLayoutParams(cardParams);
 

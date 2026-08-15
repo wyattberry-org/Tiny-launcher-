@@ -905,69 +905,55 @@ public class LauncherActivity extends Activity {
     }
 
     // --- Unlimited Horizontal TV App Banners ---
-    private void renderAppBanners() {
+        private void renderAppBanners() {
         horizontalAppContainer.removeAllViews();
-
         for (int i = 0; i < appList.size(); i++) {
-            final int position = i;
-            AppModel app = appList.get(i);
+            final int position = i; AppModel app = appList.get(i);
+            LinearLayout itemContainer = new LinearLayout(this);
+            itemContainer.setOrientation(LinearLayout.VERTICAL);
+            itemContainer.setGravity(Gravity.CENTER_HORIZONTAL);
+            LinearLayout.LayoutParams itemParams = new LinearLayout.LayoutParams(-2, -2);
+            itemParams.setMargins(dpToPx(8), 0, dpToPx(8), dpToPx(22));
+            itemContainer.setLayoutParams(itemParams);
 
-            LinearLayout bannerCard = new LinearLayout(this);
-            bannerCard.setOrientation(LinearLayout.VERTICAL);
-            bannerCard.setGravity(Gravity.CENTER);
-            bannerCard.setPadding(20, 20, 20, 20);
-            bannerCard.setFocusable(true);
-            bannerCard.setFocusableInTouchMode(true);
-
-            LinearLayout.LayoutParams cardParams = new LinearLayout.LayoutParams(dpToPx(180), dpToPx(101));
-            cardParams.setMargins(15, 0, 15, 0);
-            bannerCard.setLayoutParams(cardParams);
-
+            android.widget.FrameLayout bannerCard = new android.widget.FrameLayout(this);
+            bannerCard.setFocusable(true); bannerCard.setFocusableInTouchMode(true);
+            bannerCard.setLayoutParams(new android.widget.FrameLayout.LayoutParams(dpToPx(160), dpToPx(90)));
             GradientDrawable baseShape = new GradientDrawable();
             baseShape.setColor(Color.parseColor("#CC1A1A1A"));
-            baseShape.setCornerRadius(20f);
+            baseShape.setCornerRadius(dpToPx(10));
             bannerCard.setBackground(baseShape);
+
+            ImageView iconView = new ImageView(this);
+            iconView.setLayoutParams(new android.widget.FrameLayout.LayoutParams(-1, -1));
+            iconView.setScaleType(ImageView.ScaleType.FIT_XY);
+            iconView.setImageDrawable(getCustomDrawableForPackage(app.packageName(), app.icon()));
+            bannerCard.addView(iconView);
+
+            TextView titleView = new TextView(this);
+            titleView.setText(app.name()); titleView.setTextColor(Color.WHITE);
+            titleView.setTextSize(11); titleView.setGravity(Gravity.CENTER);
+            titleView.setSingleLine(true); titleView.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            titleView.setPadding(0, dpToPx(6), 0, 0);
 
             bannerCard.setOnFocusChangeListener((v, hasFocus) -> {
                 resetIdleTimer();
                 GradientDrawable shape = new GradientDrawable();
-                shape.setCornerRadius(20f);
-
-                if (hasFocus) {
-                    shape.setColor(currentAccentColor);
-                    v.animate().scaleX(1.08f).scaleY(1.08f).setDuration(150).start();
-                } else {
-                    shape.setColor(Color.parseColor("#CC1A1A1A"));
-                    v.animate().scaleX(1.0f).scaleY(1.0f).setDuration(150).start();
-                }
+                shape.setCornerRadius(dpToPx(10));
+                shape.setColor(hasFocus ? currentAccentColor : Color.parseColor("#CC1A1A1A"));
+                titleView.setTextColor(hasFocus ? Color.YELLOW : Color.WHITE);
+                v.animate().scaleX(hasFocus ? 1.08f : 1.0f).scaleY(hasFocus ? 1.08f : 1.0f).setDuration(150).start();
                 v.setBackground(shape);
             });
-
-            ImageView iconView = new ImageView(this);
-            iconView.setLayoutParams(new LinearLayout.LayoutParams(90, 90));
-            iconView.setImageDrawable(getCustomDrawableForPackage(app.packageName(), app.icon()));
-
-            TextView titleView = new TextView(this);
-            titleView.setText(app.name());
-            titleView.setTextColor(Color.WHITE);
-            titleView.setTextSize(13);
-            titleView.setGravity(Gravity.CENTER);
-            titleView.setPadding(0, 8, 0, 0);
-
-            bannerCard.addView(iconView);
-            bannerCard.addView(titleView);
 
             bannerCard.setOnClickListener(v -> {
                 Intent launchIntent = getPackageManager().getLaunchIntentForPackage(app.packageName());
                 if (launchIntent != null) startActivity(launchIntent);
             });
+            bannerCard.setOnLongClickListener(v -> { showAppOptionDialog(position); return true; });
 
-            bannerCard.setOnLongClickListener(v -> {
-                showAppOptionDialog(position);
-                return true;
-            });
-
-            horizontalAppContainer.addView(bannerCard);
+            itemContainer.addView(bannerCard); itemContainer.addView(titleView);
+            horizontalAppContainer.addView(itemContainer);
         }
     }
 

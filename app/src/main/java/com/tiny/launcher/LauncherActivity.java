@@ -77,6 +77,7 @@ public class LauncherActivity extends Activity {
     private ImageSwitcher wallpaperSwitcher;
     private HorizontalScrollView horizontalAppScrollView;
     private LinearLayout horizontalAppContainer;
+    private TextView drawerTitleView;
     private TextView clockTextView, weatherStatusTextView, weatherTempTextView, weatherRhTextView, weatherWindTextView;
     private ImageView weatherIconView, settingsGear;
     private LinearLayout topWidgetRow, sideDrawerContainer;
@@ -315,12 +316,12 @@ public class LauncherActivity extends Activity {
         shortcutPickerKey = null;
         sideDrawerContainer.removeAllViews();
 
-        TextView titleView = new TextView(this);
-        titleView.setText("Tiny Launcher");
-        titleView.setTextColor(Color.WHITE);
-        titleView.setTextSize(18);
-        titleView.setPadding(dpToPx(12), 0, 0, dpToPx(16));
-        sideDrawerContainer.addView(titleView);
+        drawerTitleView = new TextView(this);
+        drawerTitleView.setText("Tiny Launcher");
+        drawerTitleView.setTextColor(Color.WHITE);
+        drawerTitleView.setTextSize(18);
+        drawerTitleView.setPadding(dpToPx(12), 0, 0, dpToPx(16));
+        sideDrawerContainer.addView(drawerTitleView);
 
         View divider = new View(this);
         divider.setBackgroundColor(Color.parseColor("#33FFFFFF"));
@@ -505,12 +506,12 @@ public class LauncherActivity extends Activity {
         bg.setCornerRadius(dpToPx(12));
         menuView.setBackground(bg);
 
-        TextView titleView = new TextView(this);
+        drawerTitleView = new TextView(this);
         titleView.setText(appName);
-        titleView.setTextColor(Color.WHITE);
-        titleView.setTextSize(15);
+        drawerTitleView.setTextColor(Color.WHITE);
+        drawerTitleView.setTextSize(15);
         titleView.setGravity(Gravity.CENTER);
-        titleView.setPadding(0, dpToPx(4), 0, dpToPx(10));
+        drawerTitleView.setPadding(0, dpToPx(4), 0, dpToPx(10));
         menuView.addView(titleView);
 
         View divider = new View(this);
@@ -543,12 +544,12 @@ public class LauncherActivity extends Activity {
         isInSubmenu = true;
         sideDrawerContainer.removeAllViews();
 
-        TextView titleView = new TextView(this);
+        drawerTitleView = new TextView(this);
         titleView.setText("Manage apps");
-        titleView.setTextColor(Color.WHITE);
-        titleView.setTextSize(18);
-        titleView.setPadding(dpToPx(12), 0, 0, dpToPx(16));
-        sideDrawerContainer.addView(titleView);
+        drawerTitleView.setTextColor(Color.WHITE);
+        drawerTitleView.setTextSize(18);
+        drawerTitleView.setPadding(dpToPx(12), 0, 0, dpToPx(16));
+        sideDrawerContainer.addView(drawerTitleView);
 
         View divider = new View(this);
         divider.setBackgroundColor(Color.parseColor("#33FFFFFF"));
@@ -596,12 +597,12 @@ public class LauncherActivity extends Activity {
         shortcutPickerKey = null;
         sideDrawerContainer.removeAllViews();
 
-        TextView titleView = new TextView(this);
+        drawerTitleView = new TextView(this);
         titleView.setText("Button shortcuts");
-        titleView.setTextColor(Color.WHITE);
-        titleView.setTextSize(18);
-        titleView.setPadding(dpToPx(12), 0, 0, dpToPx(16));
-        sideDrawerContainer.addView(titleView);
+        drawerTitleView.setTextColor(Color.WHITE);
+        drawerTitleView.setTextSize(18);
+        drawerTitleView.setPadding(dpToPx(12), 0, 0, dpToPx(16));
+        sideDrawerContainer.addView(drawerTitleView);
 
         View divider = new View(this);
         divider.setBackgroundColor(Color.parseColor("#33FFFFFF"));
@@ -643,12 +644,12 @@ public class LauncherActivity extends Activity {
         shortcutPickerKey = key;
         sideDrawerContainer.removeAllViews();
 
-        TextView titleView = new TextView(this);
+        drawerTitleView = new TextView(this);
         titleView.setText("Select App");
-        titleView.setTextColor(Color.WHITE);
-        titleView.setTextSize(18);
-        titleView.setPadding(dpToPx(12), 0, 0, dpToPx(16));
-        sideDrawerContainer.addView(titleView);
+        drawerTitleView.setTextColor(Color.WHITE);
+        drawerTitleView.setTextSize(18);
+        drawerTitleView.setPadding(dpToPx(12), 0, 0, dpToPx(16));
+        sideDrawerContainer.addView(drawerTitleView);
 
         View divider = new View(this);
         divider.setBackgroundColor(Color.parseColor("#33FFFFFF"));
@@ -696,10 +697,10 @@ public class LauncherActivity extends Activity {
         bg.setCornerRadius(dpToPx(12));
         menuView.setBackground(bg);
 
-        TextView titleView = new TextView(this);
+        drawerTitleView = new TextView(this);
         titleView.setText("Parental Guard");
-        titleView.setTextColor(Color.WHITE);
-        titleView.setTextSize(16);
+        drawerTitleView.setTextColor(Color.WHITE);
+        drawerTitleView.setTextSize(16);
         titleView.setGravity(Gravity.CENTER);
         menuView.addView(titleView);
 
@@ -790,12 +791,12 @@ public class LauncherActivity extends Activity {
         isInSubmenu = true;
         sideDrawerContainer.removeAllViews();
 
-        TextView titleView = new TextView(this);
+        drawerTitleView = new TextView(this);
         titleView.setText("Parental control");
-        titleView.setTextColor(Color.WHITE);
-        titleView.setTextSize(18);
-        titleView.setPadding(dpToPx(12), 0, 0, dpToPx(16));
-        sideDrawerContainer.addView(titleView);
+        drawerTitleView.setTextColor(Color.WHITE);
+        drawerTitleView.setTextSize(18);
+        drawerTitleView.setPadding(dpToPx(12), 0, 0, dpToPx(16));
+        sideDrawerContainer.addView(drawerTitleView);
 
         View divider = new View(this);
         divider.setBackgroundColor(Color.parseColor("#33FFFFFF"));
@@ -841,7 +842,7 @@ public class LauncherActivity extends Activity {
     private void openWallpaperSubmenu() {
         sideDrawerContentScrollView.removeAllViews();
         LinearLayout container = new LinearLayout(this); container.setOrientation(LinearLayout.VERTICAL);
-        TextView title = new TextView(this); title.setText("Wallpaper/slideshow"); title.setTextColor(Color.WHITE); title.setTextSize(18); title.setPadding(dpToPx(12), 0, 0, dpToPx(16)); container.addView(title);
+        if (drawerTitleView != null) drawerTitleView.setText("Wallpaper/slideshow");
         addDrawerMenuItem(container, "Set wallpaper", () -> { try { startActivity(Intent.createChooser(new Intent(Intent.ACTION_SET_WALLPAPER), "Set Wallpaper")); } catch (Exception ignored) {} });
         addDrawerMenuItem(container, "Slideshow folder", () -> { final EditText input = new EditText(this); input.setText(prefs.getString("WallpaperFolder", "/sdcard/Pictures/Wallpapers")); new AlertDialog.Builder(this).setTitle("Wallpaper Path").setView(input).setPositiveButton("Save", (d, w) -> { prefs.edit().putString("WallpaperFolder", input.getText().toString()).apply(); loadWallpapers(); }).show(); });
         long curInt = prefs.getLong("SlideshowInterval", 30000L); int idx = 1; for (int i = 0; i < SLIDESHOW_INTERVALS.length; i++) { if (SLIDESHOW_INTERVALS[i] == curInt) { idx = i; break; } } final int nextIdx = (idx + 1) % SLIDESHOW_INTERVALS.length;
@@ -1355,11 +1356,11 @@ public class LauncherActivity extends Activity {
             iconView.setImageDrawable(getCustomDrawableForPackage(app.packageName(), app.icon()));
             bannerCard.addView(iconView);
 
-            TextView titleView = new TextView(this);
-            titleView.setText(app.name()); titleView.setTextColor(Color.WHITE);
-            titleView.setTextSize(14); titleView.setGravity(Gravity.CENTER);
+            drawerTitleView = new TextView(this);
+            titleView.setText(app.name()); drawerTitleView.setTextColor(Color.WHITE);
+            drawerTitleView.setTextSize(14); titleView.setGravity(Gravity.CENTER);
             titleView.setSingleLine(true); titleView.setEllipsize(android.text.TextUtils.TruncateAt.END);
-            titleView.setPadding(0, dpToPx(28), 0, 0);
+            drawerTitleView.setPadding(0, dpToPx(28), 0, 0);
             titleView.setVisibility(View.INVISIBLE);
 
             itemContainer.setClipChildren(false);

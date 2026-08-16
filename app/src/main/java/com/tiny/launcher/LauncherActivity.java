@@ -103,6 +103,7 @@ public class LauncherActivity extends Activity {
     private final List<File> wallpaperFiles = new ArrayList<>();
     private int currentWallpaperIndex = 0;
     private boolean isSideDrawerOpen = false;
+    private boolean isInSubmenu = false;
     private ServerSocket webSetupServerSocket;
     private boolean isWebServerRunning = false;
 
@@ -302,6 +303,7 @@ public class LauncherActivity extends Activity {
     }
 
     private void buildMainMenuInDrawer() {
+        isInSubmenu = false;
         sideDrawerContainer.removeAllViews();
 
         TextView titleView = new TextView(this);
@@ -438,18 +440,119 @@ public class LauncherActivity extends Activity {
         sideDrawerContentScrollView.addView(container);
     }
 
+    private void addDrawerAppItem(LinearLayout container, Drawable iconDrawable, String title, java.util.function.Consumer<View> onClick) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(dpToPx(12), dpToPx(10), dpToPx(12), dpToPx(10));
+        row.setFocusable(true);
+        row.setFocusableInTouchMode(true);
+
+        ImageView iconView = new ImageView(this);
+        iconView.setImageDrawable(iconDrawable);
+        iconView.setLayoutParams(new LinearLayout.LayoutParams(dpToPx(22), dpToPx(22)));
+        iconView.setScaleType(ImageView.ScaleType.FIT_CENTER);
+
+        LinearLayout iconFrame = new LinearLayout(this);
+        iconFrame.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
+        iconFrame.setLayoutParams(new LinearLayout.LayoutParams(dpToPx(28), ViewGroup.LayoutParams.WRAP_CONTENT));
+        iconFrame.addView(iconView);
+
+        TextView label = new TextView(this);
+        label.setText(title);
+        label.setTextColor(Color.WHITE);
+        label.setTextSize(14);
+        label.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
+
+        row.addView(iconFrame);
+        row.addView(label);
+
+        row.setOnFocusChangeListener((v, hasFocus) -> {
+            if (hasFocus) {
+                GradientDrawable shape = new GradientDrawable();
+                shape.setColor(currentAccentColor);
+                shape.setCornerRadius(dpToPx(8));
+                v.setBackground(shape);
+            } else {
+                v.setBackgroundColor(Color.TRANSPARENT);
+            }
+        });
+
+        row.setOnClickListener(v -> onClick.accept(v));
+        container.addView(row);
+    }
+
+    private void showHiddenAppOptionMenu(String pkg, String appName, View anchorView) {
+        LinearLayout menuView = new LinearLayout(this);
+        menuView.setOrientation(LinearLayout.VERTICAL);
+        menuView.setPadding(dpToPx(10), dpToPx(10), dpToPx(10), dpToPx(10));
+
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(Color.parseColor("#1A1D24"));
+        bg.setCornerRadius(dpToPx(12));
+        menuView.setBackground(bg);
+
+        TextView titleView = new TextView(this);
+        titleView.setText(appName);
+        titleView.setTextColor(Color.WHITE);
+        titleView.setTextSize(15);
+        titleView.setGravity(Gravity.CENTER);
+        titleView.setPadding(0, dpToPx(4), 0, dpToPx(10));
+        menuView.addView(titleView);
+
+        View divider = new View(this);
+        divider.setBackgroundColor(Color.parseColor("#33FFFFFF"));
+        divider.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(1)));
+        menuView.addView(divider);
+
+        android.widget.PopupWindow popup = new android.widget.PopupWindow(
+                menuView, dpToPx(180), ViewGroup.LayoutParams.WRAP_CONTENT, true);
+        popup.setElevation(dpToPx(12));
+        popup.setOutsideTouchable(true);
+
+        addPopupMenuItem(menuView, "▶", "Open App", () -> {
+            Intent i = getPackageManager().getLaunchIntentForPackage(pkg);
+            if (i != null) startActivity(i);
+        }, popup);
+
+        addPopupMenuItem(menuView, "👁", "Unhide App", () -> {
+            Set<String> hidden = new HashSet<>(prefs.getStringSet("HiddenApps", new HashSet<>()));
+            hidden.remove(pkg);
+            prefs.edit().putStringSet("HiddenApps", hidden).apply();
+            loadInstalledApps();
+            openManageAppsSubmenu();
+        }, popup);
+
+        popup.showAtLocation(anchorView, Gravity.CENTER, 0, 0);
+    }
+
     private void openManageAppsSubmenu() {
-        sideDrawerContentScrollView.removeAllViews();
+        isInSubmenu = true;
+        sideDrawerContainer.removeAllViews();
+
+        TextView titleView = new TextView(this);
+        titleView.setText("Manage apps");
+        titleView.setTextColor(Color.WHITE);
+        titleView.setTextSize(18);
+        titleView.setPadding(dpToPx(12), 0, 0, dpToPx(16));
+        sideDrawerContainer.addView(titleView);
+
+        View divider = new View(this);
+        divider.setBackgroundColor(Color.parseColor("#33FFFFFF"));
+        divider.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(1)));
+        sideDrawerContainer.addView(divider);
+
+        View topSpacer = new View(this);
+        topSpacer.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(8)));
+        sideDrawerContainer.addView(topSpacer);
+
+        sideDrawerContentScrollView = new ScrollView(this);
+        sideDrawerContentScrollView.setVerticalScrollBarEnabled(false);
+        sideDrawerContentScrollView.setLayoutParams(new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1.0f));
 
         LinearLayout container = new LinearLayout(this);
         container.setOrientation(LinearLayout.VERTICAL);
-
-        TextView title = new TextView(this);
-        title.setText("Manage apps");
-        title.setTextColor(Color.WHITE);
-        title.setTextSize(18);
-        title.setPadding(10, 0, 0, 20);
-        container.addView(title);
 
         Set<String> hidden = prefs.getStringSet("HiddenApps", new HashSet<>());
 
@@ -457,34 +560,22 @@ public class LauncherActivity extends Activity {
             TextView emptyText = new TextView(this);
             emptyText.setText("No hidden apps.");
             emptyText.setTextColor(Color.GRAY);
-            emptyText.setPadding(20, 20, 20, 20);
+            emptyText.setTextSize(14);
+            emptyText.setPadding(dpToPx(12), dpToPx(16), dpToPx(12), dpToPx(16));
             container.addView(emptyText);
         } else {
             PackageManager pm = getPackageManager();
             for (String pkg : hidden) {
                 try {
                     String appName = pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0)).toString();
-                    addDrawerMenuItem(container, appName, () -> {
-                        new AlertDialog.Builder(this)
-                                .setTitle(appName)
-                                .setPositiveButton("Open", (d, w) -> {
-                                    Intent i = pm.getLaunchIntentForPackage(pkg);
-                                    if (i != null) startActivity(i);
-                                })
-                                .setNegativeButton("Unhide", (d, w) -> {
-                                    Set<String> updated = new HashSet<>(hidden);
-                                    updated.remove(pkg);
-                                    prefs.edit().putStringSet("HiddenApps", updated).apply();
-                                    loadInstalledApps();
-                                    openManageAppsSubmenu();
-                                }).show();
-                    });
+                    Drawable appIcon = pm.getApplicationIcon(pkg);
+                    addDrawerAppItem(container, appIcon, appName, (anchor) -> showHiddenAppOptionMenu(pkg, appName, anchor));
                 } catch (Exception ignored) {}
             }
         }
 
-        addDrawerMenuItem(container, "⬅️ Back", () -> buildMainMenuInDrawer());
         sideDrawerContentScrollView.addView(container);
+        sideDrawerContainer.addView(sideDrawerContentScrollView);
     }
 
     private void openButtonShortcutsSubmenu() {
@@ -891,7 +982,14 @@ public class LauncherActivity extends Activity {
                 case KeyEvent.KEYCODE_PROG_GREEN -> { launchShortcut("GreenShortcut"); return true; }
                 case KeyEvent.KEYCODE_PROG_YELLOW -> { launchShortcut("YellowShortcut"); return true; }
                 case KeyEvent.KEYCODE_BACK -> {
-                    if (isSideDrawerOpen) { toggleSideDrawer(false); return true; }
+                    if (isSideDrawerOpen) {
+                        if (isInSubmenu) {
+                            buildMainMenuInDrawer();
+                        } else {
+                            toggleSideDrawer(false);
+                        }
+                        return true;
+                    }
                 }
             }
         }

@@ -840,42 +840,14 @@ public class LauncherActivity extends Activity {
 
     private void openWallpaperSubmenu() {
         sideDrawerContentScrollView.removeAllViews();
-
-        LinearLayout container = new LinearLayout(this);
-        container.setOrientation(LinearLayout.VERTICAL);
-
-        TextView title = new TextView(this);
-        title.setText("Wallpaper & Slideshow");
-        title.setTextColor(Color.WHITE);
-        title.setTextSize(18);
-        title.setPadding(10, 0, 0, 20);
-        container.addView(title);
-
-        long currentInterval = prefs.getLong("SlideshowInterval", 30000L);
-        int currentIndex = 1;
-        for (int i = 0; i < SLIDESHOW_INTERVALS.length; i++) {
-            if (SLIDESHOW_INTERVALS[i] == currentInterval) { currentIndex = i; break; }
-        }
-        final int index = currentIndex;
-
-        addDrawerMenuItem(container, "⏱️ Slideshow Duration: < " + SLIDESHOW_LABELS[index] + " >", () -> {
-            long nextInterval = SLIDESHOW_INTERVALS[(index + 1) % SLIDESHOW_INTERVALS.length];
-            prefs.edit().putLong("SlideshowInterval", nextInterval).apply();
-            startWallpaperRotation();
-            openWallpaperSubmenu();
-        });
-
-        addDrawerMenuItem(container, "📂 Set Wallpaper Folder", () -> {
-            final EditText input = new EditText(this);
-            input.setText(prefs.getString("WallpaperFolder", "/sdcard/Pictures/Wallpapers"));
-            new AlertDialog.Builder(this).setTitle("Wallpaper Path").setView(input)
-                    .setPositiveButton("Save", (d, w) -> {
-                        prefs.edit().putString("WallpaperFolder", input.getText().toString()).apply();
-                        loadWallpapers();
-                    }).show();
-        });
-
-        addDrawerMenuItem(container, "⬅️", "Back", () -> buildMainMenuInDrawer());
+        LinearLayout container = new LinearLayout(this); container.setOrientation(LinearLayout.VERTICAL);
+        TextView title = new TextView(this); title.setText("Wallpapers/slideshow"); title.setTextColor(Color.WHITE); title.setTextSize(18); title.setPadding(dpToPx(12), 0, 0, dpToPx(16)); container.addView(title);
+        addDrawerMenuItem(container, "Set wallpaper", () -> { try { startActivity(Intent.createChooser(new Intent(Intent.ACTION_SET_WALLPAPER), "Set Wallpaper")); } catch (Exception ignored) {} });
+        addDrawerMenuItem(container, "Slideshow folder", () -> { final EditText input = new EditText(this); input.setText(prefs.getString("WallpaperFolder", "/sdcard/Pictures/Wallpapers")); new AlertDialog.Builder(this).setTitle("Wallpaper Path").setView(input).setPositiveButton("Save", (d, w) -> { prefs.edit().putString("WallpaperFolder", input.getText().toString()).apply(); loadWallpapers(); }).show(); });
+        long curInt = prefs.getLong("SlideshowInterval", 30000L); int idx = 1; for (int i = 0; i < SLIDESHOW_INTERVALS.length; i++) { if (SLIDESHOW_INTERVALS[i] == curInt) { idx = i; break; } } final int nextIdx = (idx + 1) % SLIDESHOW_INTERVALS.length;
+        addDrawerMenuItem(container, "Slideshow duration: " + SLIDESHOW_LABELS[idx], () -> { prefs.edit().putLong("SlideshowInterval", SLIDESHOW_INTERVALS[nextIdx]).apply(); startWallpaperRotation(); openWallpaperSubmenu(); });
+        boolean hideIdle = prefs.getBoolean("HideUiWhenIdle", true); addDrawerMenuItem(container, "Hide UI when idle: " + (hideIdle ? "On" : "Off"), () -> { prefs.edit().putBoolean("HideUiWhenIdle", !hideIdle).apply(); openWallpaperSubmenu(); });
+        boolean chgRst = prefs.getBoolean("ChangeEachRestart", false); addDrawerMenuItem(container, "Change each restart: " + (chgRst ? "On" : "Off"), () -> { prefs.edit().putBoolean("ChangeEachRestart", !chgRst).apply(); openWallpaperSubmenu(); });
         sideDrawerContentScrollView.addView(container);
     }
 

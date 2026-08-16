@@ -526,6 +526,58 @@ public class LauncherActivity extends Activity {
         popup.showAtLocation(anchorView, Gravity.CENTER, 0, 0);
     }
 
+    private void openManageAppsSubmenu() {
+        isInSubmenu = true;
+        sideDrawerContainer.removeAllViews();
+
+        TextView titleView = new TextView(this);
+        titleView.setText("Manage apps");
+        titleView.setTextColor(Color.WHITE);
+        titleView.setTextSize(18);
+        titleView.setPadding(dpToPx(12), 0, 0, dpToPx(16));
+        sideDrawerContainer.addView(titleView);
+
+        View divider = new View(this);
+        divider.setBackgroundColor(Color.parseColor("#33FFFFFF"));
+        divider.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(1)));
+        sideDrawerContainer.addView(divider);
+
+        View topSpacer = new View(this);
+        topSpacer.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(8)));
+        sideDrawerContainer.addView(topSpacer);
+
+        sideDrawerContentScrollView = new ScrollView(this);
+        sideDrawerContentScrollView.setVerticalScrollBarEnabled(false);
+        sideDrawerContentScrollView.setLayoutParams(new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1.0f));
+
+        LinearLayout container = new LinearLayout(this);
+        container.setOrientation(LinearLayout.VERTICAL);
+
+        Set<String> hidden = prefs.getStringSet("HiddenApps", new HashSet<>());
+
+        if (hidden.isEmpty()) {
+            TextView emptyText = new TextView(this);
+            emptyText.setText("No hidden apps.");
+            emptyText.setTextColor(Color.GRAY);
+            emptyText.setTextSize(14);
+            emptyText.setPadding(dpToPx(12), dpToPx(16), dpToPx(12), dpToPx(16));
+            container.addView(emptyText);
+        } else {
+            PackageManager pm = getPackageManager();
+            for (String pkg : hidden) {
+                try {
+                    String appName = pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0)).toString();
+                    Drawable appIcon = pm.getApplicationIcon(pkg);
+                    addDrawerAppItem(container, appIcon, appName, (anchor) -> showHiddenAppOptionMenu(pkg, appName, anchor));
+                } catch (Exception ignored) {}
+            }
+        }
+
+        sideDrawerContentScrollView.addView(container);
+        sideDrawerContainer.addView(sideDrawerContentScrollView);
+    }
+
     private void openButtonShortcutsSubmenu() {
         sideDrawerContentScrollView.removeAllViews();
 

@@ -965,31 +965,93 @@ public class LauncherActivity extends Activity {
                 Intent launchIntent = getPackageManager().getLaunchIntentForPackage(app.packageName());
                 if (launchIntent != null) startActivity(launchIntent);
             });
-            bannerCard.setOnLongClickListener(v -> { showAppOptionDialog(position); return true; });
+            bannerCard.setOnLongClickListener(v -> { showAppOptionDialog(position, v); return true; });
 
             itemContainer.addView(bannerCard); itemContainer.addView(titleView);
             horizontalAppContainer.addView(itemContainer);
         }
     }
 
-    private void showAppOptionDialog(int position) {
-        AppModel app = appList.get(position);
-        String[] options = {"🙈 Hide App", "🗑️ Uninstall App", "↔️ Move App"};
+        private void addPopupMenuItem(LinearLayout container, String title, Runnable onClick, android.widget.PopupWindow popup) {
+        TextView item = new TextView(this);
+        item.setText(title);
+        item.setTextColor(Color.WHITE);
+        item.setTextSize(12);
+        item.setPadding(dpToPx(10), dpToPx(8), dpToPx(10), dpToPx(8));
+        item.setFocusable(true);
+        item.setFocusableInTouchMode(true);
+        item.setSingleLine(true);
+        item.setEllipsize(android.text.TextUtils.TruncateAt.END);
 
-        new AlertDialog.Builder(this)
-                .setTitle(app.name())
-                .setItems(options, (dialog, which) -> {
-                    if (which == 0) {
-                        Set<String> hidden = new HashSet<>(prefs.getStringSet("HiddenApps", new HashSet<>()));
-                        hidden.add(app.packageName());
-                        prefs.edit().putStringSet("HiddenApps", hidden).apply();
-                        loadInstalledApps();
-                    } else if (which == 1) {
-                        startActivity(new Intent(Intent.ACTION_DELETE, Uri.parse("package:" + app.packageName())));
-                    } else if (which == 2) {
-                        new AlertDialog.Builder(this).setMessage("Click another app card to swap positions!").show();
-                    }
-                }).show();
+        item.setOnFocusChangeListener((v, hasFocus) -> {
+            GradientDrawable focusShape = new GradientDrawable();
+            focusShape.setCornerRadius(dpToPx(8));
+            focusShape.setColor(hasFocus ? currentAccentColor : Color.TRANSPARENT);
+            v.setBackground(focusShape);
+        });
+
+        item.setOnClickListener(v -> {
+            popup.dismiss();
+            onClick.run();
+        });
+
+        container.addView(item);
+    }
+
+    private void showAppOptionDialog(int position, View anchorView) {
+        AppModel app = appList.get(position);
+
+        LinearLayout menuView = new LinearLayout(this);
+        menuView.setOrientation(LinearLayout.VERTICAL);
+        menuView.setPadding(dpToPx(6), dpToPx(6), dpToPx(6), dpToPx(6));
+
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(Color.parseColor("#1A1D24"));
+        bg.setCornerRadius(dpToPx(12));
+        bg.setStroke(dpToPx(1), Color.parseColor("#33FFFFFF"));
+        menuView.setBackground(bg);
+
+        android.widget.PopupWindow popup = new android.widget.PopupWindow(
+                menuView, dpToPx(160), ViewGroup.LayoutParams.WRAP_CONTENT, true);
+        popup.setElevation(dpToPx(12));
+        popup.setOutsideTouchable(true);
+
+        addPopupMenuItem(menuView, "⊘  Hide App", () -> {
+            Set<String> hidden = new HashSet<>(prefs.getStringSet("HiddenApps", new HashSet<>()));
+            hidden.add(app.packageName());
+            prefs.edit().putStringSet("HiddenApps", hidden).apply();
+            loadInstalledApps();
+        }, popup);
+
+        addPopupMenuItem(menuView, "ⓘ  App Info", () -> {
+            Intent intent = new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+            intent.setData(Uri.parse("package:" + app.packageName()));
+            startActivity(intent);
+        }, popup);
+
+        addPopupMenuItem(menuView, "🗑  Uninstall App", () -> {
+            startActivity(new Intent(Intent.ACTION_DELETE, Uri.parse("package:" + app.packageName())));
+        }, popup);
+
+        addPopupMenuItem(menuView, "🖼  Replace Banner", () -> {
+            openManageAppsSubmenu();
+            toggleSideDrawer(true);
+        }, popup);
+
+        addPopupMenuItem(menuView, "⇄  Move App", () -> {
+            Toast.makeText(this, "Click another tile to swap positions", Toast.LENGTH_SHORT).show();
+        }, popup);
+
+        menuView.measure(View.MeasureSpec.makeMeasureSpec(dpToPx(160), View.MeasureSpec.EXACTLY),
+                         View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+        int popupHeight = menuView.getMeasuredHeight();
+
+        int[] location = new int[2];
+        anchorView.getLocationOnScreen(location);
+        int popupX = location[0] + (anchorView.getWidth() - dpToPx(160)) / 2;
+        int popupY = location[1] - popupHeight - dpToPx(8);
+
+        popup.showAtLocation(anchorView, Gravity.NO_GRAVITY, popupX, popupY);
     }
 
     private void loadInstalledApps() {

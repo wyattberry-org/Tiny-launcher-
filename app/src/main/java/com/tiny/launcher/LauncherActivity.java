@@ -377,7 +377,7 @@ public class LauncherActivity extends Activity {
         row.setOnFocusChangeListener((v, hasFocus) -> {
             if (hasFocus) {
                 GradientDrawable shape = new GradientDrawable();
-                shape.setColor(currentAccentColor);
+                shape.setColor(Color.parseColor("#333842"));
                 shape.setCornerRadius(dpToPx(8));
                 v.setBackground(shape);
             } else {
@@ -470,7 +470,7 @@ public class LauncherActivity extends Activity {
         row.setOnFocusChangeListener((v, hasFocus) -> {
             if (hasFocus) {
                 GradientDrawable shape = new GradientDrawable();
-                shape.setColor(currentAccentColor);
+                shape.setColor(Color.parseColor("#333842"));
                 shape.setCornerRadius(dpToPx(8));
                 v.setBackground(shape);
             } else {
@@ -510,12 +510,12 @@ public class LauncherActivity extends Activity {
         popup.setElevation(dpToPx(12));
         popup.setOutsideTouchable(true);
 
-        addPopupMenuItem(menuView, "▶", "Open App", () -> {
+        addPopupMenuItem(menuView, "►", "Open App", () -> {
             Intent i = getPackageManager().getLaunchIntentForPackage(pkg);
             if (i != null) startActivity(i);
         }, popup);
 
-        addPopupMenuItem(menuView, "👁", "Unhide App", () -> {
+        addPopupMenuItem(menuView, "⧉", "Unhide App", () -> {
             Set<String> hidden = new HashSet<>(prefs.getStringSet("HiddenApps", new HashSet<>()));
             hidden.remove(pkg);
             prefs.edit().putStringSet("HiddenApps", hidden).apply();
@@ -524,58 +524,6 @@ public class LauncherActivity extends Activity {
         }, popup);
 
         popup.showAtLocation(anchorView, Gravity.CENTER, 0, 0);
-    }
-
-    private void openManageAppsSubmenu() {
-        isInSubmenu = true;
-        sideDrawerContainer.removeAllViews();
-
-        TextView titleView = new TextView(this);
-        titleView.setText("Manage apps");
-        titleView.setTextColor(Color.WHITE);
-        titleView.setTextSize(18);
-        titleView.setPadding(dpToPx(12), 0, 0, dpToPx(16));
-        sideDrawerContainer.addView(titleView);
-
-        View divider = new View(this);
-        divider.setBackgroundColor(Color.parseColor("#33FFFFFF"));
-        divider.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(1)));
-        sideDrawerContainer.addView(divider);
-
-        View topSpacer = new View(this);
-        topSpacer.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(8)));
-        sideDrawerContainer.addView(topSpacer);
-
-        sideDrawerContentScrollView = new ScrollView(this);
-        sideDrawerContentScrollView.setVerticalScrollBarEnabled(false);
-        sideDrawerContentScrollView.setLayoutParams(new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1.0f));
-
-        LinearLayout container = new LinearLayout(this);
-        container.setOrientation(LinearLayout.VERTICAL);
-
-        Set<String> hidden = prefs.getStringSet("HiddenApps", new HashSet<>());
-
-        if (hidden.isEmpty()) {
-            TextView emptyText = new TextView(this);
-            emptyText.setText("No hidden apps.");
-            emptyText.setTextColor(Color.GRAY);
-            emptyText.setTextSize(14);
-            emptyText.setPadding(dpToPx(12), dpToPx(16), dpToPx(12), dpToPx(16));
-            container.addView(emptyText);
-        } else {
-            PackageManager pm = getPackageManager();
-            for (String pkg : hidden) {
-                try {
-                    String appName = pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0)).toString();
-                    Drawable appIcon = pm.getApplicationIcon(pkg);
-                    addDrawerAppItem(container, appIcon, appName, (anchor) -> showHiddenAppOptionMenu(pkg, appName, anchor));
-                } catch (Exception ignored) {}
-            }
-        }
-
-        sideDrawerContentScrollView.addView(container);
-        sideDrawerContainer.addView(sideDrawerContentScrollView);
     }
 
     private void openButtonShortcutsSubmenu() {
@@ -1269,7 +1217,7 @@ public class LauncherActivity extends Activity {
         // Column 1: Left-aligned symbol in a fixed 22dp column
         TextView iconView = new TextView(this);
         iconView.setText(iconSymbol);
-        iconView.setTextColor(Color.parseColor("#8E929B"));
+        iconView.setTextColor(Color.parseColor("#5A5E6B"));
         iconView.setTextSize(13);
         iconView.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
         iconView.setLayoutParams(new LinearLayout.LayoutParams(dpToPx(22), ViewGroup.LayoutParams.WRAP_CONTENT));
@@ -1289,7 +1237,7 @@ public class LauncherActivity extends Activity {
         row.setOnFocusChangeListener((v, hasFocus) -> {
             GradientDrawable focusShape = new GradientDrawable();
             focusShape.setCornerRadius(dpToPx(8));
-            focusShape.setColor(hasFocus ? currentAccentColor : Color.TRANSPARENT);
+            focusShape.setColor(hasFocus ? Color.parseColor("#333842") : Color.TRANSPARENT);
             v.setBackground(focusShape);
         });
 

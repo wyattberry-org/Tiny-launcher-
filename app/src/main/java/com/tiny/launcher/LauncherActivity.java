@@ -420,7 +420,7 @@ public class LauncherActivity extends Activity {
         divider.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(1)));
         container.addView(divider);
 
-        addDrawerMenuItem(container, "⬅️ Back", () -> buildMainMenuInDrawer());
+        addDrawerMenuItem(container, "⬅️", "Back", () -> buildMainMenuInDrawer());
         sideDrawerContentScrollView.addView(container);
     }
 
@@ -449,7 +449,7 @@ public class LauncherActivity extends Activity {
         infoText.setPadding(dpToPx(12), dpToPx(16), dpToPx(12), dpToPx(16));
         container.addView(infoText);
 
-        addDrawerMenuItem(container, "⬅️ Back", () -> buildMainMenuInDrawer());
+        addDrawerMenuItem(container, "⬅️", "Back", () -> buildMainMenuInDrawer());
         sideDrawerContentScrollView.addView(container);
     }
 
@@ -742,7 +742,7 @@ public class LauncherActivity extends Activity {
         popup.showAtLocation(rootOverlayFrame, Gravity.CENTER, 0, 0);
     }
 
-    private void addDrawerStatusItem(LinearLayout container, String symbol, String title, String statusText, Runnable onClick) {
+    private View addDrawerStatusItem(LinearLayout container, String symbol, String title, String statusText, Runnable onClick) {
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
@@ -763,6 +763,7 @@ public class LauncherActivity extends Activity {
         label.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f));
 
         TextView statusView = new TextView(this);
+        statusView.setId(1001);
         statusView.setText(statusText);
         statusView.setTextColor(Color.LTGRAY);
         statusView.setTextSize(14);
@@ -778,8 +779,11 @@ public class LauncherActivity extends Activity {
             v.setBackground(shape);
         });
 
-        row.setOnClickListener(v -> onClick.run());
+        if (onClick != null) {
+            row.setOnClickListener(v -> onClick.run());
+        }
         container.addView(row);
+        return row;
     }
 
     private void openParentalControlSubmenu() {
@@ -811,16 +815,23 @@ public class LauncherActivity extends Activity {
         container.setOrientation(LinearLayout.VERTICAL);
 
         boolean enabled = prefs.getBoolean("ParentalControlEnabled", false);
-        addDrawerStatusItem(container, "⚿", "Parental control", enabled ? "ON" : "OFF", () -> {
-            prefs.edit().putBoolean("ParentalControlEnabled", !enabled).apply();
-            openParentalControlSubmenu();
+        View row1 = addDrawerStatusItem(container, "⚿", "Parental control", enabled ? "ON" : "OFF", null);
+        row1.setOnClickListener(v -> {
+            boolean cur = prefs.getBoolean("ParentalControlEnabled", false);
+            boolean next = !cur;
+            prefs.edit().putBoolean("ParentalControlEnabled", next).apply();
+            TextView tv = row1.findViewById(1001);
+            if (tv != null) tv.setText(next ? "ON" : "OFF");
         });
 
         int passIndex = prefs.getInt("PasscodeIndex", 1);
-        addDrawerStatusItem(container, "🔑", "Passcode", PASSCODE_PRESETS[passIndex], () -> {
-            int nextIndex = (passIndex + 1) % PASSCODE_PRESETS.length;
+        View row2 = addDrawerStatusItem(container, "🔑", "Passcode", PASSCODE_PRESETS[passIndex], null);
+        row2.setOnClickListener(v -> {
+            int idx = prefs.getInt("PasscodeIndex", 1);
+            int nextIndex = (idx + 1) % PASSCODE_PRESETS.length;
             prefs.edit().putInt("PasscodeIndex", nextIndex).apply();
-            openParentalControlSubmenu();
+            TextView tv = row2.findViewById(1001);
+            if (tv != null) tv.setText(PASSCODE_PRESETS[nextIndex]);
         });
 
         sideDrawerContentScrollView.addView(container);
@@ -864,7 +875,7 @@ public class LauncherActivity extends Activity {
                     }).show();
         });
 
-        addDrawerMenuItem(container, "⬅️ Back", () -> buildMainMenuInDrawer());
+        addDrawerMenuItem(container, "⬅️", "Back", () -> buildMainMenuInDrawer());
         sideDrawerContentScrollView.addView(container);
     }
 
@@ -888,7 +899,7 @@ public class LauncherActivity extends Activity {
             openClockSubmenu();
         });
 
-        addDrawerMenuItem(container, "⬅️ Back", () -> buildMainMenuInDrawer());
+        addDrawerMenuItem(container, "⬅️", "Back", () -> buildMainMenuInDrawer());
         sideDrawerContentScrollView.addView(container);
     }
 
@@ -906,20 +917,24 @@ public class LauncherActivity extends Activity {
         container.addView(title);
 
         boolean enabled = prefs.getBoolean("WeatherEnabled", true);
-        addDrawerMenuItem(container, "☁️ Weather Widget: " + (enabled ? "On" : "Off"), () -> {
-            prefs.edit().putBoolean("WeatherEnabled", !enabled).apply();
-            weatherSectionVisibility(enabled);
-            openWeatherSubmenu();
+        View weatherRow = addDrawerStatusItem(container, "☁️", "Weather Widget", enabled ? "On" : "Off", null);
+        weatherRow.setOnClickListener(v -> {
+            boolean cur = prefs.getBoolean("WeatherEnabled", true);
+            boolean next = !cur;
+            prefs.edit().putBoolean("WeatherEnabled", next).apply();
+            weatherSectionVisibility(next);
+            TextView tv = weatherRow.findViewById(1001);
+            if (tv != null) tv.setText(next ? "On" : "Off");
         });
 
-        addDrawerMenuItem(container, "📍 Location (Open-Meteo)", () -> {
+        addDrawerMenuItem(container, "📍", "Location (Open-Meteo)", () -> {
             final EditText input = new EditText(this);
             input.setHint("Type City Name...");
             new AlertDialog.Builder(this).setTitle("City Search").setView(input)
                     .setPositiveButton("Search", (d, w) -> searchCityCoordinates(input.getText().toString())).show();
         });
 
-        addDrawerMenuItem(container, "⚡ Shelly API URL", () -> {
+        addDrawerMenuItem(container, "⚡", "Shelly API URL", () -> {
             final EditText input = new EditText(this);
             input.setText(prefs.getString("ShellyApiUrl", ""));
             new AlertDialog.Builder(this).setTitle("Shelly Cloud Endpoint").setView(input)
@@ -935,7 +950,7 @@ public class LauncherActivity extends Activity {
                 .setMessage("Weather status and wind are powered by Open-Meteo API. Temperature & Humidity can be linked to your local Shelly Cloud API.")
                 .setPositiveButton("OK", null).show());
 
-        addDrawerMenuItem(container, "⬅️ Back", () -> buildMainMenuInDrawer());
+        addDrawerMenuItem(container, "⬅️", "Back", () -> buildMainMenuInDrawer());
         sideDrawerContentScrollView.addView(container);
     }
 

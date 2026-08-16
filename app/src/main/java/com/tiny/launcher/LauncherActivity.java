@@ -907,6 +907,12 @@ public class LauncherActivity extends Activity {
     // --- Unlimited Horizontal TV App Banners ---
                 private void renderAppBanners() {
         horizontalAppContainer.removeAllViews();
+        horizontalAppContainer.setClipChildren(false);
+        horizontalAppContainer.setClipToPadding(false);
+        if (horizontalAppScrollView != null) {
+            horizontalAppScrollView.setClipChildren(false);
+            horizontalAppScrollView.setClipToPadding(false);
+        }
         for (int i = 0; i < appList.size(); i++) {
             final int position = i; AppModel app = appList.get(i);
             LinearLayout itemContainer = new LinearLayout(this);
@@ -939,14 +945,19 @@ public class LauncherActivity extends Activity {
             titleView.setPadding(0, dpToPx(10), 0, 0);
             titleView.setVisibility(View.INVISIBLE);
 
+            itemContainer.setClipChildren(false);
+            itemContainer.setClipToPadding(false);
+
             bannerCard.setOnFocusChangeListener((v, hasFocus) -> {
                 resetIdleTimer();
-                GradientDrawable shape = new GradientDrawable();
-                shape.setCornerRadius(dpToPx(14));
-                shape.setColor(hasFocus ? currentAccentColor : Color.parseColor("#CC1A1A1A"));
                 titleView.setVisibility(hasFocus ? View.VISIBLE : View.INVISIBLE);
-                v.animate().scaleX(hasFocus ? 1.08f : 1.0f).scaleY(hasFocus ? 1.08f : 1.0f).setDuration(150).start();
-                v.setBackground(shape);
+                v.animate().scaleX(hasFocus ? 1.20f : 1.0f).scaleY(hasFocus ? 1.20f : 1.0f).setDuration(150).start();
+                if (hasFocus) {
+                    itemContainer.bringToFront();
+                    v.setTranslationZ(dpToPx(10));
+                } else {
+                    v.setTranslationZ(0);
+                }
             });
 
             bannerCard.setOnClickListener(v -> {

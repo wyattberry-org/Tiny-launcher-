@@ -841,7 +841,7 @@ public class LauncherActivity extends Activity {
     private void openWallpaperSubmenu() {
         sideDrawerContentScrollView.removeAllViews();
         LinearLayout container = new LinearLayout(this); container.setOrientation(LinearLayout.VERTICAL);
-        TextView title = new TextView(this); title.setText("Wallpapers/slideshow"); title.setTextColor(Color.WHITE); title.setTextSize(18); title.setPadding(dpToPx(12), 0, 0, dpToPx(16)); container.addView(title);
+        TextView title = new TextView(this); title.setText("Wallpaper/slideshow"); title.setTextColor(Color.WHITE); title.setTextSize(18); title.setPadding(dpToPx(12), 0, 0, dpToPx(16)); container.addView(title);
         addDrawerMenuItem(container, "Set wallpaper", () -> { try { startActivity(Intent.createChooser(new Intent(Intent.ACTION_SET_WALLPAPER), "Set Wallpaper")); } catch (Exception ignored) {} });
         addDrawerMenuItem(container, "Slideshow folder", () -> { final EditText input = new EditText(this); input.setText(prefs.getString("WallpaperFolder", "/sdcard/Pictures/Wallpapers")); new AlertDialog.Builder(this).setTitle("Wallpaper Path").setView(input).setPositiveButton("Save", (d, w) -> { prefs.edit().putString("WallpaperFolder", input.getText().toString()).apply(); loadWallpapers(); }).show(); });
         long curInt = prefs.getLong("SlideshowInterval", 30000L); int idx = 1; for (int i = 0; i < SLIDESHOW_INTERVALS.length; i++) { if (SLIDESHOW_INTERVALS[i] == curInt) { idx = i; break; } } final int nextIdx = (idx + 1) % SLIDESHOW_INTERVALS.length;

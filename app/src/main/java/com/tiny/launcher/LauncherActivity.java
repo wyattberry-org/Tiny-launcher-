@@ -123,6 +123,8 @@ public class LauncherActivity extends Activity {
 
         // --- 1. Root Overlay Frame ---
         rootOverlayFrame = new FrameLayout(this);
+        rootOverlayFrame.setClipChildren(false);
+        rootOverlayFrame.setClipToPadding(false);
         rootOverlayFrame.setBackgroundColor(Color.parseColor("#2B2200"));
 
         // --- 2. Wallpaper ImageSwitcher ---
@@ -145,6 +147,8 @@ public class LauncherActivity extends Activity {
         LinearLayout mainOverlayLayout = new LinearLayout(this);
         mainOverlayLayout.setOrientation(LinearLayout.VERTICAL);
         mainOverlayLayout.setPadding(50, 30, 50, 0);
+        mainOverlayLayout.setClipChildren(false);
+        mainOverlayLayout.setClipToPadding(false);
         mainOverlayLayout.setLayoutParams(new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
@@ -233,7 +237,7 @@ public class LauncherActivity extends Activity {
         horizontalAppScrollView = new HorizontalScrollView(this);
         horizontalAppScrollView.setHorizontalScrollBarEnabled(false);
         horizontalAppScrollView.setClipToPadding(false);
-        horizontalAppScrollView.setPadding(0, 10, 0, 0);
+        horizontalAppScrollView.setPadding(0, dpToPx(16), 0, dpToPx(4));
 
         horizontalAppContainer = new LinearLayout(this);
         horizontalAppContainer.setOrientation(LinearLayout.HORIZONTAL);
@@ -919,7 +923,7 @@ public class LauncherActivity extends Activity {
             itemContainer.setOrientation(LinearLayout.VERTICAL);
             itemContainer.setGravity(Gravity.CENTER_HORIZONTAL);
             LinearLayout.LayoutParams itemParams = new LinearLayout.LayoutParams(-2, -2);
-            itemParams.setMargins(dpToPx(6), 0, dpToPx(6), dpToPx(2));
+            itemParams.setMargins(dpToPx(6), 0, dpToPx(6), dpToPx(4));
             itemContainer.setLayoutParams(itemParams);
 
             android.widget.FrameLayout bannerCard = new android.widget.FrameLayout(this);

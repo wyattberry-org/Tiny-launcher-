@@ -59,6 +59,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -842,16 +844,7 @@ public class LauncherActivity extends Activity {
             int finalColor = maxSatPixel;
             runOnUiThread(() -> {
                 currentAccentColor = finalColor;
-                        String customOrder = prefs.getString("CustomAppOrder", "");
-        if (!customOrder.isEmpty()) {
-            String[] savedPkgs = customOrder.split(",");
-            Map<String, Integer> orderMap = new HashMap<>();
-            for (int i = 0; i < savedPkgs.length; i++) orderMap.put(savedPkgs[i], i);
-            appList.sort((a, b) -> Integer.compare(
-                orderMap.getOrDefault(a.packageName(), 999),
-                orderMap.getOrDefault(b.packageName(), 999)
-            ));
-        }
+                
         renderAppBanners();
             });
         }).start();
@@ -980,16 +973,7 @@ public class LauncherActivity extends Activity {
                         AppModel sourceApp = appList.remove(moveSourcePosition);
                         appList.add(position, sourceApp);
                         saveCustomAppOrder();
-                                String customOrder = prefs.getString("CustomAppOrder", "");
-        if (!customOrder.isEmpty()) {
-            String[] savedPkgs = customOrder.split(",");
-            Map<String, Integer> orderMap = new HashMap<>();
-            for (int i = 0; i < savedPkgs.length; i++) orderMap.put(savedPkgs[i], i);
-            appList.sort((a, b) -> Integer.compare(
-                orderMap.getOrDefault(a.packageName(), 999),
-                orderMap.getOrDefault(b.packageName(), 999)
-            ));
-        }
+                        
         renderAppBanners();
                         android.widget.Toast.makeText(this, "App position updated", android.widget.Toast.LENGTH_SHORT).show();
                     }
@@ -1150,16 +1134,7 @@ public class LauncherActivity extends Activity {
         }
 
         appList.addAll(discoveredApps.values());
-                String customOrder = prefs.getString("CustomAppOrder", "");
-        if (!customOrder.isEmpty()) {
-            String[] savedPkgs = customOrder.split(",");
-            Map<String, Integer> orderMap = new HashMap<>();
-            for (int i = 0; i < savedPkgs.length; i++) orderMap.put(savedPkgs[i], i);
-            appList.sort((a, b) -> Integer.compare(
-                orderMap.getOrDefault(a.packageName(), 999),
-                orderMap.getOrDefault(b.packageName(), 999)
-            ));
-        }
+        
         renderAppBanners();
     }
 

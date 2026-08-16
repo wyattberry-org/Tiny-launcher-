@@ -520,7 +520,7 @@ public class LauncherActivity extends Activity {
 
         android.widget.PopupWindow popup = new android.widget.PopupWindow(
                 menuView, dpToPx(180), ViewGroup.LayoutParams.WRAP_CONTENT, true);
-        popup.setElevation(dpToPx(12));
+        popup.setElevation(0);
         popup.setOutsideTouchable(true);
 
         addPopupMenuItem(menuView, "►", "Open App", () -> {
@@ -713,7 +713,7 @@ public class LauncherActivity extends Activity {
 
         android.widget.PopupWindow popup = new android.widget.PopupWindow(
                 menuView, dpToPx(220), ViewGroup.LayoutParams.WRAP_CONTENT, true);
-        popup.setElevation(dpToPx(12));
+        popup.setElevation(0);
 
         final StringBuilder entered = new StringBuilder();
         menuView.setFocusable(true);
@@ -1289,7 +1289,7 @@ public class LauncherActivity extends Activity {
         int shiftX = dpToPx(160 + 12);
         int deltaX = (toIdx > fromIdx) ? shiftX : -shiftX;
 
-        itemA.setElevation(dpToPx(20));
+        itemA.setElevation(0);
         itemB.setElevation(0);
 
         if (horizontalAppScrollView != null) {
@@ -1382,7 +1382,7 @@ public class LauncherActivity extends Activity {
                 resetIdleTimer();
                 titleView.setVisibility(hasFocus ? View.VISIBLE : View.INVISIBLE);
                 v.animate().scaleX(hasFocus ? 1.25f : 1.0f).scaleY(hasFocus ? 1.25f : 1.0f).setDuration(150).start();
-                float elevation = hasFocus ? dpToPx(10) : 0f;
+                float elevation = 0f;
                 itemContainer.setElevation(elevation);
                 v.setElevation(elevation);
             });
@@ -1501,7 +1501,7 @@ public class LauncherActivity extends Activity {
 
         android.widget.PopupWindow popup = new android.widget.PopupWindow(
                 menuView, ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, true);
-        popup.setElevation(dpToPx(12));
+        popup.setElevation(0);
         popup.setOutsideTouchable(true);
 
         addPopupMenuItem(menuView, "Ø", "Hide App", () -> {

@@ -1118,7 +1118,7 @@ public class LauncherActivity extends Activity {
         container.addView(row);
     }
 
-        private void showAppOptionDialog(int position, View anchorView) {
+            private void showAppOptionDialog(int position, View anchorView) {
         AppModel app = appList.get(position);
 
         LinearLayout menuView = new LinearLayout(this);
@@ -1128,7 +1128,6 @@ public class LauncherActivity extends Activity {
         GradientDrawable bg = new GradientDrawable();
         bg.setColor(Color.parseColor("#1A1D24"));
         bg.setCornerRadius(dpToPx(12));
-        bg.setStroke(dpToPx(1), Color.parseColor("#33FFFFFF"));
 
         menuView.setBackground(bg);
 

@@ -86,6 +86,7 @@ public class LauncherActivity extends Activity {
     private final List<AppModel> appList = new ArrayList<>();
     private SharedPreferences prefs;
     private boolean isMoveMode = false;
+    private boolean isAnimatingMove = false;
     private int moveSourcePosition = -1;
 
     // --- Dynamic Theming ---
@@ -915,7 +916,65 @@ public class LauncherActivity extends Activity {
     }
 
     // --- Unlimited Horizontal TV App Banners ---
-                private void renderAppBanners() {
+                    private void glideMoveTile(int fromIdx, int toIdx) {
+        if (isAnimatingMove) return;
+        if (fromIdx < 0 || fromIdx >= horizontalAppContainer.getChildCount()) return;
+        if (toIdx < 0 || toIdx >= horizontalAppContainer.getChildCount()) return;
+
+        isAnimatingMove = true;
+        View itemA = horizontalAppContainer.getChildAt(fromIdx);
+        View itemB = horizontalAppContainer.getChildAt(toIdx);
+
+        int shiftX = dpToPx(160 + 12);
+        int deltaX = (toIdx > fromIdx) ? shiftX : -shiftX;
+
+        itemA.setElevation(dpToPx(20));
+        itemB.setElevation(0);
+
+        if (horizontalAppScrollView != null) {
+            int[] locA = new int[2];
+            itemA.getLocationOnScreen(locA);
+            int screenWidth = getResources().getDisplayMetrics().widthPixels;
+            if (deltaX > 0 && locA[0] + dpToPx(160) > screenWidth - dpToPx(120)) {
+                horizontalAppScrollView.smoothScrollBy(deltaX, 0);
+            } else if (deltaX < 0 && locA[0] < dpToPx(120)) {
+                horizontalAppScrollView.smoothScrollBy(deltaX, 0);
+            }
+        }
+
+        itemB.animate()
+            .translationX(-deltaX)
+            .setDuration(300)
+            .setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator())
+            .start();
+
+        itemA.animate()
+            .translationX(deltaX)
+            .setDuration(300)
+            .setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator())
+            .withEndAction(() -> {
+                itemA.setTranslationX(0);
+                itemB.setTranslationX(0);
+
+                horizontalAppContainer.removeView(itemA);
+                horizontalAppContainer.addView(itemA, toIdx);
+
+                AppModel temp = appList.get(fromIdx);
+                appList.set(fromIdx, appList.get(toIdx));
+                appList.set(toIdx, temp);
+
+                moveSourcePosition = toIdx;
+                isAnimatingMove = false;
+
+                if (itemA instanceof ViewGroup) {
+                    View card = ((ViewGroup) itemA).getChildAt(0);
+                    if (card != null) card.requestFocus();
+                }
+            })
+            .start();
+    }
+
+    private void renderAppBanners() {
         horizontalAppContainer.removeAllViews();
         horizontalAppContainer.setClipChildren(false);
         horizontalAppContainer.setClipToPadding(false);
@@ -984,6 +1043,31 @@ public class LauncherActivity extends Activity {
                 Intent launchIntent = getPackageManager().getLaunchIntentForPackage(app.packageName());
                 if (launchIntent != null) startActivity(launchIntent);
             });
+                        bannerCard.setOnKeyListener((v, keyCode, event) -> {
+                if (isMoveMode && event.getAction() == android.view.KeyEvent.ACTION_DOWN) {
+                    if (keyCode == android.view.KeyEvent.KEYCODE_DPAD_RIGHT) {
+                        if (!isAnimatingMove && moveSourcePosition < appList.size() - 1) {
+                            glideMoveTile(moveSourcePosition, moveSourcePosition + 1);
+                        }
+                        return true;
+                    } else if (keyCode == android.view.KeyEvent.KEYCODE_DPAD_LEFT) {
+                        if (!isAnimatingMove && moveSourcePosition > 0) {
+                            glideMoveTile(moveSourcePosition, moveSourcePosition - 1);
+                        }
+                        return true;
+                    } else if (keyCode == android.view.KeyEvent.KEYCODE_DPAD_CENTER || keyCode == android.view.KeyEvent.KEYCODE_ENTER || keyCode == android.view.KeyEvent.KEYCODE_BACK) {
+                        if (!isAnimatingMove) {
+                            isMoveMode = false;
+                            saveCustomAppOrder();
+                            moveSourcePosition = -1;
+                            android.widget.Toast.makeText(this, "Tile position saved", android.widget.Toast.LENGTH_SHORT).show();
+                        }
+                        return true;
+                    }
+                }
+                return false;
+            });
+
             bannerCard.setOnLongClickListener(v -> { showAppOptionDialog(position, v); return true; });
 
             itemContainer.addView(bannerCard); itemContainer.addView(titleView);
@@ -1075,7 +1159,7 @@ public class LauncherActivity extends Activity {
         }, popup);
 
         addPopupMenuItem(menuView, "↔", "Move App", () -> {
-            isMoveMode = true; moveSourcePosition = position; android.widget.Toast.makeText(this, "Move Mode: Click destination tile", android.widget.Toast.LENGTH_LONG).show();
+            isMoveMode = true; moveSourcePosition = position; android.widget.Toast.makeText(this, "Move Mode: Use D-pad arrows to glide tile", android.widget.Toast.LENGTH_LONG).show();
         }, popup);
 
         menuView.measure(View.MeasureSpec.makeMeasureSpec(dpToPx(160), View.MeasureSpec.EXACTLY),

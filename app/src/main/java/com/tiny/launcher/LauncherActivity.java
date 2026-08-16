@@ -256,12 +256,19 @@ public class LauncherActivity extends Activity {
         // --- 6. Right Side Drawer Menu Container (`#1A1D24`) ---
         sideDrawerContainer = new LinearLayout(this);
         sideDrawerContainer.setOrientation(LinearLayout.VERTICAL);
-        sideDrawerContainer.setBackgroundColor(Color.parseColor("#1A1D24"));
-        sideDrawerContainer.setPadding(30, 40, 30, 40);
+
+        GradientDrawable drawerBg = new GradientDrawable();
+        drawerBg.setColor(Color.parseColor("#1A1D24"));
+        float r16 = dpToPx(16);
+        drawerBg.setCornerRadii(new float[]{ r16, r16, 0f, 0f, 0f, 0f, r16, r16 });
+        sideDrawerContainer.setBackground(drawerBg);
+        sideDrawerContainer.setPadding(dpToPx(20), dpToPx(24), dpToPx(20), dpToPx(24));
 
         FrameLayout.LayoutParams drawerLayoutParams = new FrameLayout.LayoutParams(
                 dpToPx(340), ViewGroup.LayoutParams.MATCH_PARENT);
-        drawerLayoutParams.gravity = Gravity.END;
+        drawerLayoutParams.gravity = Gravity.END | Gravity.TOP;
+        drawerLayoutParams.topMargin = dpToPx(76);
+        drawerLayoutParams.bottomMargin = dpToPx(28);
         sideDrawerContainer.setLayoutParams(drawerLayoutParams);
         sideDrawerContainer.setVisibility(View.GONE);
 
@@ -303,37 +310,59 @@ public class LauncherActivity extends Activity {
         TextView titleView = new TextView(this);
         titleView.setText("Tiny Launcher");
         titleView.setTextColor(Color.WHITE);
-        titleView.setTextSize(20);
-        titleView.setPadding(10, 0, 0, 20);
+        titleView.setTextSize(18);
+        titleView.setPadding(dpToPx(12), 0, 0, dpToPx(16));
         drawerContent.addView(titleView);
 
         View divider = new View(this);
         divider.setBackgroundColor(Color.parseColor("#33FFFFFF"));
-        divider.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 2));
+        divider.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(1)));
         drawerContent.addView(divider);
 
-        addDrawerMenuItem(drawerContent, "📱 Manage apps", () -> openManageAppsSubmenu());
-        addDrawerMenuItem(drawerContent, "⌨️ Button shortcuts", () -> openButtonShortcutsSubmenu());
-        addDrawerMenuItem(drawerContent, "🔒 Parental Control", () -> openParentalControlSubmenu());
-        addDrawerMenuItem(drawerContent, "🖼️ Wallpaper / Slideshow", () -> openWallpaperSubmenu());
-        addDrawerMenuItem(drawerContent, "⏰ Show clock", () -> openClockSubmenu());
-        addDrawerMenuItem(drawerContent, "☁️ Weather", () -> openWeatherSubmenu());
-        addDrawerMenuItem(drawerContent, "⚙️ System Settings", () -> startActivity(new Intent(Settings.ACTION_SETTINGS)));
+        View topSpacer = new View(this);
+        topSpacer.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(8)));
+        drawerContent.addView(topSpacer);
+
+        addDrawerMenuItem(drawerContent, "⧉", "Manage apps", () -> openManageAppsSubmenu());
+        addDrawerMenuItem(drawerContent, "⌨", "Button shortcuts", () -> openButtonShortcutsSubmenu());
+        addDrawerMenuItem(drawerContent, "🔒", "Parental control", () -> openParentalControlSubmenu());
+        addDrawerMenuItem(drawerContent, "🖼", "Wallpaper/slideshow", () -> openWallpaperSubmenu());
+        addDrawerMenuItem(drawerContent, "⏰", "Show Clock", () -> openClockSubmenu());
+        addDrawerMenuItem(drawerContent, "◫", "Tile settings", () -> openTileSettingsSubmenu());
+        addDrawerMenuItem(drawerContent, "☁", "Weather", () -> openWeatherSubmenu());
+        addDrawerMenuItem(drawerContent, "⚙", "System settings", () -> startActivity(new Intent(Settings.ACTION_SETTINGS)));
+        addDrawerMenuItem(drawerContent, "ℹ", "About", () -> openAboutSubmenu());
 
         sideDrawerContentScrollView.addView(drawerContent);
     }
 
     private void addDrawerMenuItem(LinearLayout container, String title, Runnable onClick) {
+        addDrawerMenuItem(container, "", title, onClick);
+    }
+
+    private void addDrawerMenuItem(LinearLayout container, String symbol, String title, Runnable onClick) {
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.HORIZONTAL);
-        row.setPadding(25, 25, 25, 25);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(dpToPx(12), dpToPx(10), dpToPx(12), dpToPx(10));
         row.setFocusable(true);
         row.setFocusableInTouchMode(true);
+
+        if (!symbol.isEmpty()) {
+            TextView symbolView = new TextView(this);
+            symbolView.setText(symbol);
+            symbolView.setTextColor(Color.parseColor("#5A5E6B"));
+            symbolView.setTextSize(16);
+            symbolView.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
+            symbolView.setLayoutParams(new LinearLayout.LayoutParams(dpToPx(28), ViewGroup.LayoutParams.WRAP_CONTENT));
+            row.addView(symbolView);
+        }
 
         TextView label = new TextView(this);
         label.setText(title);
         label.setTextColor(Color.WHITE);
-        label.setTextSize(16);
+        label.setTextSize(14);
+        label.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
 
         row.addView(label);
 
@@ -341,7 +370,7 @@ public class LauncherActivity extends Activity {
             if (hasFocus) {
                 GradientDrawable shape = new GradientDrawable();
                 shape.setColor(currentAccentColor);
-                shape.setCornerRadius(12f);
+                shape.setCornerRadius(dpToPx(8));
                 v.setBackground(shape);
             } else {
                 v.setBackgroundColor(Color.TRANSPARENT);
@@ -352,7 +381,57 @@ public class LauncherActivity extends Activity {
         container.addView(row);
     }
 
-    // --- Submenus (Swapped Inside Drawer Without Window Redrawing) ---
+    private void openTileSettingsSubmenu() {
+        sideDrawerContentScrollView.removeAllViews();
+
+        LinearLayout container = new LinearLayout(this);
+        container.setOrientation(LinearLayout.VERTICAL);
+
+        TextView title = new TextView(this);
+        title.setText("Tile Settings");
+        title.setTextColor(Color.WHITE);
+        title.setTextSize(18);
+        title.setPadding(dpToPx(12), 0, 0, dpToPx(16));
+        container.addView(title);
+
+        View divider = new View(this);
+        divider.setBackgroundColor(Color.parseColor("#33FFFFFF"));
+        divider.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(1)));
+        container.addView(divider);
+
+        addDrawerMenuItem(container, "⬅️ Back", () -> buildMainMenuInDrawer());
+        sideDrawerContentScrollView.addView(container);
+    }
+
+    private void openAboutSubmenu() {
+        sideDrawerContentScrollView.removeAllViews();
+
+        LinearLayout container = new LinearLayout(this);
+        container.setOrientation(LinearLayout.VERTICAL);
+
+        TextView title = new TextView(this);
+        title.setText("About");
+        title.setTextColor(Color.WHITE);
+        title.setTextSize(18);
+        title.setPadding(dpToPx(12), 0, 0, dpToPx(16));
+        container.addView(title);
+
+        View divider = new View(this);
+        divider.setBackgroundColor(Color.parseColor("#33FFFFFF"));
+        divider.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(1)));
+        container.addView(divider);
+
+        TextView infoText = new TextView(this);
+        infoText.setText("Tiny Launcher v1.0\nPure Java 17 Android TV Launcher\nZero External Dependencies");
+        infoText.setTextColor(Color.LTGRAY);
+        infoText.setTextSize(14);
+        infoText.setPadding(dpToPx(12), dpToPx(16), dpToPx(12), dpToPx(16));
+        container.addView(infoText);
+
+        addDrawerMenuItem(container, "⬅️ Back", () -> buildMainMenuInDrawer());
+        sideDrawerContentScrollView.addView(container);
+    }
+
     private void openManageAppsSubmenu() {
         sideDrawerContentScrollView.removeAllViews();
 

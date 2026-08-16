@@ -973,30 +973,43 @@ public class LauncherActivity extends Activity {
         }
     }
 
-        private void addPopupMenuItem(LinearLayout container, String title, Runnable onClick, android.widget.PopupWindow popup) {
-        TextView item = new TextView(this);
-        item.setText(title);
-        item.setTextColor(Color.WHITE);
-        item.setTextSize(12);
-        item.setPadding(dpToPx(10), dpToPx(8), dpToPx(10), dpToPx(8));
-        item.setFocusable(true);
-        item.setFocusableInTouchMode(true);
-        item.setSingleLine(true);
-        item.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        private void addPopupMenuItem(LinearLayout container, String iconSymbol, String labelText, Runnable onClick, android.widget.PopupWindow popup) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(dpToPx(10), dpToPx(8), dpToPx(10), dpToPx(8));
+        row.setFocusable(true);
+        row.setFocusableInTouchMode(true);
 
-        item.setOnFocusChangeListener((v, hasFocus) -> {
+        TextView iconView = new TextView(this);
+        iconView.setText(iconSymbol);
+        iconView.setTextColor(Color.parseColor("#8E929B"));
+        iconView.setTextSize(12);
+        iconView.setPadding(0, 0, dpToPx(8), 0);
+
+        TextView labelView = new TextView(this);
+        labelView.setText(labelText);
+        labelView.setTextColor(Color.WHITE);
+        labelView.setTextSize(12);
+        labelView.setSingleLine(true);
+        labelView.setEllipsize(android.text.TextUtils.TruncateAt.END);
+
+        row.addView(iconView);
+        row.addView(labelView);
+
+        row.setOnFocusChangeListener((v, hasFocus) -> {
             GradientDrawable focusShape = new GradientDrawable();
             focusShape.setCornerRadius(dpToPx(8));
             focusShape.setColor(hasFocus ? currentAccentColor : Color.TRANSPARENT);
             v.setBackground(focusShape);
         });
 
-        item.setOnClickListener(v -> {
+        row.setOnClickListener(v -> {
             popup.dismiss();
             onClick.run();
         });
 
-        container.addView(item);
+        container.addView(row);
     }
 
     private void showAppOptionDialog(int position, View anchorView) {
@@ -1017,29 +1030,29 @@ public class LauncherActivity extends Activity {
         popup.setElevation(dpToPx(12));
         popup.setOutsideTouchable(true);
 
-        addPopupMenuItem(menuView, "⊘  Hide App", () -> {
+        addPopupMenuItem(menuView, "Ø", "Hide App", () -> {
             Set<String> hidden = new HashSet<>(prefs.getStringSet("HiddenApps", new HashSet<>()));
             hidden.add(app.packageName());
             prefs.edit().putStringSet("HiddenApps", hidden).apply();
             loadInstalledApps();
         }, popup);
 
-        addPopupMenuItem(menuView, "ⓘ  App Info", () -> {
+        addPopupMenuItem(menuView, "i", "App Info", () -> {
             Intent intent = new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
             intent.setData(Uri.parse("package:" + app.packageName()));
             startActivity(intent);
         }, popup);
 
-        addPopupMenuItem(menuView, "🗑  Uninstall App", () -> {
+        addPopupMenuItem(menuView, "×", "Uninstall App", () -> {
             startActivity(new Intent(Intent.ACTION_DELETE, Uri.parse("package:" + app.packageName())));
         }, popup);
 
-        addPopupMenuItem(menuView, "🖼  Replace Banner", () -> {
+        addPopupMenuItem(menuView, "⧉", "Replace Banner", () -> {
             openManageAppsSubmenu();
             toggleSideDrawer(true);
         }, popup);
 
-        addPopupMenuItem(menuView, "⇄  Move App", () -> {
+        addPopupMenuItem(menuView, "↔", "Move App", () -> {
             android.widget.Toast.makeText(this, "Click another tile to swap positions", android.widget.Toast.LENGTH_SHORT).show();
         }, popup);
 

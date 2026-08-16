@@ -83,6 +83,8 @@ public class LauncherActivity extends Activity {
     // --- App & Data Models ---
     private final List<AppModel> appList = new ArrayList<>();
     private SharedPreferences prefs;
+    private boolean isMoveMode = false;
+    private int moveSourcePosition = -1;
 
     // --- Dynamic Theming ---
     private int currentAccentColor = Color.parseColor("#007AFF");
@@ -840,7 +842,17 @@ public class LauncherActivity extends Activity {
             int finalColor = maxSatPixel;
             runOnUiThread(() -> {
                 currentAccentColor = finalColor;
-                renderAppBanners();
+                        String customOrder = prefs.getString("CustomAppOrder", "");
+        if (!customOrder.isEmpty()) {
+            String[] savedPkgs = customOrder.split(",");
+            Map<String, Integer> orderMap = new HashMap<>();
+            for (int i = 0; i < savedPkgs.length; i++) orderMap.put(savedPkgs[i], i);
+            appList.sort((a, b) -> Integer.compare(
+                orderMap.getOrDefault(a.packageName(), 999),
+                orderMap.getOrDefault(b.packageName(), 999)
+            ));
+        }
+        renderAppBanners();
             });
         }).start();
     }
@@ -931,7 +943,7 @@ public class LauncherActivity extends Activity {
             bannerCard.setFocusable(true); bannerCard.setFocusableInTouchMode(true);
             bannerCard.setLayoutParams(new android.widget.FrameLayout.LayoutParams(dpToPx(160), dpToPx(90)));
             GradientDrawable baseShape = new GradientDrawable();
-            baseShape.setColor(Color.parseColor("#CC1A1A1A"));
+            baseShape.setColor(Color.parseColor("#FF1A1A1A"));
             baseShape.setCornerRadius(dpToPx(14));
             bannerCard.setBackground(baseShape);
             bannerCard.setClipToOutline(true);
@@ -963,6 +975,28 @@ public class LauncherActivity extends Activity {
             });
 
             bannerCard.setOnClickListener(v -> {
+                if (isMoveMode) {
+                    if (moveSourcePosition != -1 && moveSourcePosition != position) {
+                        AppModel sourceApp = appList.remove(moveSourcePosition);
+                        appList.add(position, sourceApp);
+                        saveCustomAppOrder();
+                                String customOrder = prefs.getString("CustomAppOrder", "");
+        if (!customOrder.isEmpty()) {
+            String[] savedPkgs = customOrder.split(",");
+            Map<String, Integer> orderMap = new HashMap<>();
+            for (int i = 0; i < savedPkgs.length; i++) orderMap.put(savedPkgs[i], i);
+            appList.sort((a, b) -> Integer.compare(
+                orderMap.getOrDefault(a.packageName(), 999),
+                orderMap.getOrDefault(b.packageName(), 999)
+            ));
+        }
+        renderAppBanners();
+                        android.widget.Toast.makeText(this, "App position updated", android.widget.Toast.LENGTH_SHORT).show();
+                    }
+                    isMoveMode = false;
+                    moveSourcePosition = -1;
+                    return;
+                }
                 Intent launchIntent = getPackageManager().getLaunchIntentForPackage(app.packageName());
                 if (launchIntent != null) startActivity(launchIntent);
             });
@@ -1048,7 +1082,7 @@ public class LauncherActivity extends Activity {
         }, popup);
 
         addPopupMenuItem(menuView, "×", "Uninstall App", () -> {
-            startActivity(new Intent(Intent.ACTION_DELETE, Uri.parse("package:" + app.packageName())));
+            Intent unIntent = new Intent(Intent.ACTION_UNINSTALL_PACKAGE, Uri.parse("package:" + app.packageName())); unIntent.putExtra(Intent.EXTRA_RETURN_RESULT, true); startActivity(unIntent);
         }, popup);
 
         addPopupMenuItem(menuView, "⧉", "Replace Banner", () -> {
@@ -1057,7 +1091,7 @@ public class LauncherActivity extends Activity {
         }, popup);
 
         addPopupMenuItem(menuView, "↔", "Move App", () -> {
-            android.widget.Toast.makeText(this, "Click another tile to swap positions", android.widget.Toast.LENGTH_SHORT).show();
+            isMoveMode = true; moveSourcePosition = position; android.widget.Toast.makeText(this, "Move Mode: Click destination tile", android.widget.Toast.LENGTH_LONG).show();
         }, popup);
 
         menuView.measure(View.MeasureSpec.makeMeasureSpec(dpToPx(160), View.MeasureSpec.EXACTLY),
@@ -1066,10 +1100,22 @@ public class LauncherActivity extends Activity {
 
         int[] location = new int[2];
         anchorView.getLocationOnScreen(location);
+        float scaledHeight = anchorView.getHeight() * anchorView.getScaleY();
+        float topExpansion = (scaledHeight - anchorView.getHeight()) / 2f;
+        int tileVisualTopY = (int) (location[1] - topExpansion);
         int popupX = location[0] + (anchorView.getWidth() - dpToPx(160)) / 2;
-        int popupY = location[1] - popupHeight - dpToPx(8);
+        int popupY = tileVisualTopY - popupHeight - dpToPx(8);
 
         popup.showAtLocation(anchorView, Gravity.NO_GRAVITY, popupX, popupY);
+    }
+
+        private void saveCustomAppOrder() {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < appList.size(); i++) {
+            if (i > 0) sb.append(",");
+            sb.append(appList.get(i).packageName());
+        }
+        prefs.edit().putString("CustomAppOrder", sb.toString()).apply();
     }
 
     private void loadInstalledApps() {
@@ -1104,6 +1150,16 @@ public class LauncherActivity extends Activity {
         }
 
         appList.addAll(discoveredApps.values());
+                String customOrder = prefs.getString("CustomAppOrder", "");
+        if (!customOrder.isEmpty()) {
+            String[] savedPkgs = customOrder.split(",");
+            Map<String, Integer> orderMap = new HashMap<>();
+            for (int i = 0; i < savedPkgs.length; i++) orderMap.put(savedPkgs[i], i);
+            appList.sort((a, b) -> Integer.compare(
+                orderMap.getOrDefault(a.packageName(), 999),
+                orderMap.getOrDefault(b.packageName(), 999)
+            ));
+        }
         renderAppBanners();
     }
 

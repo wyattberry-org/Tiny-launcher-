@@ -3,6 +3,7 @@
 
     <!-- Launcher app discovery for Android 11+ (API 30+) -->
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
+    <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
 
     <!-- Storage permissions for wallpapers -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />

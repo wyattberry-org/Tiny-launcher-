@@ -981,16 +981,20 @@ public class LauncherActivity extends Activity {
         row.setFocusable(true);
         row.setFocusableInTouchMode(true);
 
+        // Column 1: Left-aligned symbol in a fixed 22dp column
         TextView iconView = new TextView(this);
         iconView.setText(iconSymbol);
         iconView.setTextColor(Color.parseColor("#8E929B"));
-        iconView.setTextSize(12);
-        iconView.setPadding(0, 0, dpToPx(8), 0);
+        iconView.setTextSize(13);
+        iconView.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
+        iconView.setLayoutParams(new LinearLayout.LayoutParams(dpToPx(22), ViewGroup.LayoutParams.WRAP_CONTENT));
 
+        // Column 2: Left-aligned item name starting at a fixed offset
         TextView labelView = new TextView(this);
         labelView.setText(labelText);
         labelView.setTextColor(Color.WHITE);
-        labelView.setTextSize(12);
+        labelView.setTextSize(13);
+        labelView.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
         labelView.setSingleLine(true);
         labelView.setEllipsize(android.text.TextUtils.TruncateAt.END);
 
@@ -1022,7 +1026,7 @@ public class LauncherActivity extends Activity {
         GradientDrawable bg = new GradientDrawable();
         bg.setColor(Color.parseColor("#1A1D24"));
         bg.setCornerRadius(dpToPx(12));
-        bg.setStroke(dpToPx(1), Color.parseColor("#33FFFFFF"));
+        
         menuView.setBackground(bg);
 
         android.widget.PopupWindow popup = new android.widget.PopupWindow(

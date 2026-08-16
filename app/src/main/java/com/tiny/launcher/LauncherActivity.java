@@ -946,7 +946,7 @@ public class LauncherActivity extends Activity {
             titleView.setText(app.name()); titleView.setTextColor(Color.WHITE);
             titleView.setTextSize(14); titleView.setGravity(Gravity.CENTER);
             titleView.setSingleLine(true); titleView.setEllipsize(android.text.TextUtils.TruncateAt.END);
-            titleView.setPadding(0, dpToPx(10), 0, 0);
+            titleView.setPadding(0, dpToPx(28), 0, 0);
             titleView.setVisibility(View.INVISIBLE);
 
             itemContainer.setClipChildren(false);

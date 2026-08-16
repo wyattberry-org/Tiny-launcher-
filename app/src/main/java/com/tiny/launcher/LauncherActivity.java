@@ -104,6 +104,7 @@ public class LauncherActivity extends Activity {
     private int currentWallpaperIndex = 0;
     private boolean isSideDrawerOpen = false;
     private boolean isInSubmenu = false;
+    private final String[] PASSCODE_PRESETS = {"►", "► ► ◄", "▲ ▲ ◄", "▲ ► ▼", "◄ ◄ ►", "▼ ▼ ▲"};
     private String shortcutPickerKey = null;
     private ServerSocket webSetupServerSocket;
     private boolean isWebServerRunning = false;
@@ -223,7 +224,13 @@ public class LauncherActivity extends Activity {
         settingsGear.setImageResource(android.R.drawable.ic_menu_preferences);
         settingsGear.setFocusable(true);
         settingsGear.setPadding(15, 15, 15, 15);
-        settingsGear.setOnClickListener(v -> toggleSideDrawer(true));
+        settingsGear.setOnClickListener(v -> {
+            if (prefs.getBoolean("ParentalControlEnabled", false)) {
+                verifyParentalPasscode(() -> toggleSideDrawer(true));
+            } else {
+                toggleSideDrawer(true);
+            }
+        });
         settingsGear.setOnLongClickListener(v -> {
             startActivity(new Intent(Settings.ACTION_SETTINGS));
             return true;
@@ -676,34 +683,148 @@ public class LauncherActivity extends Activity {
         sideDrawerContainer.addView(sideDrawerContentScrollView);
     }
 
+    private void verifyParentalPasscode(Runnable onSuccess) {
+        int index = prefs.getInt("PasscodeIndex", 1);
+        String requiredCode = PASSCODE_PRESETS[index];
+
+        LinearLayout menuView = new LinearLayout(this);
+        menuView.setOrientation(LinearLayout.VERTICAL);
+        menuView.setPadding(dpToPx(16), dpToPx(16), dpToPx(16), dpToPx(16));
+
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(Color.parseColor("#1A1D24"));
+        bg.setCornerRadius(dpToPx(12));
+        menuView.setBackground(bg);
+
+        TextView titleView = new TextView(this);
+        titleView.setText("Parental Guard");
+        titleView.setTextColor(Color.WHITE);
+        titleView.setTextSize(16);
+        titleView.setGravity(Gravity.CENTER);
+        menuView.addView(titleView);
+
+        TextView codeView = new TextView(this);
+        codeView.setText(requiredCode);
+        codeView.setTextColor(Color.parseColor("#007AFF"));
+        codeView.setTextSize(22);
+        codeView.setGravity(Gravity.CENTER);
+        codeView.setPadding(0, dpToPx(12), 0, dpToPx(12));
+        menuView.addView(codeView);
+
+        android.widget.PopupWindow popup = new android.widget.PopupWindow(
+                menuView, dpToPx(220), ViewGroup.LayoutParams.WRAP_CONTENT, true);
+        popup.setElevation(dpToPx(12));
+
+        final StringBuilder entered = new StringBuilder();
+        menuView.setFocusable(true);
+        menuView.setFocusableInTouchMode(true);
+        menuView.setOnKeyListener((v, keyCode, event) -> {
+            if (event.getAction() == KeyEvent.ACTION_DOWN) {
+                String keyStr = keyCode == KeyEvent.KEYCODE_DPAD_RIGHT ? "►" :
+                                keyCode == KeyEvent.KEYCODE_DPAD_LEFT ? "◄" :
+                                keyCode == KeyEvent.KEYCODE_DPAD_UP ? "▲" :
+                                keyCode == KeyEvent.KEYCODE_DPAD_DOWN ? "▼" : "";
+                if (!keyStr.isEmpty()) {
+                    if (entered.length() > 0) entered.append(" ");
+                    entered.append(keyStr);
+                    if (entered.toString().equals(requiredCode)) {
+                        popup.dismiss();
+                        onSuccess.run();
+                    } else if (!requiredCode.startsWith(entered.toString())) {
+                        entered.setLength(0);
+                    }
+                    return true;
+                }
+            }
+            return false;
+        });
+
+        popup.showAtLocation(rootOverlayFrame, Gravity.CENTER, 0, 0);
+    }
+
+    private void addDrawerStatusItem(LinearLayout container, String symbol, String title, String statusText, Runnable onClick) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(dpToPx(12), dpToPx(10), dpToPx(12), dpToPx(10));
+        row.setFocusable(true);
+        row.setFocusableInTouchMode(true);
+
+        TextView symbolView = new TextView(this);
+        symbolView.setText(symbol);
+        symbolView.setTextColor(Color.parseColor("#5A5E6B"));
+        symbolView.setTextSize(16);
+        symbolView.setLayoutParams(new LinearLayout.LayoutParams(dpToPx(28), ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        TextView label = new TextView(this);
+        label.setText(title);
+        label.setTextColor(Color.WHITE);
+        label.setTextSize(14);
+        label.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f));
+
+        TextView statusView = new TextView(this);
+        statusView.setText(statusText);
+        statusView.setTextColor(Color.LTGRAY);
+        statusView.setTextSize(14);
+
+        row.addView(symbolView);
+        row.addView(label);
+        row.addView(statusView);
+
+        row.setOnFocusChangeListener((v, hasFocus) -> {
+            GradientDrawable shape = new GradientDrawable();
+            shape.setColor(hasFocus ? Color.parseColor("#333842") : Color.TRANSPARENT);
+            shape.setCornerRadius(dpToPx(8));
+            v.setBackground(shape);
+        });
+
+        row.setOnClickListener(v -> onClick.run());
+        container.addView(row);
+    }
+
     private void openParentalControlSubmenu() {
-        sideDrawerContentScrollView.removeAllViews();
+        isInSubmenu = true;
+        sideDrawerContainer.removeAllViews();
+
+        TextView titleView = new TextView(this);
+        titleView.setText("Parental control");
+        titleView.setTextColor(Color.WHITE);
+        titleView.setTextSize(18);
+        titleView.setPadding(dpToPx(12), 0, 0, dpToPx(16));
+        sideDrawerContainer.addView(titleView);
+
+        View divider = new View(this);
+        divider.setBackgroundColor(Color.parseColor("#33FFFFFF"));
+        divider.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(1)));
+        sideDrawerContainer.addView(divider);
+
+        View topSpacer = new View(this);
+        topSpacer.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(8)));
+        sideDrawerContainer.addView(topSpacer);
+
+        sideDrawerContentScrollView = new ScrollView(this);
+        sideDrawerContentScrollView.setVerticalScrollBarEnabled(false);
+        sideDrawerContentScrollView.setLayoutParams(new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1.0f));
 
         LinearLayout container = new LinearLayout(this);
         container.setOrientation(LinearLayout.VERTICAL);
 
-        TextView title = new TextView(this);
-        title.setText("Parental Control");
-        title.setTextColor(Color.WHITE);
-        title.setTextSize(18);
-        title.setPadding(10, 0, 0, 20);
-        container.addView(title);
-
         boolean enabled = prefs.getBoolean("ParentalControlEnabled", false);
-        addDrawerMenuItem(container, "🔒 Parental Control: " + (enabled ? "ON" : "OFF"), () -> {
+        addDrawerStatusItem(container, "⚿", "Parental control", enabled ? "ON" : "OFF", () -> {
             prefs.edit().putBoolean("ParentalControlEnabled", !enabled).apply();
             openParentalControlSubmenu();
         });
 
-        addDrawerMenuItem(container, "🔑 Set Code", () -> {
-            final EditText input = new EditText(this);
-            input.setInputType(InputType.TYPE_CLASS_NUMBER);
-            new AlertDialog.Builder(this).setTitle("New 4-Digit PIN").setView(input)
-                    .setPositiveButton("Save", (d, w) -> prefs.edit().putString("ParentalPin", input.getText().toString()).apply()).show();
+        int passIndex = prefs.getInt("PasscodeIndex", 1);
+        addDrawerStatusItem(container, "🔑", "Passcode", PASSCODE_PRESETS[passIndex], () -> {
+            int nextIndex = (passIndex + 1) % PASSCODE_PRESETS.length;
+            prefs.edit().putInt("PasscodeIndex", nextIndex).apply();
+            openParentalControlSubmenu();
         });
 
-        addDrawerMenuItem(container, "⬅️ Back", () -> buildMainMenuInDrawer());
         sideDrawerContentScrollView.addView(container);
+        sideDrawerContainer.addView(sideDrawerContentScrollView);
     }
 
     private void openWallpaperSubmenu() {
@@ -1308,7 +1429,14 @@ public class LauncherActivity extends Activity {
                 return false;
             });
 
-            bannerCard.setOnLongClickListener(v -> { showAppOptionDialog(position, v); return true; });
+            bannerCard.setOnLongClickListener(v -> {
+                if (prefs.getBoolean("ParentalControlEnabled", false)) {
+                    verifyParentalPasscode(() -> showAppOptionDialog(position, v));
+                } else {
+                    showAppOptionDialog(position, v);
+                }
+                return true;
+            });
 
             itemContainer.addView(bannerCard); itemContainer.addView(titleView);
             horizontalAppContainer.addView(itemContainer);

@@ -351,6 +351,10 @@ public class LauncherActivity extends Activity {
     }
 
     private void addDrawerMenuItem(LinearLayout container, String symbol, String title, Runnable onClick) {
+        addDrawerMenuItem(container, symbol, Color.parseColor("#5A5E6B"), title, onClick);
+    }
+
+    private void addDrawerMenuItem(LinearLayout container, String symbol, int symbolColor, String title, Runnable onClick) {
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
@@ -361,7 +365,7 @@ public class LauncherActivity extends Activity {
         if (!symbol.isEmpty()) {
             TextView symbolView = new TextView(this);
             symbolView.setText(symbol);
-            symbolView.setTextColor(Color.parseColor("#5A5E6B"));
+            symbolView.setTextColor(symbolColor);
             symbolView.setTextSize(16);
             symbolView.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
             symbolView.setLayoutParams(new LinearLayout.LayoutParams(dpToPx(28), ViewGroup.LayoutParams.WRAP_CONTENT));
@@ -609,10 +613,10 @@ public class LauncherActivity extends Activity {
         LinearLayout container = new LinearLayout(this);
         container.setOrientation(LinearLayout.VERTICAL);
 
-        addDrawerMenuItem(container, "●", "Red: " + getShortcutName("RedShortcut"), () -> openAppPickerForShortcut("RedShortcut"));
-        addDrawerMenuItem(container, "●", "Blue: " + getShortcutName("BlueShortcut"), () -> openAppPickerForShortcut("BlueShortcut"));
-        addDrawerMenuItem(container, "●", "Green: " + getShortcutName("GreenShortcut"), () -> openAppPickerForShortcut("GreenShortcut"));
-        addDrawerMenuItem(container, "●", "Yellow: " + getShortcutName("YellowShortcut"), () -> openAppPickerForShortcut("YellowShortcut"));
+        addDrawerMenuItem(container, "●", Color.parseColor("#FF3B30"), "Red: " + getShortcutName("RedShortcut"), () -> openAppPickerForShortcut("RedShortcut"));
+        addDrawerMenuItem(container, "●", Color.parseColor("#007AFF"), "Blue: " + getShortcutName("BlueShortcut"), () -> openAppPickerForShortcut("BlueShortcut"));
+        addDrawerMenuItem(container, "●", Color.parseColor("#34C759"), "Green: " + getShortcutName("GreenShortcut"), () -> openAppPickerForShortcut("GreenShortcut"));
+        addDrawerMenuItem(container, "●", Color.parseColor("#FFCC00"), "Yellow: " + getShortcutName("YellowShortcut"), () -> openAppPickerForShortcut("YellowShortcut"));
 
         sideDrawerContentScrollView.addView(container);
         sideDrawerContainer.addView(sideDrawerContentScrollView);
@@ -620,11 +624,11 @@ public class LauncherActivity extends Activity {
 
     private String getShortcutName(String key) {
         String pkg = prefs.getString(key, null);
-        if (pkg == null) return "Not set";
+        if (pkg == null || pkg.isEmpty()) return "Not assigned";
         try {
             return getPackageManager().getApplicationLabel(getPackageManager().getApplicationInfo(pkg, 0)).toString();
         } catch (Exception e) {
-            return "Not set";
+            return "Not assigned";
         }
     }
 
@@ -655,6 +659,11 @@ public class LauncherActivity extends Activity {
 
         LinearLayout container = new LinearLayout(this);
         container.setOrientation(LinearLayout.VERTICAL);
+
+        addDrawerMenuItem(container, "Ø", Color.parseColor("#5A5E6B"), "Not assigned", () -> {
+            prefs.edit().remove(key).apply();
+            openButtonShortcutsSubmenu();
+        });
 
         for (AppModel app : appList) {
             addDrawerAppItem(container, app.icon(), app.name(), (v) -> {

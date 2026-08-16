@@ -104,6 +104,7 @@ public class LauncherActivity extends Activity {
     private int currentWallpaperIndex = 0;
     private boolean isSideDrawerOpen = false;
     private boolean isInSubmenu = false;
+    private String shortcutPickerKey = null;
     private ServerSocket webSetupServerSocket;
     private boolean isWebServerRunning = false;
 
@@ -304,6 +305,7 @@ public class LauncherActivity extends Activity {
 
     private void buildMainMenuInDrawer() {
         isInSubmenu = false;
+        shortcutPickerKey = null;
         sideDrawerContainer.removeAllViews();
 
         TextView titleView = new TextView(this);
@@ -579,25 +581,41 @@ public class LauncherActivity extends Activity {
     }
 
     private void openButtonShortcutsSubmenu() {
-        sideDrawerContentScrollView.removeAllViews();
+        isInSubmenu = true;
+        shortcutPickerKey = null;
+        sideDrawerContainer.removeAllViews();
+
+        TextView titleView = new TextView(this);
+        titleView.setText("Button shortcuts");
+        titleView.setTextColor(Color.WHITE);
+        titleView.setTextSize(18);
+        titleView.setPadding(dpToPx(12), 0, 0, dpToPx(16));
+        sideDrawerContainer.addView(titleView);
+
+        View divider = new View(this);
+        divider.setBackgroundColor(Color.parseColor("#33FFFFFF"));
+        divider.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(1)));
+        sideDrawerContainer.addView(divider);
+
+        View topSpacer = new View(this);
+        topSpacer.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(8)));
+        sideDrawerContainer.addView(topSpacer);
+
+        sideDrawerContentScrollView = new ScrollView(this);
+        sideDrawerContentScrollView.setVerticalScrollBarEnabled(false);
+        sideDrawerContentScrollView.setLayoutParams(new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1.0f));
 
         LinearLayout container = new LinearLayout(this);
         container.setOrientation(LinearLayout.VERTICAL);
 
-        TextView title = new TextView(this);
-        title.setText("Button Shortcuts");
-        title.setTextColor(Color.WHITE);
-        title.setTextSize(18);
-        title.setPadding(10, 0, 0, 20);
-        container.addView(title);
-
-        addDrawerMenuItem(container, "🔴 Red Button: " + getShortcutName("RedShortcut"), () -> pickAppForShortcut("RedShortcut"));
-        addDrawerMenuItem(container, "🔵 Blue Button: " + getShortcutName("BlueShortcut"), () -> pickAppForShortcut("BlueShortcut"));
-        addDrawerMenuItem(container, "🟢 Green Button: " + getShortcutName("GreenShortcut"), () -> pickAppForShortcut("GreenShortcut"));
-        addDrawerMenuItem(container, "🟡 Yellow Button: " + getShortcutName("YellowShortcut"), () -> pickAppForShortcut("YellowShortcut"));
-        addDrawerMenuItem(container, "⬅️ Back", () -> buildMainMenuInDrawer());
+        addDrawerMenuItem(container, "●", "Red: " + getShortcutName("RedShortcut"), () -> openAppPickerForShortcut("RedShortcut"));
+        addDrawerMenuItem(container, "●", "Blue: " + getShortcutName("BlueShortcut"), () -> openAppPickerForShortcut("BlueShortcut"));
+        addDrawerMenuItem(container, "●", "Green: " + getShortcutName("GreenShortcut"), () -> openAppPickerForShortcut("GreenShortcut"));
+        addDrawerMenuItem(container, "●", "Yellow: " + getShortcutName("YellowShortcut"), () -> openAppPickerForShortcut("YellowShortcut"));
 
         sideDrawerContentScrollView.addView(container);
+        sideDrawerContainer.addView(sideDrawerContentScrollView);
     }
 
     private String getShortcutName(String key) {
@@ -610,16 +628,43 @@ public class LauncherActivity extends Activity {
         }
     }
 
-    private void pickAppForShortcut(String key) {
-        String[] appNames = new String[appList.size()];
-        for (int i = 0; i < appList.size(); i++) appNames[i] = appList.get(i).name();
+    private void openAppPickerForShortcut(String key) {
+        shortcutPickerKey = key;
+        sideDrawerContainer.removeAllViews();
 
-        new AlertDialog.Builder(this)
-                .setTitle("Select App for Shortcut")
-                .setItems(appNames, (dialog, which) -> {
-                    prefs.edit().putString(key, appList.get(which).packageName()).apply();
-                    openButtonShortcutsSubmenu();
-                }).show();
+        TextView titleView = new TextView(this);
+        titleView.setText("Select App");
+        titleView.setTextColor(Color.WHITE);
+        titleView.setTextSize(18);
+        titleView.setPadding(dpToPx(12), 0, 0, dpToPx(16));
+        sideDrawerContainer.addView(titleView);
+
+        View divider = new View(this);
+        divider.setBackgroundColor(Color.parseColor("#33FFFFFF"));
+        divider.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(1)));
+        sideDrawerContainer.addView(divider);
+
+        View topSpacer = new View(this);
+        topSpacer.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(8)));
+        sideDrawerContainer.addView(topSpacer);
+
+        sideDrawerContentScrollView = new ScrollView(this);
+        sideDrawerContentScrollView.setVerticalScrollBarEnabled(false);
+        sideDrawerContentScrollView.setLayoutParams(new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1.0f));
+
+        LinearLayout container = new LinearLayout(this);
+        container.setOrientation(LinearLayout.VERTICAL);
+
+        for (AppModel app : appList) {
+            addDrawerAppItem(container, app.icon(), app.name(), (v) -> {
+                prefs.edit().putString(key, app.packageName()).apply();
+                openButtonShortcutsSubmenu();
+            });
+        }
+
+        sideDrawerContentScrollView.addView(container);
+        sideDrawerContainer.addView(sideDrawerContentScrollView);
     }
 
     private void openParentalControlSubmenu() {
@@ -983,7 +1028,10 @@ public class LauncherActivity extends Activity {
                 case KeyEvent.KEYCODE_PROG_YELLOW -> { launchShortcut("YellowShortcut"); return true; }
                 case KeyEvent.KEYCODE_BACK -> {
                     if (isSideDrawerOpen) {
-                        if (isInSubmenu) {
+                        if (shortcutPickerKey != null) {
+                            shortcutPickerKey = null;
+                            openButtonShortcutsSubmenu();
+                        } else if (isInSubmenu) {
                             buildMainMenuInDrawer();
                         } else {
                             toggleSideDrawer(false);

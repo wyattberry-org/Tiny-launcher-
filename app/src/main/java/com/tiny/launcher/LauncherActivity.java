@@ -42,6 +42,7 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import org.json.JSONObject;
 
@@ -1039,7 +1040,7 @@ public class LauncherActivity extends Activity {
         }, popup);
 
         addPopupMenuItem(menuView, "⇄  Move App", () -> {
-            Toast.makeText(this, "Click another tile to swap positions", Toast.LENGTH_SHORT).show();
+            android.widget.Toast.makeText(this, "Click another tile to swap positions", android.widget.Toast.LENGTH_SHORT).show();
         }, popup);
 
         menuView.measure(View.MeasureSpec.makeMeasureSpec(dpToPx(160), View.MeasureSpec.EXACTLY),

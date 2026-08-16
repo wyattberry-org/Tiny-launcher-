@@ -1118,7 +1118,7 @@ public class LauncherActivity extends Activity {
         container.addView(row);
     }
 
-    private void showAppOptionDialog(int position, View anchorView) {
+        private void showAppOptionDialog(int position, View anchorView) {
         AppModel app = appList.get(position);
 
         LinearLayout menuView = new LinearLayout(this);
@@ -1128,11 +1128,12 @@ public class LauncherActivity extends Activity {
         GradientDrawable bg = new GradientDrawable();
         bg.setColor(Color.parseColor("#1A1D24"));
         bg.setCornerRadius(dpToPx(12));
-        
+        bg.setStroke(dpToPx(1), Color.parseColor("#33FFFFFF"));
+
         menuView.setBackground(bg);
 
         android.widget.PopupWindow popup = new android.widget.PopupWindow(
-                menuView, dpToPx(160), ViewGroup.LayoutParams.WRAP_CONTENT, true);
+                menuView, ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, true);
         popup.setElevation(dpToPx(12));
         popup.setOutsideTouchable(true);
 
@@ -1150,7 +1151,9 @@ public class LauncherActivity extends Activity {
         }, popup);
 
         addPopupMenuItem(menuView, "×", "Uninstall App", () -> {
-            Intent unIntent = new Intent(Intent.ACTION_UNINSTALL_PACKAGE, Uri.parse("package:" + app.packageName())); unIntent.putExtra(Intent.EXTRA_RETURN_RESULT, true); startActivity(unIntent);
+            Intent unIntent = new Intent(Intent.ACTION_UNINSTALL_PACKAGE, Uri.parse("package:" + app.packageName()));
+            unIntent.putExtra(Intent.EXTRA_RETURN_RESULT, true);
+            startActivity(unIntent);
         }, popup);
 
         addPopupMenuItem(menuView, "⧉", "Replace Banner", () -> {
@@ -1159,20 +1162,34 @@ public class LauncherActivity extends Activity {
         }, popup);
 
         addPopupMenuItem(menuView, "↔", "Move App", () -> {
-            isMoveMode = true; moveSourcePosition = position; android.widget.Toast.makeText(this, "Move Mode: Use D-pad arrows to glide tile", android.widget.Toast.LENGTH_LONG).show();
+            isMoveMode = true;
+            moveSourcePosition = position;
+            android.widget.Toast.makeText(this, "Move Mode: Use D-pad arrows to glide tile", android.widget.Toast.LENGTH_LONG).show();
         }, popup);
 
-        menuView.measure(View.MeasureSpec.makeMeasureSpec(dpToPx(160), View.MeasureSpec.EXACTLY),
-                         View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+        menuView.measure(
+            View.MeasureSpec.makeMeasureSpec(dpToPx(180), View.MeasureSpec.AT_MOST),
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+        );
+        int popupWidth = menuView.getMeasuredWidth();
         int popupHeight = menuView.getMeasuredHeight();
 
         int[] location = new int[2];
         anchorView.getLocationOnScreen(location);
-        float scaledHeight = anchorView.getHeight() * anchorView.getScaleY();
-        float topExpansion = (scaledHeight - anchorView.getHeight()) / 2f;
-        int tileVisualTopY = (int) (location[1] - topExpansion);
-        int popupX = location[0] + (anchorView.getWidth() - dpToPx(160)) / 2;
-        int popupY = tileVisualTopY - popupHeight - dpToPx(8);
+
+        float scaledWidth = anchorView.getWidth() * anchorView.getScaleX();
+        float visualCenterX = location[0] + (scaledWidth / 2f);
+        float visualTopY = location[1];
+
+        int popupX = Math.round(visualCenterX - (popupWidth / 2f));
+        int popupY = Math.round(visualTopY - popupHeight - dpToPx(8));
+
+        int screenWidth = getResources().getDisplayMetrics().widthPixels;
+        if (popupX < dpToPx(12)) {
+            popupX = dpToPx(12);
+        } else if (popupX + popupWidth > screenWidth - dpToPx(12)) {
+            popupX = screenWidth - dpToPx(12) - popupWidth;
+        }
 
         popup.showAtLocation(anchorView, Gravity.NO_GRAVITY, popupX, popupY);
     }

@@ -260,15 +260,15 @@ public class LauncherActivity extends Activity {
         GradientDrawable drawerBg = new GradientDrawable();
         drawerBg.setColor(Color.parseColor("#1A1D24"));
         float r16 = dpToPx(16);
-        drawerBg.setCornerRadii(new float[]{ r16, r16, 0f, 0f, 0f, 0f, r16, r16 });
+        drawerBg.setCornerRadii(new float[]{ r16, r16, 0f, 0f, 0f, 0f, 0f, 0f });
         sideDrawerContainer.setBackground(drawerBg);
-        sideDrawerContainer.setPadding(dpToPx(20), dpToPx(24), dpToPx(20), dpToPx(24));
+        sideDrawerContainer.setPadding(dpToPx(20), dpToPx(24), dpToPx(20), 0);
 
         FrameLayout.LayoutParams drawerLayoutParams = new FrameLayout.LayoutParams(
                 dpToPx(340), ViewGroup.LayoutParams.MATCH_PARENT);
         drawerLayoutParams.gravity = Gravity.END | Gravity.TOP;
         drawerLayoutParams.topMargin = dpToPx(76);
-        drawerLayoutParams.bottomMargin = dpToPx(28);
+        drawerLayoutParams.bottomMargin = 0;
         sideDrawerContainer.setLayoutParams(drawerLayoutParams);
         sideDrawerContainer.setVisibility(View.GONE);
 
@@ -302,38 +302,44 @@ public class LauncherActivity extends Activity {
     }
 
     private void buildMainMenuInDrawer() {
-        sideDrawerContentScrollView.removeAllViews();
-
-        LinearLayout drawerContent = new LinearLayout(this);
-        drawerContent.setOrientation(LinearLayout.VERTICAL);
+        sideDrawerContainer.removeAllViews();
 
         TextView titleView = new TextView(this);
         titleView.setText("Tiny Launcher");
         titleView.setTextColor(Color.WHITE);
         titleView.setTextSize(18);
         titleView.setPadding(dpToPx(12), 0, 0, dpToPx(16));
-        drawerContent.addView(titleView);
+        sideDrawerContainer.addView(titleView);
 
         View divider = new View(this);
         divider.setBackgroundColor(Color.parseColor("#33FFFFFF"));
         divider.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(1)));
-        drawerContent.addView(divider);
+        sideDrawerContainer.addView(divider);
 
         View topSpacer = new View(this);
         topSpacer.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(8)));
-        drawerContent.addView(topSpacer);
+        sideDrawerContainer.addView(topSpacer);
+
+        sideDrawerContentScrollView = new ScrollView(this);
+        sideDrawerContentScrollView.setVerticalScrollBarEnabled(false);
+        sideDrawerContentScrollView.setLayoutParams(new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1.0f));
+
+        LinearLayout drawerContent = new LinearLayout(this);
+        drawerContent.setOrientation(LinearLayout.VERTICAL);
 
         addDrawerMenuItem(drawerContent, "⧉", "Manage apps", () -> openManageAppsSubmenu());
         addDrawerMenuItem(drawerContent, "⌨", "Button shortcuts", () -> openButtonShortcutsSubmenu());
-        addDrawerMenuItem(drawerContent, "🔒", "Parental control", () -> openParentalControlSubmenu());
-        addDrawerMenuItem(drawerContent, "🖼", "Wallpaper/slideshow", () -> openWallpaperSubmenu());
-        addDrawerMenuItem(drawerContent, "⏰", "Show Clock", () -> openClockSubmenu());
+        addDrawerMenuItem(drawerContent, "⚿", "Parental control", () -> openParentalControlSubmenu());
+        addDrawerMenuItem(drawerContent, "⧈", "Wallpaper/slideshow", () -> openWallpaperSubmenu());
+        addDrawerMenuItem(drawerContent, "◷", "Show Clock", () -> openClockSubmenu());
         addDrawerMenuItem(drawerContent, "◫", "Tile settings", () -> openTileSettingsSubmenu());
-        addDrawerMenuItem(drawerContent, "☁", "Weather", () -> openWeatherSubmenu());
+        addDrawerMenuItem(drawerContent, "☼", "Weather", () -> openWeatherSubmenu());
         addDrawerMenuItem(drawerContent, "⚙", "System settings", () -> startActivity(new Intent(Settings.ACTION_SETTINGS)));
         addDrawerMenuItem(drawerContent, "ℹ", "About", () -> openAboutSubmenu());
 
         sideDrawerContentScrollView.addView(drawerContent);
+        sideDrawerContainer.addView(sideDrawerContentScrollView);
     }
 
     private void addDrawerMenuItem(LinearLayout container, String title, Runnable onClick) {

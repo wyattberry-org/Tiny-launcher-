@@ -1,0 +1,47 @@
+name: Cleanup Workflow Runs and Caches
+
+on:
+  workflow_dispatch:
+    inputs:
+      keep_runs:
+        description: "Number of recent workflow runs to keep"
+        required: true
+        default: "20"
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete old workflow runs (keep last N)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          KEEP_COUNT: ${{ github.event.inputs.keep_runs || "20" }}
+        run: |
+          echo "Fetching workflow runs..."
+          RUN_IDS=$(gh api repos/${{ github.repository }}/actions/runs --paginate -q ".workflow_runs | sort_by(.created_at) | reverse | .[].id")
+          
+          COUNT=0
+          for RUN_ID in $RUN_IDS; do
+            COUNT=$((COUNT + 1))
+            if [ $COUNT -gt $KEEP_COUNT ]; then
+              echo "Deleting run ID: $RUN_ID (Run #$COUNT)"
+              gh api -X DELETE repos/${{ github.repository }}/actions/runs/$RUN_ID || true
+            else
+              echo "Keeping run ID: $RUN_ID (Run #$COUNT)"
+            fi
+          done
+
+      - name: Purge GitHub Actions Caches
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Fetching actions caches..."
+          CACHE_IDS=$(gh api repos/${{ github.repository }}/actions/caches --paginate -q ".actions_caches[].id")
+          for CACHE_ID in $CACHE_IDS; do
+            echo "Deleting cache ID: $CACHE_ID"
+            gh api -X DELETE repos/${{ github.repository }}/actions/caches/$CACHE_ID || true
+          done

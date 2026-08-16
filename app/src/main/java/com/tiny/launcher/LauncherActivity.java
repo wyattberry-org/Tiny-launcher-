@@ -123,7 +123,7 @@ public class LauncherActivity extends Activity {
 
         // --- 1. Root Overlay Frame ---
         rootOverlayFrame = new FrameLayout(this);
-        rootOverlayFrame.setBackgroundColor(Color.parseColor("#2B1D14"));
+        rootOverlayFrame.setBackgroundColor(Color.parseColor("#2B2200"));
 
         // --- 2. Wallpaper ImageSwitcher ---
         wallpaperSwitcher = new ImageSwitcher(this);
@@ -924,7 +924,7 @@ public class LauncherActivity extends Activity {
 
             android.widget.FrameLayout bannerCard = new android.widget.FrameLayout(this);
             bannerCard.setFocusable(true); bannerCard.setFocusableInTouchMode(true);
-            bannerCard.setLayoutParams(new android.widget.FrameLayout.LayoutParams(dpToPx(140), dpToPx(79)));
+            bannerCard.setLayoutParams(new android.widget.FrameLayout.LayoutParams(dpToPx(160), dpToPx(90)));
             GradientDrawable baseShape = new GradientDrawable();
             baseShape.setColor(Color.parseColor("#CC1A1A1A"));
             baseShape.setCornerRadius(dpToPx(14));
@@ -951,7 +951,7 @@ public class LauncherActivity extends Activity {
             bannerCard.setOnFocusChangeListener((v, hasFocus) -> {
                 resetIdleTimer();
                 titleView.setVisibility(hasFocus ? View.VISIBLE : View.INVISIBLE);
-                v.animate().scaleX(hasFocus ? 1.20f : 1.0f).scaleY(hasFocus ? 1.20f : 1.0f).setDuration(150).start();
+                v.animate().scaleX(hasFocus ? 1.25f : 1.0f).scaleY(hasFocus ? 1.25f : 1.0f).setDuration(150).start();
                 float elevation = hasFocus ? dpToPx(10) : 0f;
                 itemContainer.setElevation(elevation);
                 v.setElevation(elevation);

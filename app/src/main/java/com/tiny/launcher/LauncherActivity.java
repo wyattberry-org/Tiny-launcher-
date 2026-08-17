@@ -982,7 +982,7 @@ public class LauncherActivity extends Activity {
         addDrawerMenuItem(container, "⎘", "Slideshow folder", () -> openSlideshowFolderSubmenu());
         addSlideshowDurationMenuItem(container);
         addHideUiIdleMenuItem(container);
-        boolean chgRst = prefs.getBoolean("ChangeEachRestart", false); addDrawerMenuItem(container, "↻", "Change each restart: " + (chgRst ? "On" : "Off"), () -> { prefs.edit().putBoolean("ChangeEachRestart", !chgRst).apply(); openWallpaperSubmenu(4); });
+        addChangeEachMenuItem(container);
         sideDrawerContentScrollView.addView(container);
         container.post(() -> { if (container.getChildCount() > focusIdx) container.getChildAt(focusIdx).requestFocus(); });
     }

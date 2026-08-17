@@ -883,8 +883,7 @@ public class LauncherActivity extends Activity {
 
         if (!found) {
             TextView info = new TextView(this);
-            info.setText("No file explorer installed.
-Please install Cx File Explorer or X-plore.");
+            info.setText("No file explorer installed.\n" + "Please install Cx File Explorer or X-plore.");
             info.setTextColor(Color.LTGRAY); info.setTextSize(14);
             info.setPadding(dpToPx(12), dpToPx(12), dpToPx(12), dpToPx(12));
             container.addView(info);

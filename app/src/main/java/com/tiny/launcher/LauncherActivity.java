@@ -152,6 +152,7 @@ public class LauncherActivity extends Activity {
 
         wallpaperSwitcher.setInAnimation(AnimationUtils.loadAnimation(this, android.R.anim.slide_in_left));
         wallpaperSwitcher.setOutAnimation(AnimationUtils.loadAnimation(this, android.R.anim.slide_out_right));
+        if (wallpaperSwitcher.getInAnimation() != null) wallpaperSwitcher.getInAnimation().setDuration(2000); if (wallpaperSwitcher.getOutAnimation() != null) wallpaperSwitcher.getOutAnimation().setDuration(2000);
         rootOverlayFrame.addView(wallpaperSwitcher);
 
         // --- 3. Main Content Overlay ---
@@ -1444,6 +1445,30 @@ public class LauncherActivity extends Activity {
     }
 
     // --- Dynamic Accent & Wallpapers ---
+    private void animateTileAccentSweep(int newAccent) {
+        if (horizontalAppContainer == null) return;
+        int screenW = getResources().getDisplayMetrics().widthPixels;
+        int targetColor = Color.rgb((int)(0x1A * 0.6f + Color.red(newAccent) * 0.4f), (int)(0x1A * 0.6f + Color.green(newAccent) * 0.4f), (int)(0x1A * 0.6f + Color.blue(newAccent) * 0.4f));
+        int tileH = prefs.getInt("TileSize", 160) * 9 / 16, tileDeg = prefs.getInt("TileCornerRadius", 30);
+        int radPx = dpToPx((int) Math.round((tileH / 2.0f) * (tileDeg / 90.0f)));
+        for (int i = 0; i < horizontalAppContainer.getChildCount(); i++) {
+            View child = horizontalAppContainer.getChildAt(i);
+            if (child instanceof LinearLayout) {
+                LinearLayout ic = (LinearLayout) child;
+                if (ic.getChildCount() > 0 && ic.getChildAt(0) instanceof FrameLayout) {
+                    FrameLayout bc = (FrameLayout) ic.getChildAt(0);
+                    int[] loc = new int[2]; bc.getLocationOnScreen(loc);
+                    float ratio = Math.max(0.0f, Math.min(1.0f, (float) loc[0] / screenW));
+                    bc.postDelayed(() -> {
+                        GradientDrawable shape = new GradientDrawable();
+                        shape.setColor(targetColor); shape.setCornerRadius(radPx);
+                        bc.setBackground(shape);
+                    }, (long) (ratio * 1800));
+                }
+            }
+        }
+    }
+
     private void extractAccentColorFromBitmap(Bitmap bitmap) {
         if (bitmap == null) return;
         new Thread(() -> {
@@ -1467,6 +1492,7 @@ public class LauncherActivity extends Activity {
             int finalColor = maxSatPixel;
             runOnUiThread(() -> {
                 currentAccentColor = finalColor;
+                animateTileAccentSweep(finalColor);
             });
         }).start();
     }

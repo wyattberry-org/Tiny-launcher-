@@ -1035,22 +1035,22 @@ public class LauncherActivity extends Activity {
 
 
     
-    private void addChangeEachMenuItem(LinearLayout container) {
+        private void addChangeEachMenuItem(LinearLayout container) {
         boolean chgRst = prefs.getBoolean("ChangeEachRestart", false);
         View row = addDrawerStatusItem(container, "↻", "Change each restart", chgRst ? "On" : "Off", null);
         if (row != null) {
             row.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
             int id = View.generateViewId(); row.setId(id); row.setNextFocusLeftId(id); row.setNextFocusRightId(id);
-            Runnable toggle = () -> {
-                boolean cur = prefs.getBoolean("ChangeEachRestart", false);
-                boolean next = !cur;
-                prefs.edit().putBoolean("ChangeEachRestart", next).apply();
-                TextView tv = row.findViewById(1001); if (tv != null) tv.setText(next ? "On" : "Off");
-            };
-            row.setOnClickListener(v -> toggle.run());
+            row.setOnClickListener(null);
             row.setOnKeyListener((v, keyCode, event) -> {
                 if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
-                if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT || keyCode == KeyEvent.KEYCODE_DPAD_LEFT) { toggle.run(); return true; }
+                if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT || keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
+                    boolean cur = prefs.getBoolean("ChangeEachRestart", false);
+                    boolean next = !cur;
+                    prefs.edit().putBoolean("ChangeEachRestart", next).apply();
+                    TextView tv = row.findViewById(1001); if (tv != null) tv.setText(next ? "On" : "Off");
+                    return true;
+                }
                 return false;
             });
         }

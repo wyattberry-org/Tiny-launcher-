@@ -353,7 +353,7 @@ public class LauncherActivity extends Activity {
         sideDrawerContentScrollView.addView(drawerContent);
         sideDrawerContainer.addView(sideDrawerContentScrollView);
         drawerContent.post(() -> { if (drawerContent.getChildCount() > lastMainMenuIdx) drawerContent.getChildAt(lastMainMenuIdx).requestFocus(); });
-        return;
+        }
 
     private void addDrawerMenuItem(LinearLayout container, String title, Runnable onClick) {
         addDrawerMenuItem(container, "", title, onClick);

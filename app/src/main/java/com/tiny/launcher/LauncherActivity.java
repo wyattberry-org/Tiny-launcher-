@@ -920,7 +920,11 @@ public class LauncherActivity extends Activity {
             String name = p[0]; String path = p[1];
             addDrawerMenuItem(container, "⧉", Color.parseColor("#5A5E6B"), name, () -> {
                 try { getFileStreamPath("custom_wallpaper.jpg").delete(); } catch (Exception ignored) {}
-                prefs.edit().putString("WallpaperFolder", path).apply();
+                String targetPath = path;
+                File checkDir = new File(path.replace("/sdcard", "/storage/emulated/0"));
+                if (!checkDir.exists()) checkDir = new File("/storage/emulated/0/Pictures/wallpapers");
+                if (checkDir.exists()) targetPath = checkDir.getAbsolutePath();
+                prefs.edit().putString("WallpaperFolder", targetPath).apply();
                 loadWallpapers(); startWallpaperRotation(); openWallpaperSubmenu();
             });
         }
@@ -1313,7 +1317,15 @@ public class LauncherActivity extends Activity {
         String folderPath = prefs.getString("WallpaperFolder", "/sdcard/Pictures/Wallpapers");
         File dir = new File(folderPath);
         if (!dir.exists() && folderPath.contains("sdcard")) dir = new File(folderPath.replace("/sdcard", "/storage/emulated/0"));
-        if (!dir.exists() && folderPath.contains("Pictures")) dir = new File("/storage/emulated/0/Pictures/Wallpapers");
+        if (!dir.exists()) dir = new File("/storage/emulated/0/Pictures/wallpapers");
+        if (!dir.exists()) dir = new File("/storage/emulated/0/Pictures/Wallpapers");
+        if (!dir.exists()) {
+            File p = new File("/storage/emulated/0/Pictures");
+            if (p.exists() && p.isDirectory()) {
+                File[] subs = p.listFiles(File::isDirectory);
+                if (subs != null) { for (File s : subs) { if (s.getName().equalsIgnoreCase("wallpapers")) { dir = s; break; } } }
+            }
+        }
         if (dir.exists() && dir.isDirectory()) {
             File[] files = dir.listFiles((d, name) -> {
                 String n = name.toLowerCase();

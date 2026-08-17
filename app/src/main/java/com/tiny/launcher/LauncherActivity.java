@@ -1037,7 +1037,7 @@ public class LauncherActivity extends Activity {
     
     private void addChangeEachMenuItem(LinearLayout container) {
         boolean chgRst = prefs.getBoolean("ChangeEachRestart", false);
-        View row = addDrawerStatusItem(container, "↻", "Change each", chgRst ? "On" : "Off", null);
+        View row = addDrawerStatusItem(container, "↻", "Change each restart", chgRst ? "On" : "Off", null);
         if (row != null) {
             row.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
             int id = View.generateViewId(); row.setId(id); row.setNextFocusLeftId(id); row.setNextFocusRightId(id);

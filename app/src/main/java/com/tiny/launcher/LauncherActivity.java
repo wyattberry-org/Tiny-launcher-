@@ -839,7 +839,61 @@ public class LauncherActivity extends Activity {
         sideDrawerContainer.addView(sideDrawerContentScrollView);
     }
 
-    private void openWallpaperSubmenu() {
+        private void openSetWallpaperSubmenu() {
+        isInSubmenu = true;
+        drawerBackAction = () -> openWallpaperSubmenu();
+        sideDrawerContentScrollView.removeAllViews();
+        if (drawerTitleView != null) drawerTitleView.setText("Set wallpaper");
+        LinearLayout container = new LinearLayout(this); container.setOrientation(LinearLayout.VERTICAL);
+
+        String[][] explorers = {
+            {"Cx File Explorer", "com.cxinventor.file.explorer"},
+            {"X-plore", "com.lonelycatgames.Xplore"},
+            {"Solid Explorer", "pl.solidexplorer2"},
+            {"FX File Explorer", "nextapp.fx"},
+            {"Total Commander", "com.ghisler.android.TotalCommander"},
+            {"System Files", "com.google.android.documentsui"},
+            {"Native Explorer", "com.android.documentsui"}
+        };
+
+        boolean found = false;
+        android.content.pm.PackageManager pm = getPackageManager();
+        for (String[] exp : explorers) {
+            String name = exp[0]; String pkg = exp[1];
+            try {
+                pm.getPackageInfo(pkg, 0);
+                found = true;
+                addDrawerMenuItem(container, "📁", name, () -> {
+                    try {
+                        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+                        intent.setType("image/*");
+                        intent.setPackage(pkg);
+                        startActivityForResult(intent, 1001);
+                    } catch (Exception e) {
+                        try {
+                            Intent fb = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+                            fb.setType("image/*");
+                            fb.setPackage(pkg);
+                            startActivityForResult(fb, 1001);
+                        } catch (Exception ignored) {}
+                    }
+                });
+            } catch (Exception ignored) {}
+        }
+
+        if (!found) {
+            TextView info = new TextView(this);
+            info.setText("No file explorer installed.
+Please install Cx File Explorer or X-plore.");
+            info.setTextColor(Color.LTGRAY); info.setTextSize(14);
+            info.setPadding(dpToPx(12), dpToPx(12), dpToPx(12), dpToPx(12));
+            container.addView(info);
+        }
+
+        sideDrawerContentScrollView.addView(container);
+    }
+
+private void openWallpaperSubmenu() {
         sideDrawerContentScrollView.removeAllViews();
         LinearLayout container = new LinearLayout(this); container.setOrientation(LinearLayout.VERTICAL);
         if (drawerTitleView != null) drawerTitleView.setText("Wallpaper/slideshow");

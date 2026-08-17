@@ -895,14 +895,67 @@ public class LauncherActivity extends Activity {
         sideDrawerContentScrollView.addView(container);
     }
 
-private void openWallpaperSubmenu() {
+    private void openSlideshowFolderSubmenu() {
+        isInSubmenu = true;
+        drawerBackAction = () -> openWallpaperSubmenu();
+        sideDrawerContentScrollView.removeAllViews();
+        if (drawerTitleView != null) drawerTitleView.setText("Slideshow folder");
+        LinearLayout container = new LinearLayout(this); container.setOrientation(LinearLayout.VERTICAL);
+
+        String[][] explorers = {
+            {"Cx File Explorer", "com.cxinventor.file.explorer"},
+            {"X-plore", "com.lonelycatgames.Xplore"},
+            {"Solid Explorer", "pl.solidexplorer2"},
+            {"FX File Explorer", "nextapp.fx"},
+            {"Total Commander", "com.ghisler.android.TotalCommander"},
+            {"System Files", "com.google.android.documentsui"},
+            {"Native Explorer", "com.android.documentsui"}
+        };
+
+        boolean found = false;
+        android.content.pm.PackageManager pm = getPackageManager();
+        for (String[] exp : explorers) {
+            String name = exp[0]; String pkg = exp[1];
+            try {
+                pm.getPackageInfo(pkg, 0);
+                found = true;
+                addDrawerMenuItem(container, "⧉", Color.parseColor("#5A5E6B"), name, () -> {
+                    try {
+                        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+                        intent.setPackage(pkg);
+                        startActivityForResult(intent, 1002);
+                    } catch (Exception e) {
+                        try {
+                            Intent fb = new Intent(Intent.ACTION_GET_CONTENT);
+                            fb.setType("*/*");
+                            fb.setPackage(pkg);
+                            startActivityForResult(fb, 1002);
+                        } catch (Exception ignored) {}
+                    }
+                });
+            } catch (Exception ignored) {}
+        }
+
+        if (!found) {
+            TextView info = new TextView(this);
+            info.setText("No file explorer installed.\nPlease install Cx File Explorer or X-plore.");
+            info.setTextColor(Color.LTGRAY); info.setTextSize(14);
+            info.setPadding(dpToPx(12), dpToPx(12), dpToPx(12), dpToPx(12));
+            container.addView(info);
+        }
+
+        sideDrawerContentScrollView.addView(container);
+        container.post(() -> { if (container.getChildCount() > 0) container.getChildAt(0).requestFocus(); });
+    }
+
+    private void openWallpaperSubmenu() {
         isInSubmenu = true;
         drawerBackAction = () -> buildMainMenuInDrawer();
         sideDrawerContentScrollView.removeAllViews();
         LinearLayout container = new LinearLayout(this); container.setOrientation(LinearLayout.VERTICAL);
         if (drawerTitleView != null) drawerTitleView.setText("Wallpaper/slideshow");
         addDrawerMenuItem(container, "Set wallpaper", () -> openSetWallpaperSubmenu());
-        addDrawerMenuItem(container, "Slideshow folder", () -> { final EditText input = new EditText(this); input.setText(prefs.getString("WallpaperFolder", "/sdcard/Pictures/Wallpapers")); new AlertDialog.Builder(this).setTitle("Wallpaper Path").setView(input).setPositiveButton("Save", (d, w) -> { prefs.edit().putString("WallpaperFolder", input.getText().toString()).apply(); loadWallpapers(); }).show(); });
+        addDrawerMenuItem(container, "Slideshow folder", () -> openSlideshowFolderSubmenu());
         long curInt = prefs.getLong("SlideshowInterval", 30000L); int idx = 1; for (int i = 0; i < SLIDESHOW_INTERVALS.length; i++) { if (SLIDESHOW_INTERVALS[i] == curInt) { idx = i; break; } } final int nextIdx = (idx + 1) % SLIDESHOW_INTERVALS.length;
         addDrawerMenuItem(container, "Slideshow duration: " + SLIDESHOW_LABELS[idx], () -> { prefs.edit().putLong("SlideshowInterval", SLIDESHOW_INTERVALS[nextIdx]).apply(); startWallpaperRotation(); openWallpaperSubmenu(); });
         boolean hideIdle = prefs.getBoolean("HideUiWhenIdle", true); addDrawerMenuItem(container, "Hide UI when idle: " + (hideIdle ? "On" : "Off"), () -> { prefs.edit().putBoolean("HideUiWhenIdle", !hideIdle).apply(); openWallpaperSubmenu(); });
@@ -1752,6 +1805,7 @@ private void openWallpaperSubmenu() {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == 1002 && resultCode == RESULT_OK && data != null && data.getData() != null) { android.net.Uri uri = data.getData(); try { getContentResolver().takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION); } catch (Exception ignored) {} String p = uri.getPath(); if (p != null && p.contains(":")) { String[] parts = p.split(":"); if (parts.length > 1) p = "/sdcard/" + parts[1]; } prefs.edit().putString("WallpaperFolder", p != null ? p : uri.toString()).apply(); loadWallpapers(); startWallpaperRotation(); }
         if (requestCode == 1001 && resultCode == RESULT_OK && data != null && data.getData() != null) {
             try (java.io.InputStream in = getContentResolver().openInputStream(data.getData());
                  java.io.OutputStream out = openFileOutput("custom_wallpaper.jpg", MODE_PRIVATE)) {

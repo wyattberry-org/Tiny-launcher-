@@ -112,12 +112,8 @@ public class LauncherActivity extends Activity {
     private boolean isWebServerRunning = false;
 
     // --- Slideshow Interval Options (in Milliseconds) ---
-    private final long[] SLIDESHOW_INTERVALS = {
-            20000L, 30000L, 60000L, 180000L, 300000L, 600000L, 900000L, 1200000L, 1800000L
-    };
-    private final String[] SLIDESHOW_LABELS = {
-            "20 sec", "30 sec", "1 min", "3 min", "5 min", "10 min", "15 min", "20 min", "30 min"
-    };
+    private final long[] SLIDESHOW_INTERVALS = {15000L, 30000L, 60000L, 300000L, 600000L, 1200000L, 1800000L, 0L};
+    private final String[] SLIDESHOW_LABELS = {"15sec", "30sec", "1min", "5min", "10min", "20min", "30min", "off"};
 
     // Receiver to auto-refresh app grid on install/uninstall
     private final BroadcastReceiver packageReceiver = new BroadcastReceiver() {
@@ -982,8 +978,7 @@ public class LauncherActivity extends Activity {
         if (drawerTitleView != null) drawerTitleView.setText("Wallpaper/slideshow");
         addDrawerMenuItem(container, "Set wallpaper", () -> openSetWallpaperSubmenu());
         addDrawerMenuItem(container, "Slideshow folder", () -> openSlideshowFolderSubmenu());
-        long curInt = prefs.getLong("SlideshowInterval", 30000L); int idx = 1; for (int i = 0; i < SLIDESHOW_INTERVALS.length; i++) { if (SLIDESHOW_INTERVALS[i] == curInt) { idx = i; break; } } final int nextIdx = (idx + 1) % SLIDESHOW_INTERVALS.length;
-        addDrawerMenuItem(container, "Slideshow duration: " + SLIDESHOW_LABELS[idx], () -> { prefs.edit().putLong("SlideshowInterval", SLIDESHOW_INTERVALS[nextIdx]).apply(); startWallpaperRotation(); openWallpaperSubmenu(2); });
+        addSlideshowDurationMenuItem(container); startWallpaperRotation(); openWallpaperSubmenu(2); });
         boolean hideIdle = prefs.getBoolean("HideUiWhenIdle", true); addDrawerMenuItem(container, "Hide UI when idle: " + (hideIdle ? "On" : "Off"), () -> { prefs.edit().putBoolean("HideUiWhenIdle", !hideIdle).apply(); openWallpaperSubmenu(3); });
         boolean chgRst = prefs.getBoolean("ChangeEachRestart", false); addDrawerMenuItem(container, "Change each restart: " + (chgRst ? "On" : "Off"), () -> { prefs.edit().putBoolean("ChangeEachRestart", !chgRst).apply(); openWallpaperSubmenu(4); });
         sideDrawerContentScrollView.addView(container);
@@ -1377,27 +1372,25 @@ public class LauncherActivity extends Activity {
         if (!wallpaperFiles.isEmpty()) startWallpaperRotation();
     }
 
-    private void startWallpaperRotation() {
+        private void startWallpaperRotation() {
+        wallpaperHandler.removeCallbacks(wallpaperRunnable);
         wallpaperRunnable = new Runnable() {
-            @Override
-            public void run() {
+            @Override public void run() {
                 if (wallpaperFiles.isEmpty()) return;
                 File file = wallpaperFiles.get(currentWallpaperIndex);
-
                 DisplayMetrics metrics = getResources().getDisplayMetrics();
                 Bitmap bitmap = BitmapFactory.decodeFile(file.getAbsolutePath());
-
                 if (bitmap != null) {
                     wallpaperSwitcher.setImageDrawable(new BitmapDrawable(getResources(), bitmap));
                     extractAccentColorFromBitmap(bitmap);
                 }
-
                 currentWallpaperIndex = (currentWallpaperIndex + 1) % wallpaperFiles.size();
                 long interval = prefs.getLong("SlideshowInterval", 30000L);
-                wallpaperHandler.postDelayed(this, interval);
+                if (interval > 0) wallpaperHandler.postDelayed(this, interval);
             }
         };
-        wallpaperHandler.post(wallpaperRunnable);
+        long interval = prefs.getLong("SlideshowInterval", 30000L);
+        if (interval > 0) wallpaperHandler.post(wallpaperRunnable);
     }
 
     private void setupIdleAutoTimer() {

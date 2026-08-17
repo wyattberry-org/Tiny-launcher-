@@ -426,29 +426,6 @@ public class LauncherActivity extends Activity {
                 LinearLayout ic = (LinearLayout) c;
                 if (ic.getChildCount() > 0 && ic.getChildAt(0) instanceof FrameLayout) {
                     FrameLayout bc = (FrameLayout) ic.getChildAt(0);
-                    bc.setLayoutParams(new android.widget.FrameLayout.LayoutParams(dpToPx(W), dpToPx(H)));
-                    GradientDrawable s = new GradientDrawable(); s.setColor(Color.parseColor("#FF1A1A1A"));
-                    s.setCornerRadius(R); bc.setBackground(s);
-                }
-            }
-        }
-    }
-
-    private void applyTileRowPosition() {
-        int posDp = prefs.getInt("TileRowPosition", 0);
-        if (horizontalAppScrollView != null) horizontalAppScrollView.setTranslationY(dpToPx(-posDp));
-    }
-
-    private void applyTileStyles() {
-        int W = prefs.getInt("TileSize", 160), H = W * 9 / 16, D = prefs.getInt("TileCornerRadius", 30);
-        int R = dpToPx((int) Math.round((H / 2.0f) * (D / 90.0f)));
-        if (horizontalAppContainer == null) return;
-        for (int i = 0; i < horizontalAppContainer.getChildCount(); i++) {
-            View c = horizontalAppContainer.getChildAt(i);
-            if (c instanceof LinearLayout) {
-                LinearLayout ic = (LinearLayout) c;
-                if (ic.getChildCount() > 0 && ic.getChildAt(0) instanceof FrameLayout) {
-                    FrameLayout bc = (FrameLayout) ic.getChildAt(0);
                     bc.setLayoutParams(new LinearLayout.LayoutParams(dpToPx(W), dpToPx(H)));
                     GradientDrawable s = new GradientDrawable(); s.setColor(Color.parseColor("#FF1A1A1A"));
                     s.setCornerRadius(R); bc.setBackground(s);

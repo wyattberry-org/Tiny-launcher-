@@ -895,6 +895,8 @@ public class LauncherActivity extends Activity {
     }
 
 private void openWallpaperSubmenu() {
+        isInSubmenu = true;
+        drawerBackAction = () -> buildMainMenuInDrawer();
         sideDrawerContentScrollView.removeAllViews();
         LinearLayout container = new LinearLayout(this); container.setOrientation(LinearLayout.VERTICAL);
         if (drawerTitleView != null) drawerTitleView.setText("Wallpaper/slideshow");
@@ -905,6 +907,7 @@ private void openWallpaperSubmenu() {
         boolean hideIdle = prefs.getBoolean("HideUiWhenIdle", true); addDrawerMenuItem(container, "Hide UI when idle: " + (hideIdle ? "On" : "Off"), () -> { prefs.edit().putBoolean("HideUiWhenIdle", !hideIdle).apply(); openWallpaperSubmenu(); });
         boolean chgRst = prefs.getBoolean("ChangeEachRestart", false); addDrawerMenuItem(container, "Change each restart: " + (chgRst ? "On" : "Off"), () -> { prefs.edit().putBoolean("ChangeEachRestart", !chgRst).apply(); openWallpaperSubmenu(); });
         sideDrawerContentScrollView.addView(container);
+        container.post(() -> { if (container.getChildCount() > 0) container.getChildAt(0).requestFocus(); });
     }
 
     private void openClockSubmenu() {

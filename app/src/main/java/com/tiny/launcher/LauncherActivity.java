@@ -78,6 +78,7 @@ public class LauncherActivity extends Activity {
     private HorizontalScrollView horizontalAppScrollView;
     private LinearLayout horizontalAppContainer;
     private TextView drawerTitleView;
+    private Runnable drawerBackAction = null;
     private TextView clockTextView, weatherStatusTextView, weatherTempTextView, weatherRhTextView, weatherWindTextView;
     private ImageView weatherIconView, settingsGear;
     private LinearLayout topWidgetRow, sideDrawerContainer;

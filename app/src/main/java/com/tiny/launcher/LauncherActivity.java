@@ -1010,6 +1010,30 @@ public class LauncherActivity extends Activity {
         }
     }
 
+    
+    private void addHideUiIdleMenuItem(LinearLayout container) {
+        long current = prefs.getLong("IdleTimeout", 300000L); int idx = 1;
+        for (int i = 0; i < IDLE_TIMEOUT_MS.length; i++) { if (IDLE_TIMEOUT_MS[i] == current) { idx = i; break; } }
+        View row = addDrawerStatusItem(container, "⧇", "Hide UI when idle", IDLE_TIMEOUT_LABELS[idx], null);
+        if (row != null) {
+            row.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+            int id = View.generateViewId(); row.setId(id); row.setNextFocusLeftId(id); row.setNextFocusRightId(id);
+            row.setOnKeyListener((v, keyCode, event) -> {
+                if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
+                if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT || keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
+                    long c = prefs.getLong("IdleTimeout", 300000L); int cIdx = 0;
+                    for (int i = 0; i < IDLE_TIMEOUT_MS.length; i++) { if (IDLE_TIMEOUT_MS[i] == c) { cIdx = i; break; } }
+                    int nIdx = (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) ? (cIdx + 1) % IDLE_TIMEOUT_LABELS.length : (cIdx - 1 + IDLE_TIMEOUT_LABELS.length) % IDLE_TIMEOUT_LABELS.length;
+                    prefs.edit().putLong("IdleTimeout", IDLE_TIMEOUT_MS[nIdx]).apply();
+                    TextView tv = row.findViewById(1001); if (tv != null) tv.setText(IDLE_TIMEOUT_LABELS[nIdx]);
+                    resetIdleTimer(); return true;
+                }
+                return false;
+            });
+        }
+    }
+
+
     private void openClockSubmenu() {
         sideDrawerContentScrollView.removeAllViews();
 

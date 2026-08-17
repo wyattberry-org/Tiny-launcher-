@@ -972,7 +972,9 @@ public class LauncherActivity extends Activity {
         container.post(() -> { if (container.getChildCount() > 0) container.getChildAt(0).requestFocus(); });
     }
 
-    private void openWallpaperSubmenu() {
+    private void openWallpaperSubmenu() { openWallpaperSubmenu(0); }
+
+    private void openWallpaperSubmenu(int focusIdx) {
         isInSubmenu = true;
         drawerBackAction = () -> buildMainMenuInDrawer();
         sideDrawerContentScrollView.removeAllViews();
@@ -981,11 +983,11 @@ public class LauncherActivity extends Activity {
         addDrawerMenuItem(container, "Set wallpaper", () -> openSetWallpaperSubmenu());
         addDrawerMenuItem(container, "Slideshow folder", () -> openSlideshowFolderSubmenu());
         long curInt = prefs.getLong("SlideshowInterval", 30000L); int idx = 1; for (int i = 0; i < SLIDESHOW_INTERVALS.length; i++) { if (SLIDESHOW_INTERVALS[i] == curInt) { idx = i; break; } } final int nextIdx = (idx + 1) % SLIDESHOW_INTERVALS.length;
-        addDrawerMenuItem(container, "Slideshow duration: " + SLIDESHOW_LABELS[idx], () -> { prefs.edit().putLong("SlideshowInterval", SLIDESHOW_INTERVALS[nextIdx]).apply(); startWallpaperRotation(); openWallpaperSubmenu(); });
-        boolean hideIdle = prefs.getBoolean("HideUiWhenIdle", true); addDrawerMenuItem(container, "Hide UI when idle: " + (hideIdle ? "On" : "Off"), () -> { prefs.edit().putBoolean("HideUiWhenIdle", !hideIdle).apply(); openWallpaperSubmenu(); });
-        boolean chgRst = prefs.getBoolean("ChangeEachRestart", false); addDrawerMenuItem(container, "Change each restart: " + (chgRst ? "On" : "Off"), () -> { prefs.edit().putBoolean("ChangeEachRestart", !chgRst).apply(); openWallpaperSubmenu(); });
+        addDrawerMenuItem(container, "Slideshow duration: " + SLIDESHOW_LABELS[idx], () -> { prefs.edit().putLong("SlideshowInterval", SLIDESHOW_INTERVALS[nextIdx]).apply(); startWallpaperRotation(); openWallpaperSubmenu(2); });
+        boolean hideIdle = prefs.getBoolean("HideUiWhenIdle", true); addDrawerMenuItem(container, "Hide UI when idle: " + (hideIdle ? "On" : "Off"), () -> { prefs.edit().putBoolean("HideUiWhenIdle", !hideIdle).apply(); openWallpaperSubmenu(3); });
+        boolean chgRst = prefs.getBoolean("ChangeEachRestart", false); addDrawerMenuItem(container, "Change each restart: " + (chgRst ? "On" : "Off"), () -> { prefs.edit().putBoolean("ChangeEachRestart", !chgRst).apply(); openWallpaperSubmenu(4); });
         sideDrawerContentScrollView.addView(container);
-        container.post(() -> { if (container.getChildCount() > 0) container.getChildAt(0).requestFocus(); });
+        container.post(() -> { if (container.getChildCount() > focusIdx) container.getChildAt(focusIdx).requestFocus(); });
     }
 
     private void openClockSubmenu() {

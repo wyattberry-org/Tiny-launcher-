@@ -1421,18 +1421,39 @@ public class LauncherActivity extends Activity {
         if (!wallpaperFiles.isEmpty()) startWallpaperRotation();
     }
 
-        private void startWallpaperRotation() {
+                @Override
+    protected void onResume() {
+        super.onResume();
+        if (prefs.getBoolean("ChangeEachRestart", false) && !wallpaperFiles.isEmpty()) {
+            int last = prefs.getInt("LastWallpaperIndex", 0);
+            currentWallpaperIndex = (last + 10) % wallpaperFiles.size();
+            prefs.edit().putInt("LastWallpaperIndex", currentWallpaperIndex).apply();
+            File file = wallpaperFiles.get(currentWallpaperIndex);
+            Bitmap bitmap = BitmapFactory.decodeFile(file.getAbsolutePath());
+            if (bitmap != null && wallpaperSwitcher != null) {
+                wallpaperSwitcher.setImageDrawable(new BitmapDrawable(getResources(), bitmap));
+                extractAccentColorFromBitmap(bitmap);
+            }
+        }
+    }
+
+    private void startWallpaperRotation() {
         wallpaperHandler.removeCallbacks(wallpaperRunnable);
+        if (prefs.getBoolean("ChangeEachRestart", false) && !wallpaperFiles.isEmpty()) {
+            int last = prefs.getInt("LastWallpaperIndex", 0);
+            currentWallpaperIndex = (last + 10) % wallpaperFiles.size();
+        }
         wallpaperRunnable = new Runnable() {
             @Override public void run() {
                 if (wallpaperFiles.isEmpty()) return;
+                currentWallpaperIndex = currentWallpaperIndex % wallpaperFiles.size();
                 File file = wallpaperFiles.get(currentWallpaperIndex);
-                DisplayMetrics metrics = getResources().getDisplayMetrics();
                 Bitmap bitmap = BitmapFactory.decodeFile(file.getAbsolutePath());
                 if (bitmap != null) {
                     wallpaperSwitcher.setImageDrawable(new BitmapDrawable(getResources(), bitmap));
                     extractAccentColorFromBitmap(bitmap);
                 }
+                prefs.edit().putInt("LastWallpaperIndex", currentWallpaperIndex).apply();
                 currentWallpaperIndex = (currentWallpaperIndex + 1) % wallpaperFiles.size();
                 long interval = prefs.getLong("SlideshowInterval", 30000L);
                 if (interval > 0) wallpaperHandler.postDelayed(this, interval);

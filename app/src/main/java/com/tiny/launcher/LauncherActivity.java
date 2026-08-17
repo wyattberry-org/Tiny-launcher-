@@ -985,6 +985,29 @@ public class LauncherActivity extends Activity {
         container.post(() -> { if (container.getChildCount() > focusIdx) container.getChildAt(focusIdx).requestFocus(); });
     }
 
+    
+    private void addSlideshowDurationMenuItem(LinearLayout container) {
+        long curInt = prefs.getLong("SlideshowInterval", 30000L); int idx = 0;
+        for (int i = 0; i < SLIDESHOW_INTERVALS.length; i++) { if (SLIDESHOW_INTERVALS[i] == curInt) { idx = i; break; } }
+        View row = addDrawerStatusItem(container, "⏱", "Slideshow duration", SLIDESHOW_LABELS[idx], null);
+        if (row != null) {
+            row.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+            int id = View.generateViewId(); row.setId(id); row.setNextFocusLeftId(id); row.setNextFocusRightId(id);
+            row.setOnKeyListener((v, keyCode, event) -> {
+                if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
+                if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT || keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
+                    long c = prefs.getLong("SlideshowInterval", 30000L); int cIdx = 0;
+                    for (int i = 0; i < SLIDESHOW_INTERVALS.length; i++) { if (SLIDESHOW_INTERVALS[i] == c) { cIdx = i; break; } }
+                    int nIdx = (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) ? (cIdx + 1) % SLIDESHOW_LABELS.length : (cIdx - 1 + SLIDESHOW_LABELS.length) % SLIDESHOW_LABELS.length;
+                    prefs.edit().putLong("SlideshowInterval", SLIDESHOW_INTERVALS[nIdx]).apply();
+                    TextView tv = row.findViewById(1001); if (tv != null) tv.setText(SLIDESHOW_LABELS[nIdx]);
+                    startWallpaperRotation(); return true;
+                }
+                return false;
+            });
+        }
+    }
+
     private void openClockSubmenu() {
         sideDrawerContentScrollView.removeAllViews();
 

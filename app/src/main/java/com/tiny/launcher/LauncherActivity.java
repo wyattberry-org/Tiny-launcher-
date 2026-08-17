@@ -1348,7 +1348,17 @@ public class LauncherActivity extends Activity {
     // --- Remote Color Button Shortcuts (Red, Blue, Green, Yellow) ---
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
-        resetIdleTimer();
+    resetIdleTimer();
+    if (event.getAction() == KeyEvent.ACTION_DOWN && isSideDrawerOpen) {
+        int code = event.getKeyCode();
+        if (code == KeyEvent.KEYCODE_DPAD_LEFT || code == KeyEvent.KEYCODE_DPAD_RIGHT) {
+            View f = getCurrentFocus();
+            if (f != null && isViewInsideContainer(sideDrawerContainer, f)) {
+                f.dispatchKeyEvent(event);
+                return true;
+            }
+        }
+    }
         if (event.getAction() == KeyEvent.ACTION_DOWN) {
             switch (event.getKeyCode()) {
                 case KeyEvent.KEYCODE_PROG_RED -> { launchShortcut("RedShortcut"); return true; }

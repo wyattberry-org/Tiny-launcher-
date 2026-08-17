@@ -344,7 +344,7 @@ public class LauncherActivity extends Activity {
         addDrawerMenuItem(drawerContent, "⌨", "Button shortcuts", () -> openButtonShortcutsSubmenu());
         addDrawerMenuItem(drawerContent, "⚿", "Parental control", () -> openParentalControlSubmenu());
         addDrawerMenuItem(drawerContent, "⧈", "Wallpaper/slideshow", () -> openWallpaperSubmenu());
-        addDrawerMenuItem(drawerContent, "◷", "Show Clock", () -> openClockSubmenu());
+        addDrawerMenuItem(drawerContent, "◷", "Clock menu", () -> openClockSubmenu());
         addDrawerMenuItem(drawerContent, "◫", "Tile settings", () -> openTileSettingsSubmenu());
         addDrawerMenuItem(drawerContent, "☼", "Weather", () -> openWeatherSubmenu());
         addDrawerMenuItem(drawerContent, "⚙", "System settings", () -> startActivity(new Intent(Settings.ACTION_SETTINGS)));

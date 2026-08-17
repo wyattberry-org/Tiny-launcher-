@@ -1061,19 +1061,30 @@ public class LauncherActivity extends Activity {
     drawerBackAction = () -> buildMainMenuInDrawer();
     sideDrawerContentScrollView.removeAllViews();
     if (drawerTitleView != null) drawerTitleView.setText("Clock menu");
-
     LinearLayout container = new LinearLayout(this);
     container.setOrientation(LinearLayout.VERTICAL);
-
     String mode = prefs.getString("ClockMode", "Full");
-    addDrawerMenuItem(container, "◷", "Visibility: " + mode, () -> {
-        String nextMode = mode.equals("Full") ? "Time Only" : mode.equals("Time Only") ? "Off" : "Full";
-        prefs.edit().putString("ClockMode", nextMode).apply();
-        openClockSubmenu();
-    });
-
+    View row = addDrawerStatusItem(container, "◷", "Visibility", mode, null);
+    if (row != null) {
+        row.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+        int id = View.generateViewId(); row.setId(id); row.setNextFocusLeftId(id); row.setNextFocusRightId(id);
+        row.setOnClickListener(null);
+        row.setOnKeyListener((v, keyCode, event) -> {
+            if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
+            if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT || keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
+                String cur = prefs.getString("ClockMode", "Full");
+                boolean n = (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT);
+                String nm = n ? (cur.equals("Full") ? "Time Only" : cur.equals("Time Only") ? "Off" : "Full") : (cur.equals("Full") ? "Off" : cur.equals("Off") ? "Time Only" : "Full");
+                prefs.edit().putString("ClockMode", nm).apply();
+                TextView tv = row.findViewById(1001); if (tv != null) tv.setText(nm);
+                return true;
+            }
+            return false;
+        });
+    }
     sideDrawerContentScrollView.addView(container);
     container.post(() -> { if (container.getChildCount() > 0) container.getChildAt(0).requestFocus(); });
+});
 }
 
     private void openWeatherSubmenu() {

@@ -1057,28 +1057,24 @@ public class LauncherActivity extends Activity {
     }
 
     private void openClockSubmenu() {
-        sideDrawerContentScrollView.removeAllViews();
+    isInSubmenu = true;
+    drawerBackAction = () -> buildMainMenuInDrawer();
+    sideDrawerContentScrollView.removeAllViews();
+    if (drawerTitleView != null) drawerTitleView.setText("Clock menu");
 
-        LinearLayout container = new LinearLayout(this);
-        container.setOrientation(LinearLayout.VERTICAL);
+    LinearLayout container = new LinearLayout(this);
+    container.setOrientation(LinearLayout.VERTICAL);
 
-        TextView title = new TextView(this);
-        title.setText("Clock Settings");
-        title.setTextColor(Color.WHITE);
-        title.setTextSize(18);
-        title.setPadding(10, 0, 0, 20);
-        container.addView(title);
+    String mode = prefs.getString("ClockMode", "Full");
+    addDrawerMenuItem(container, "◷", "Visibility: " + mode, () -> {
+        String nextMode = mode.equals("Full") ? "Time Only" : mode.equals("Time Only") ? "Off" : "Full";
+        prefs.edit().putString("ClockMode", nextMode).apply();
+        openClockSubmenu();
+    });
 
-        String mode = prefs.getString("ClockMode", "Full");
-        addDrawerMenuItem(container, "Show Clock: " + mode, () -> {
-            String nextMode = mode.equals("Full") ? "Time Only" : mode.equals("Time Only") ? "Off" : "Full";
-            prefs.edit().putString("ClockMode", nextMode).apply();
-            openClockSubmenu();
-        });
-
-        
-        sideDrawerContentScrollView.addView(container);
-    }
+    sideDrawerContentScrollView.addView(container);
+    container.post(() -> { if (container.getChildCount() > 0) container.getChildAt(0).requestFocus(); });
+}
 
     private void openWeatherSubmenu() {
         sideDrawerContentScrollView.removeAllViews();

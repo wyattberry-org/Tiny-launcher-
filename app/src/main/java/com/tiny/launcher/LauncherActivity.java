@@ -918,7 +918,8 @@ public class LauncherActivity extends Activity {
 
         for (String[] p : presets) {
             String name = p[0]; String path = p[1];
-            addDrawerMenuItem(container, "📁", Color.parseColor("#5A5E6B"), name, () -> {
+            addDrawerMenuItem(container, "⧉", Color.parseColor("#5A5E6B"), name, () -> {
+                try { getFileStreamPath("custom_wallpaper.jpg").delete(); } catch (Exception ignored) {}
                 prefs.edit().putString("WallpaperFolder", path).apply();
                 loadWallpapers(); startWallpaperRotation(); openWallpaperSubmenu();
             });
@@ -1304,16 +1305,15 @@ public class LauncherActivity extends Activity {
 
     private void loadWallpapers() {
         wallpaperFiles.clear();
+        if (android.os.Build.VERSION.SDK_INT >= 33) {
+            if (checkSelfPermission("android.permission.READ_MEDIA_IMAGES") != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(new String[]{"android.permission.READ_MEDIA_IMAGES"}, 2001);
+            }
+        }
         String folderPath = prefs.getString("WallpaperFolder", "/sdcard/Pictures/Wallpapers");
         File dir = new File(folderPath);
         if (!dir.exists() && folderPath.contains("sdcard")) dir = new File(folderPath.replace("/sdcard", "/storage/emulated/0"));
-        if (!dir.exists() && folderPath.contains(":")) {
-            try {
-                String dec = java.net.URLDecoder.decode(folderPath, "UTF-8");
-                String[] parts = dec.split(":");
-                if (parts.length > 1) dir = new File("/storage/emulated/0/" + parts[parts.length - 1]);
-            } catch (Exception ignored) {}
-        }
+        if (!dir.exists() && folderPath.contains("Pictures")) dir = new File("/storage/emulated/0/Pictures/Wallpapers");
         if (dir.exists() && dir.isDirectory()) {
             File[] files = dir.listFiles((d, name) -> {
                 String n = name.toLowerCase();

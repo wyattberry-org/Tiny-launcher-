@@ -353,8 +353,8 @@ public class LauncherActivity extends Activity {
         addDrawerMenuItem(drawerContent, "⚿", "Parental control", () -> { lastMainMenuIdx = 2; openParentalControlSubmenu(); });
         addDrawerMenuItem(drawerContent, "⧈", "Wallpaper/slideshow", () -> { lastMainMenuIdx = 3; openWallpaperSubmenu(); });
         addDrawerMenuItem(drawerContent, "◷", "Clock menu", () -> { lastMainMenuIdx = 4; openClockSubmenu(); });
-        addDrawerMenuItem(drawerContent, "◫", "Tile settings", () -> { lastMainMenuIdx = 5; openTileSettingsSubmenu(); });
-        addDrawerMenuItem(drawerContent, "☼", "Weather", () -> { lastMainMenuIdx = 6; openWeatherSubmenu(); });
+        addDrawerMenuItem(drawerContent, "◫", "Tile menu", () -> { lastMainMenuIdx = 5; openTileSettingsSubmenu(); });
+        addDrawerMenuItem(drawerContent, "☼", "Weather menu", () -> { lastMainMenuIdx = 6; openWeatherSubmenu(); });
         addDrawerMenuItem(drawerContent, "⚙", "System settings", () -> startActivity(new Intent(Settings.ACTION_SETTINGS)));
         addDrawerMenuItem(drawerContent, "ℹ", "About", () -> { lastMainMenuIdx = 8; openAboutSubmenu(); });
         sideDrawerContentScrollView.addView(drawerContent);

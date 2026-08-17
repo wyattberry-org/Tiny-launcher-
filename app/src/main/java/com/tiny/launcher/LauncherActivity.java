@@ -300,7 +300,11 @@ public class LauncherActivity extends Activity {
 
     // --- Side Drawer Switcher (Zero Redrawing / Zero Flickering) ---
     private void toggleSideDrawer(boolean open) {
-        isSideDrawerOpen = open;
+    isSideDrawerOpen = open;
+    if (horizontalAppScrollView != null) {
+        horizontalAppScrollView.setDescendantFocusability(
+            open ? ViewGroup.FOCUS_BLOCK_DESCENDANTS : ViewGroup.FOCUS_AFTER_DESCENDANTS);
+    }
         if (open) {
             if (!isInSubmenu) buildMainMenuInDrawer();
             sideDrawerContainer.setVisibility(View.VISIBLE);

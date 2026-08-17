@@ -90,6 +90,7 @@ public class LauncherActivity extends Activity {
     private boolean isMoveMode = false;
     private boolean isAnimatingMove = false;
     private int moveSourcePosition = -1;
+    private int lastFocusedAppIdx = 0;
 
     // --- Dynamic Theming ---
     private int currentAccentColor = Color.parseColor("#007AFF");
@@ -1466,8 +1467,6 @@ public class LauncherActivity extends Activity {
             int finalColor = maxSatPixel;
             runOnUiThread(() -> {
                 currentAccentColor = finalColor;
-                
-        renderAppBanners();
             });
         }).start();
     }
@@ -1686,6 +1685,7 @@ public class LauncherActivity extends Activity {
             itemContainer.setClipToPadding(false);
 
             bannerCard.setOnFocusChangeListener((v, hasFocus) -> {
+                if (hasFocus) lastFocusedAppIdx = position;
                 resetIdleTimer();
                 titleView.setVisibility(hasFocus ? View.VISIBLE : View.INVISIBLE);
                 v.animate().scaleX(hasFocus ? 1.25f : 1.0f).scaleY(hasFocus ? 1.25f : 1.0f).setDuration(150).start();

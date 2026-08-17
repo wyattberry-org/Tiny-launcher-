@@ -1084,7 +1084,6 @@ public class LauncherActivity extends Activity {
     }
     sideDrawerContentScrollView.addView(container);
     container.post(() -> { if (container.getChildCount() > 0) container.getChildAt(0).requestFocus(); });
-});
 }
 
     private void openWeatherSubmenu() {

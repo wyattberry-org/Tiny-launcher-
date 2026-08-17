@@ -895,53 +895,33 @@ public class LauncherActivity extends Activity {
         sideDrawerContentScrollView.addView(container);
     }
 
-    private void openSlideshowFolderSubmenu() {
-        isInSubmenu = true;
-        drawerBackAction = () -> openWallpaperSubmenu();
+        private void openSlideshowFolderSubmenu() {
+        isInSubmenu = true; drawerBackAction = () -> openWallpaperSubmenu();
         sideDrawerContentScrollView.removeAllViews();
         if (drawerTitleView != null) drawerTitleView.setText("Slideshow folder");
         LinearLayout container = new LinearLayout(this); container.setOrientation(LinearLayout.VERTICAL);
 
-        String[][] explorers = {
-            {"Cx File Explorer", "com.cxinventor.file.explorer"},
-            {"X-plore", "com.lonelycatgames.Xplore"},
-            {"Solid Explorer", "pl.solidexplorer2"},
-            {"FX File Explorer", "nextapp.fx"},
-            {"Total Commander", "com.ghisler.android.TotalCommander"},
-            {"System Files", "com.google.android.documentsui"},
-            {"Native Explorer", "com.android.documentsui"}
+        addDrawerMenuItem(container, "⧉", Color.parseColor("#5A5E6B"), "System Folder Picker", () -> {
+            try {
+                Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
+                startActivityForResult(intent, 1002);
+            } catch (Exception ignored) {}
+        });
+
+        String[][] presets = {
+            {"Pictures / Wallpapers", "/sdcard/Pictures/Wallpapers"},
+            {"Pictures Folder", "/sdcard/Pictures"},
+            {"Download Folder", "/sdcard/Download"},
+            {"DCIM Folder", "/sdcard/DCIM"}
         };
 
-        boolean found = false;
-        android.content.pm.PackageManager pm = getPackageManager();
-        for (String[] exp : explorers) {
-            String name = exp[0]; String pkg = exp[1];
-            try {
-                pm.getPackageInfo(pkg, 0);
-                found = true;
-                addDrawerMenuItem(container, "⧉", Color.parseColor("#5A5E6B"), name, () -> {
-                    try {
-                        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
-                        intent.setPackage(pkg);
-                        startActivityForResult(intent, 1002);
-                    } catch (Exception e) {
-                        try {
-                            Intent fb = new Intent(Intent.ACTION_GET_CONTENT);
-                            fb.setType("*/*");
-                            fb.setPackage(pkg);
-                            startActivityForResult(fb, 1002);
-                        } catch (Exception ignored) {}
-                    }
-                });
-            } catch (Exception ignored) {}
-        }
-
-        if (!found) {
-            TextView info = new TextView(this);
-            info.setText("No file explorer installed.\nPlease install Cx File Explorer or X-plore.");
-            info.setTextColor(Color.LTGRAY); info.setTextSize(14);
-            info.setPadding(dpToPx(12), dpToPx(12), dpToPx(12), dpToPx(12));
-            container.addView(info);
+        for (String[] p : presets) {
+            String name = p[0]; String path = p[1];
+            addDrawerMenuItem(container, "📁", Color.parseColor("#5A5E6B"), name, () -> {
+                prefs.edit().putString("WallpaperFolder", path).apply();
+                loadWallpapers(); startWallpaperRotation(); openWallpaperSubmenu();
+            });
         }
 
         sideDrawerContentScrollView.addView(container);

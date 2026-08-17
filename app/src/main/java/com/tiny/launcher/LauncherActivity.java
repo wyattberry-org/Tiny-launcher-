@@ -1326,12 +1326,21 @@ public class LauncherActivity extends Activity {
         wallpaperFiles.clear();
         String folderPath = prefs.getString("WallpaperFolder", "/sdcard/Pictures/Wallpapers");
         File dir = new File(folderPath);
-
+        if (!dir.exists() && folderPath.contains("sdcard")) dir = new File(folderPath.replace("/sdcard", "/storage/emulated/0"));
+        if (!dir.exists() && folderPath.contains(":")) {
+            try {
+                String dec = java.net.URLDecoder.decode(folderPath, "UTF-8");
+                String[] parts = dec.split(":");
+                if (parts.length > 1) dir = new File("/storage/emulated/0/" + parts[parts.length - 1]);
+            } catch (Exception ignored) {}
+        }
         if (dir.exists() && dir.isDirectory()) {
-            File[] files = dir.listFiles((d, name) -> name.toLowerCase().endsWith(".jpg") || name.toLowerCase().endsWith(".png"));
+            File[] files = dir.listFiles((d, name) -> {
+                String n = name.toLowerCase();
+                return n.endsWith(".jpg") || n.endsWith(".jpeg") || n.endsWith(".png") || n.endsWith(".webp");
+            });
             if (files != null) Collections.addAll(wallpaperFiles, files);
         }
-
         if (!wallpaperFiles.isEmpty()) startWallpaperRotation();
     }
 

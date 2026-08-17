@@ -106,6 +106,7 @@ public class LauncherActivity extends Activity {
     private int currentWallpaperIndex = 0;
     private boolean isSideDrawerOpen = false;
     private boolean isInSubmenu = false;
+    private int lastMainMenuIdx = 0;
     private final String[] PASSCODE_PRESETS = {"►", "► ► ◄", "▲ ▲ ◄", "▲ ► ▼", "◄ ◄ ►", "▼ ▼ ▲"};
     private String shortcutPickerKey = null;
     private ServerSocket webSetupServerSocket;
@@ -340,19 +341,19 @@ public class LauncherActivity extends Activity {
         LinearLayout drawerContent = new LinearLayout(this);
         drawerContent.setOrientation(LinearLayout.VERTICAL);
 
-        addDrawerMenuItem(drawerContent, "⧉", "Manage apps", () -> openManageAppsSubmenu());
-        addDrawerMenuItem(drawerContent, "⌨", "Button shortcuts", () -> openButtonShortcutsSubmenu());
-        addDrawerMenuItem(drawerContent, "⚿", "Parental control", () -> openParentalControlSubmenu());
-        addDrawerMenuItem(drawerContent, "⧈", "Wallpaper/slideshow", () -> openWallpaperSubmenu());
-        addDrawerMenuItem(drawerContent, "◷", "Clock menu", () -> openClockSubmenu());
-        addDrawerMenuItem(drawerContent, "◫", "Tile settings", () -> openTileSettingsSubmenu());
-        addDrawerMenuItem(drawerContent, "☼", "Weather", () -> openWeatherSubmenu());
+        addDrawerMenuItem(drawerContent, "⧉", "Manage apps", () -> { lastMainMenuIdx = 0; openManageAppsSubmenu(); });
+        addDrawerMenuItem(drawerContent, "⌨", "Button shortcuts", () -> { lastMainMenuIdx = 1; openButtonShortcutsSubmenu(); });
+        addDrawerMenuItem(drawerContent, "⚿", "Parental control", () -> { lastMainMenuIdx = 2; openParentalControlSubmenu(); });
+        addDrawerMenuItem(drawerContent, "⧈", "Wallpaper/slideshow", () -> { lastMainMenuIdx = 3; openWallpaperSubmenu(); });
+        addDrawerMenuItem(drawerContent, "◷", "Clock menu", () -> { lastMainMenuIdx = 4; openClockSubmenu(); });
+        addDrawerMenuItem(drawerContent, "◫", "Tile settings", () -> { lastMainMenuIdx = 5; openTileSettingsSubmenu(); });
+        addDrawerMenuItem(drawerContent, "☼", "Weather", () -> { lastMainMenuIdx = 6; openWeatherSubmenu(); });
         addDrawerMenuItem(drawerContent, "⚙", "System settings", () -> startActivity(new Intent(Settings.ACTION_SETTINGS)));
-        addDrawerMenuItem(drawerContent, "ℹ", "About", () -> openAboutSubmenu());
-
+        addDrawerMenuItem(drawerContent, "ℹ", "About", () -> { lastMainMenuIdx = 8; openAboutSubmenu(); });
         sideDrawerContentScrollView.addView(drawerContent);
         sideDrawerContainer.addView(sideDrawerContentScrollView);
-    }
+        drawerContent.post(() -> { if (drawerContent.getChildCount() > lastMainMenuIdx) drawerContent.getChildAt(lastMainMenuIdx).requestFocus(); });
+        return;
 
     private void addDrawerMenuItem(LinearLayout container, String title, Runnable onClick) {
         addDrawerMenuItem(container, "", title, onClick);

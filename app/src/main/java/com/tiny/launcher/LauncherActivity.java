@@ -1199,11 +1199,21 @@ private void openWallpaperSubmenu() {
                 case KeyEvent.KEYCODE_PROG_BLUE -> { launchShortcut("BlueShortcut"); return true; }
                 case KeyEvent.KEYCODE_PROG_GREEN -> { launchShortcut("GreenShortcut"); return true; }
                 case KeyEvent.KEYCODE_PROG_YELLOW -> { launchShortcut("YellowShortcut"); return true; }
+                case KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> {
+                    if (isSideDrawerOpen) {
+                        View f = getCurrentFocus();
+                        if (f == null || f == sideDrawerContainer || f == sideDrawerContentScrollView) {
+                            return true;
+                        }
+                    }
+                }
                 case KeyEvent.KEYCODE_BACK -> {
                     if (isSideDrawerOpen) {
                         if (shortcutPickerKey != null) {
                             shortcutPickerKey = null;
                             openButtonShortcutsSubmenu();
+                        } else if (drawerBackAction != null) {
+                            drawerBackAction.run();
                         } else if (isInSubmenu) {
                             buildMainMenuInDrawer();
                         } else {

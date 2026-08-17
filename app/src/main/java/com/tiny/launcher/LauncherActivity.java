@@ -445,10 +445,10 @@ public class LauncherActivity extends Activity {
         if (drawerTitleView != null) drawerTitleView.setText("Tile menu");
         LinearLayout container = new LinearLayout(this); container.setOrientation(LinearLayout.VERTICAL);
         addTileMenuRow(container, "◠", "Tiles corner radius", "TileCornerRadius", 30, 0, 90, 5, "°", this::applyTileStyles);
-        addTileMenuRow(container, "◫", "Tile size", "TileSize", 160, 80, 200, 10, "dp", this::applyTileStyles);
-        addTileMenuRow(container, "↕", "Row position", "TileRowPosition", 0, -150, 150, 10, "dp", this::applyTileRowPosition);
-        addTileMenuRow(container, "Aa", "Text size", "TileTextSize", 14, 10, 24, 1, "sp", this::applyTileStyles);
-        addTileMenuRow(container, "⇕", "Text position", "TileTextPosition", 0, -150, 100, 2, "dp", this::applyTileStyles);
+        addTileMenuRow(container, "◫", "Tile size", "TileSize", 160, 100, 200, 10, "dp", this::applyTileStyles);
+        addTileMenuRow(container, "↕", "Row position", "TileRowPosition", 0, -50, 50, 10, "dp", this::applyTileRowPosition);
+        addTileMenuRow(container, "Aa", "Text size", "TileTextSize", 14, 10, 20, 1, "sp", this::applyTileStyles);
+        addTileMenuRow(container, "⇕", "Text position", "TileTextPosition", 0, -150, 0, 2, "dp", this::applyTileStyles);
         sideDrawerContentScrollView.addView(container);
         container.post(() -> { if (container.getChildCount() > 0) container.getChildAt(0).requestFocus(); });
     }

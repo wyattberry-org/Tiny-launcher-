@@ -424,6 +424,7 @@ public class LauncherActivity extends Activity {
 
         addDrawerMenuItem(container, "⬅️", "Back", () -> buildMainMenuInDrawer());
         sideDrawerContentScrollView.addView(container);
+        container.post(() -> { if (container.getChildCount() > 0) container.getChildAt(0).requestFocus(); });
     }
 
     private void openAboutSubmenu() {
@@ -864,7 +865,7 @@ public class LauncherActivity extends Activity {
             try {
                 pm.getPackageInfo(pkg, 0);
                 found = true;
-                addDrawerMenuItem(container, "📁", name, () -> {
+                addDrawerMenuItem(container, "⧉", Color.parseColor("#5A5E6B"), name, () -> {
                     try {
                         Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
                         intent.setType("image/*");

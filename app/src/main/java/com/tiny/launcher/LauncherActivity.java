@@ -895,7 +895,7 @@ public class LauncherActivity extends Activity {
         sideDrawerContentScrollView.addView(container);
     }
 
-                private int countWallpapersInFolder(File dir) {
+                    private int countWallpapersInFolder(File dir) {
         if (dir == null || !dir.exists() || !dir.isDirectory()) return 0;
         File[] files = dir.listFiles((d, name) -> {
             String n = name.toLowerCase();
@@ -1871,7 +1871,8 @@ public class LauncherActivity extends Activity {
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == 2001 && grantResults.length > 0 && grantResults[0] == android.content.pm.PackageManager.PERMISSION_GRANTED) {
-            loadWallpapers();
+            if (isSideDrawerOpen && isInSubmenu) openSlideshowFolderSubmenu();
+            else loadWallpapers();
         }
     }
 }

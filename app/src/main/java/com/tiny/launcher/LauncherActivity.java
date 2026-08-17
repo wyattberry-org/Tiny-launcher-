@@ -843,7 +843,7 @@ public class LauncherActivity extends Activity {
         sideDrawerContentScrollView.removeAllViews();
         LinearLayout container = new LinearLayout(this); container.setOrientation(LinearLayout.VERTICAL);
         if (drawerTitleView != null) drawerTitleView.setText("Wallpaper/slideshow");
-        addDrawerMenuItem(container, "Set wallpaper", () -> { try { startActivity(Intent.createChooser(new Intent(Intent.ACTION_SET_WALLPAPER), "Set Wallpaper")); } catch (Exception ignored) {} });
+        addDrawerMenuItem(container, "Set wallpaper", () -> { try { Intent intent = new Intent(Intent.ACTION_GET_CONTENT); intent.setType("image/*"); intent.addCategory(Intent.CATEGORY_OPENABLE); startActivityForResult(Intent.createChooser(intent, "Select Wallpaper"), 1001); } catch (Exception ignored) {} });
         addDrawerMenuItem(container, "Slideshow folder", () -> { final EditText input = new EditText(this); input.setText(prefs.getString("WallpaperFolder", "/sdcard/Pictures/Wallpapers")); new AlertDialog.Builder(this).setTitle("Wallpaper Path").setView(input).setPositiveButton("Save", (d, w) -> { prefs.edit().putString("WallpaperFolder", input.getText().toString()).apply(); loadWallpapers(); }).show(); });
         long curInt = prefs.getLong("SlideshowInterval", 30000L); int idx = 1; for (int i = 0; i < SLIDESHOW_INTERVALS.length; i++) { if (SLIDESHOW_INTERVALS[i] == curInt) { idx = i; break; } } final int nextIdx = (idx + 1) % SLIDESHOW_INTERVALS.length;
         addDrawerMenuItem(container, "Slideshow duration: " + SLIDESHOW_LABELS[idx], () -> { prefs.edit().putLong("SlideshowInterval", SLIDESHOW_INTERVALS[nextIdx]).apply(); startWallpaperRotation(); openWallpaperSubmenu(); });
@@ -1671,4 +1671,26 @@ public class LauncherActivity extends Activity {
         return fallback;
     }
 
+
+    private void loadCustomWallpaper() {
+        java.io.File file = getFileStreamPath("custom_wallpaper.jpg");
+        if (file.exists() && wallpaperSwitcher != null) {
+            android.graphics.drawable.Drawable d = android.graphics.drawable.Drawable.createFromPath(file.getAbsolutePath());
+            if (d != null) wallpaperSwitcher.setImageDrawable(d);
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == 1001 && resultCode == RESULT_OK && data != null && data.getData() != null) {
+            try (java.io.InputStream in = getContentResolver().openInputStream(data.getData());
+                 java.io.OutputStream out = openFileOutput("custom_wallpaper.jpg", MODE_PRIVATE)) {
+                byte[] buf = new byte[8192];
+                int len;
+                while ((len = in.read(buf)) > 0) out.write(buf, 0, len);
+                loadCustomWallpaper();
+            } catch (Exception ignored) {}
+        }
+    }
 }

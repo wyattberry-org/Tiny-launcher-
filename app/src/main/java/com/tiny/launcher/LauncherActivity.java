@@ -419,6 +419,7 @@ public class LauncherActivity extends Activity {
     private void applyTileStyles() {
         int W = prefs.getInt("TileSize", 160), H = W * 9 / 16, D = prefs.getInt("TileCornerRadius", 30);
         int R = dpToPx((int) Math.round((H / 2.0f) * (D / 90.0f)));
+        int txtS = prefs.getInt("TileTextSize", 14), txtP = prefs.getInt("TileTextPosition", 0);
         if (horizontalAppContainer == null) return;
         for (int i = 0; i < horizontalAppContainer.getChildCount(); i++) {
             View c = horizontalAppContainer.getChildAt(i);
@@ -430,6 +431,10 @@ public class LauncherActivity extends Activity {
                     GradientDrawable s = new GradientDrawable(); s.setColor(Color.parseColor("#FF1A1A1A"));
                     s.setCornerRadius(R); bc.setBackground(s);
                 }
+                if (ic.getChildCount() > 1 && ic.getChildAt(1) instanceof TextView) {
+                    TextView tv = (TextView) ic.getChildAt(1);
+                    tv.setTextSize(txtS); tv.setTranslationY(dpToPx(txtP));
+                }
             }
         }
     }
@@ -439,25 +444,24 @@ public class LauncherActivity extends Activity {
         sideDrawerContentScrollView.removeAllViews();
         if (drawerTitleView != null) drawerTitleView.setText("Tile menu");
         LinearLayout container = new LinearLayout(this); container.setOrientation(LinearLayout.VERTICAL);
-
         addTileMenuRow(container, "◠", "Tiles corner radius", "TileCornerRadius", 30, 0, 90, 5, "°", this::applyTileStyles);
         addTileMenuRow(container, "◫", "Tile size", "TileSize", 160, 80, 200, 10, "dp", this::applyTileStyles);
         addTileMenuRow(container, "↕", "Row position", "TileRowPosition", 0, -150, 150, 10, "dp", this::applyTileRowPosition);
-
+        addTileMenuRow(container, "Aa", "Text size", "TileTextSize", 14, 10, 24, 1, "sp", this::applyTileStyles);
+        addTileMenuRow(container, "⇕", "Text position", "TileTextPosition", 0, -150, 100, 2, "dp", this::applyTileStyles);
         sideDrawerContentScrollView.addView(container);
         container.post(() -> { if (container.getChildCount() > 0) container.getChildAt(0).requestFocus(); });
     }
-
     private void addTileMenuRow(LinearLayout c, String sym, String title, String key, int def, int min, int max, int step, String unit, Runnable onChg) {
-        int val = prefs.getInt(key, def); String lbl = (key.equals("TileRowPosition") && val > 0 ? "+" : "") + val + unit;
-        View row = addDrawerStatusItem(c, sym, title, lbl, null); if (row == null) return;
+        int val = prefs.getInt(key, def); boolean isS = key.equals("TileRowPosition") || key.equals("TileTextPosition");
+        View row = addDrawerStatusItem(c, sym, title, (isS && val > 0 ? "+" : "") + val + unit, null); if (row == null) return;
         row.setLayoutParams(new LinearLayout.LayoutParams(-1, -2)); int id = View.generateViewId(); row.setId(id); row.setNextFocusLeftId(id); row.setNextFocusRightId(id); row.setOnClickListener(null);
         row.setOnKeyListener((v, kCode, evt) -> {
             if (evt.getAction() != KeyEvent.ACTION_DOWN) return false;
             if (kCode == KeyEvent.KEYCODE_DPAD_RIGHT || kCode == KeyEvent.KEYCODE_DPAD_LEFT) {
                 int cVal = prefs.getInt(key, def), nVal = (kCode == KeyEvent.KEYCODE_DPAD_RIGHT) ? Math.min(max, cVal + step) : Math.max(min, cVal - step);
                 prefs.edit().putInt(key, nVal).apply();
-                TextView tv = row.findViewById(1001); if (tv != null) tv.setText((key.equals("TileRowPosition") && nVal > 0 ? "+" : "") + nVal + unit);
+                TextView tv = row.findViewById(1001); if (tv != null) tv.setText((isS && nVal > 0 ? "+" : "") + nVal + unit);
                 if (onChg != null) onChg.run(); return true;
             }
             return false;
@@ -1666,7 +1670,8 @@ public class LauncherActivity extends Activity {
 
             TextView titleView = new TextView(this);
             titleView.setText(app.name()); titleView.setTextColor(Color.WHITE);
-            titleView.setTextSize(14); titleView.setGravity(Gravity.CENTER);
+            int txtS = prefs.getInt("TileTextSize", 14), txtP = prefs.getInt("TileTextPosition", 0);
+            titleView.setTextSize(txtS); titleView.setTranslationY(dpToPx(txtP)); titleView.setGravity(Gravity.CENTER);
             titleView.setSingleLine(true); titleView.setEllipsize(android.text.TextUtils.TruncateAt.END);
             titleView.setPadding(0, dpToPx(28), 0, 0);
             titleView.setVisibility(View.INVISIBLE);

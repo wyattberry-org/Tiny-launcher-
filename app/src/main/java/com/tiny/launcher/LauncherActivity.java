@@ -422,7 +422,7 @@ public class LauncherActivity extends Activity {
         divider.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(1)));
         container.addView(divider);
 
-        addDrawerMenuItem(container, "⬅️", "Back", () -> buildMainMenuInDrawer());
+        
         sideDrawerContentScrollView.addView(container);
         container.post(() -> { if (container.getChildCount() > 0) container.getChildAt(0).requestFocus(); });
     }
@@ -452,7 +452,7 @@ public class LauncherActivity extends Activity {
         infoText.setPadding(dpToPx(12), dpToPx(16), dpToPx(12), dpToPx(16));
         container.addView(infoText);
 
-        addDrawerMenuItem(container, "⬅️", "Back", () -> buildMainMenuInDrawer());
+        
         sideDrawerContentScrollView.addView(container);
     }
 
@@ -927,7 +927,7 @@ private void openWallpaperSubmenu() {
             openClockSubmenu();
         });
 
-        addDrawerMenuItem(container, "⬅️", "Back", () -> buildMainMenuInDrawer());
+        
         sideDrawerContentScrollView.addView(container);
     }
 
@@ -978,7 +978,7 @@ private void openWallpaperSubmenu() {
                 .setMessage("Weather status and wind are powered by Open-Meteo API. Temperature & Humidity can be linked to your local Shelly Cloud API.")
                 .setPositiveButton("OK", null).show());
 
-        addDrawerMenuItem(container, "⬅️", "Back", () -> buildMainMenuInDrawer());
+        
         sideDrawerContentScrollView.addView(container);
     }
 

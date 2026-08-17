@@ -113,6 +113,8 @@ public class LauncherActivity extends Activity {
 
     // --- Slideshow Interval Options (in Milliseconds) ---
     private final long[] SLIDESHOW_INTERVALS = {15000L, 30000L, 60000L, 300000L, 600000L, 1200000L, 1800000L, 0L};
+    private final long[] IDLE_TIMEOUT_MS = {120000L, 300000L, 60000L, 0L};
+    private final String[] IDLE_TIMEOUT_LABELS = {"2min", "5min", "10min", "off"};
     private final String[] SLIDESHOW_LABELS = {"15sec", "30sec", "1min", "5min", "10min", "20min", "30min", "off"};
 
     // Receiver to auto-refresh app grid on install/uninstall
@@ -979,7 +981,7 @@ public class LauncherActivity extends Activity {
         addDrawerMenuItem(container, "⧈", "Set wallpaper", () -> openSetWallpaperSubmenu());
         addDrawerMenuItem(container, "⎘", "Slideshow folder", () -> openSlideshowFolderSubmenu());
         addSlideshowDurationMenuItem(container);
-        boolean hideIdle = prefs.getBoolean("HideUiWhenIdle", true); addDrawerMenuItem(container, "⧇", "Hide UI when idle: " + (hideIdle ? "On" : "Off"), () -> { prefs.edit().putBoolean("HideUiWhenIdle", !hideIdle).apply(); openWallpaperSubmenu(3); });
+        addHideUiIdleMenuItem(container);
         boolean chgRst = prefs.getBoolean("ChangeEachRestart", false); addDrawerMenuItem(container, "↻", "Change each restart: " + (chgRst ? "On" : "Off"), () -> { prefs.edit().putBoolean("ChangeEachRestart", !chgRst).apply(); openWallpaperSubmenu(4); });
         sideDrawerContentScrollView.addView(container);
         container.post(() -> { if (container.getChildCount() > focusIdx) container.getChildAt(focusIdx).requestFocus(); });
@@ -1421,12 +1423,15 @@ public class LauncherActivity extends Activity {
         resetIdleTimer();
     }
 
-    private void resetIdleTimer() {
+        private void resetIdleTimer() {
         if (horizontalAppScrollView.getAlpha() < 1.0f) {
             horizontalAppScrollView.animate().alpha(1.0f).setDuration(200).start();
         }
         idleHandler.removeCallbacks(idleRunnable);
-        idleHandler.postDelayed(idleRunnable, 300000L); // 5 min idle auto-hide
+        long timeout = prefs.getLong("IdleTimeout", 300000L);
+        if (timeout > 0) {
+            idleHandler.postDelayed(idleRunnable, timeout);
+        }
     }
 
     private void startLiveClock() {

@@ -306,7 +306,10 @@ public class LauncherActivity extends Activity {
             open ? ViewGroup.FOCUS_BLOCK_DESCENDANTS : ViewGroup.FOCUS_AFTER_DESCENDANTS);
     }
         if (open) {
-            if (!isInSubmenu) buildMainMenuInDrawer();
+            if (!isInSubmenu) {
+                lastMainMenuIdx = 0;
+                buildMainMenuInDrawer();
+            }
             sideDrawerContainer.setVisibility(View.VISIBLE);
             sideDrawerContainer.animate().translationX(0f).setDuration(250).start();
         } else {

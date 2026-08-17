@@ -314,6 +314,7 @@ public class LauncherActivity extends Activity {
 
     private void buildMainMenuInDrawer() {
         isInSubmenu = false;
+        drawerBackAction = null;
         shortcutPickerKey = null;
         sideDrawerContainer.removeAllViews();
 
@@ -1215,7 +1216,7 @@ private void openWallpaperSubmenu() {
                         if (shortcutPickerKey != null) {
                             shortcutPickerKey = null;
                             openButtonShortcutsSubmenu();
-                        } else if (drawerBackAction != null) {
+                        } else if (isInSubmenu && drawerBackAction != null) {
                             drawerBackAction.run();
                         } else if (isInSubmenu) {
                             buildMainMenuInDrawer();

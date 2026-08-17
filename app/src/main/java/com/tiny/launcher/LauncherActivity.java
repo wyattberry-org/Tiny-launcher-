@@ -434,19 +434,44 @@ public class LauncherActivity extends Activity {
         }
     }
 
+    private void applyTileRowPosition() {
+        int posDp = prefs.getInt("TileRowPosition", 0);
+        if (horizontalAppScrollView != null) horizontalAppScrollView.setTranslationY(dpToPx(-posDp));
+    }
+
+    private void applyTileStyles() {
+        int W = prefs.getInt("TileSize", 160), H = W * 9 / 16, D = prefs.getInt("TileCornerRadius", 30);
+        int R = dpToPx((int) Math.round((H / 2.0f) * (D / 90.0f)));
+        if (horizontalAppContainer == null) return;
+        for (int i = 0; i < horizontalAppContainer.getChildCount(); i++) {
+            View c = horizontalAppContainer.getChildAt(i);
+            if (c instanceof LinearLayout) {
+                LinearLayout ic = (LinearLayout) c;
+                if (ic.getChildCount() > 0 && ic.getChildAt(0) instanceof FrameLayout) {
+                    FrameLayout bc = (FrameLayout) ic.getChildAt(0);
+                    bc.setLayoutParams(new LinearLayout.LayoutParams(dpToPx(W), dpToPx(H)));
+                    GradientDrawable s = new GradientDrawable(); s.setColor(Color.parseColor("#FF1A1A1A"));
+                    s.setCornerRadius(R); bc.setBackground(s);
+                }
+            }
+        }
+    }
+
     private void openTileSettingsSubmenu() {
         isInSubmenu = true; drawerBackAction = () -> buildMainMenuInDrawer();
         sideDrawerContentScrollView.removeAllViews();
         if (drawerTitleView != null) drawerTitleView.setText("Tile menu");
         LinearLayout container = new LinearLayout(this); container.setOrientation(LinearLayout.VERTICAL);
-        addTileSlider(container, "◠", "Tiles corner radius", "TileCornerRadius", 30, 0, 90, 5, "°", this::applyTileStyles);
-        addTileSlider(container, "◫", "Tile size", "TileSize", 160, 80, 200, 10, "dp", this::applyTileStyles);
-        addTileSlider(container, "↕", "Row position", "TileRowPosition", 0, -150, 150, 10, "dp", this::applyTileRowPosition);
+
+        addTileMenuRow(container, "◠", "Tiles corner radius", "TileCornerRadius", 30, 0, 90, 5, "°", this::applyTileStyles);
+        addTileMenuRow(container, "◫", "Tile size", "TileSize", 160, 80, 200, 10, "dp", this::applyTileStyles);
+        addTileMenuRow(container, "↕", "Row position", "TileRowPosition", 0, -150, 150, 10, "dp", this::applyTileRowPosition);
+
         sideDrawerContentScrollView.addView(container);
         container.post(() -> { if (container.getChildCount() > 0) container.getChildAt(0).requestFocus(); });
     }
 
-    private void addTileSlider(LinearLayout c, String sym, String title, String key, int def, int min, int max, int step, String unit, Runnable onChg) {
+    private void addTileMenuRow(LinearLayout c, String sym, String title, String key, int def, int min, int max, int step, String unit, Runnable onChg) {
         int val = prefs.getInt(key, def); String lbl = (key.equals("TileRowPosition") && val > 0 ? "+" : "") + val + unit;
         View row = addDrawerStatusItem(c, sym, title, lbl, null); if (row == null) return;
         row.setLayoutParams(new LinearLayout.LayoutParams(-1, -2)); int id = View.generateViewId(); row.setId(id); row.setNextFocusLeftId(id); row.setNextFocusRightId(id); row.setOnClickListener(null);

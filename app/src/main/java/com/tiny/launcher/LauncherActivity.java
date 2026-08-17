@@ -411,27 +411,55 @@ public class LauncherActivity extends Activity {
         container.addView(row);
     }
 
+    private void applyTileRowPosition() {
+        int posDp = prefs.getInt("TileRowPosition", 0);
+        if (horizontalAppScrollView != null) horizontalAppScrollView.setTranslationY(dpToPx(-posDp));
+    }
+
+    private void applyTileStyles() {
+        int W = prefs.getInt("TileSize", 160), H = W * 9 / 16, D = prefs.getInt("TileCornerRadius", 30);
+        int R = dpToPx((int) Math.round((H / 2.0f) * (D / 90.0f)));
+        if (horizontalAppContainer == null) return;
+        for (int i = 0; i < horizontalAppContainer.getChildCount(); i++) {
+            View c = horizontalAppContainer.getChildAt(i);
+            if (c instanceof LinearLayout) {
+                LinearLayout ic = (LinearLayout) c;
+                if (ic.getChildCount() > 0 && ic.getChildAt(0) instanceof FrameLayout) {
+                    FrameLayout bc = (FrameLayout) ic.getChildAt(0);
+                    bc.setLayoutParams(new android.widget.FrameLayout.LayoutParams(dpToPx(W), dpToPx(H)));
+                    GradientDrawable s = new GradientDrawable(); s.setColor(Color.parseColor("#FF1A1A1A"));
+                    s.setCornerRadius(R); bc.setBackground(s);
+                }
+            }
+        }
+    }
+
     private void openTileSettingsSubmenu() {
+        isInSubmenu = true; drawerBackAction = () -> buildMainMenuInDrawer();
         sideDrawerContentScrollView.removeAllViews();
-
-        LinearLayout container = new LinearLayout(this);
-        container.setOrientation(LinearLayout.VERTICAL);
-
-        TextView title = new TextView(this);
-        title.setText("Tile Settings");
-        title.setTextColor(Color.WHITE);
-        title.setTextSize(18);
-        title.setPadding(dpToPx(12), 0, 0, dpToPx(16));
-        container.addView(title);
-
-        View divider = new View(this);
-        divider.setBackgroundColor(Color.parseColor("#33FFFFFF"));
-        divider.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(1)));
-        container.addView(divider);
-
-        
+        if (drawerTitleView != null) drawerTitleView.setText("Tile menu");
+        LinearLayout container = new LinearLayout(this); container.setOrientation(LinearLayout.VERTICAL);
+        addTileSlider(container, "◠", "Tiles corner radius", "TileCornerRadius", 30, 0, 90, 5, "°", this::applyTileStyles);
+        addTileSlider(container, "◫", "Tile size", "TileSize", 160, 80, 200, 10, "dp", this::applyTileStyles);
+        addTileSlider(container, "↕", "Row position", "TileRowPosition", 0, -150, 150, 10, "dp", this::applyTileRowPosition);
         sideDrawerContentScrollView.addView(container);
         container.post(() -> { if (container.getChildCount() > 0) container.getChildAt(0).requestFocus(); });
+    }
+
+    private void addTileSlider(LinearLayout c, String sym, String title, String key, int def, int min, int max, int step, String unit, Runnable onChg) {
+        int val = prefs.getInt(key, def); String lbl = (key.equals("TileRowPosition") && val > 0 ? "+" : "") + val + unit;
+        View row = addDrawerStatusItem(c, sym, title, lbl, null); if (row == null) return;
+        row.setLayoutParams(new LinearLayout.LayoutParams(-1, -2)); int id = View.generateViewId(); row.setId(id); row.setNextFocusLeftId(id); row.setNextFocusRightId(id); row.setOnClickListener(null);
+        row.setOnKeyListener((v, kCode, evt) -> {
+            if (evt.getAction() != KeyEvent.ACTION_DOWN) return false;
+            if (kCode == KeyEvent.KEYCODE_DPAD_RIGHT || kCode == KeyEvent.KEYCODE_DPAD_LEFT) {
+                int cVal = prefs.getInt(key, def), nVal = (kCode == KeyEvent.KEYCODE_DPAD_RIGHT) ? Math.min(max, cVal + step) : Math.max(min, cVal - step);
+                prefs.edit().putInt(key, nVal).apply();
+                TextView tv = row.findViewById(1001); if (tv != null) tv.setText((key.equals("TileRowPosition") && nVal > 0 ? "+" : "") + nVal + unit);
+                if (onChg != null) onChg.run(); return true;
+            }
+            return false;
+        });
     }
 
     private void openAboutSubmenu() {
@@ -1469,6 +1497,7 @@ public class LauncherActivity extends Activity {
 
                 @Override
     protected void onResume() {
+        applyTileRowPosition();
         super.onResume();
         if (prefs.getBoolean("ChangeEachRestart", false) && !wallpaperFiles.isEmpty()) {
             int last = prefs.getInt("LastWallpaperIndex", 0);
@@ -1618,10 +1647,11 @@ public class LauncherActivity extends Activity {
 
             android.widget.FrameLayout bannerCard = new android.widget.FrameLayout(this);
             bannerCard.setFocusable(true); bannerCard.setFocusableInTouchMode(true);
-            bannerCard.setLayoutParams(new android.widget.FrameLayout.LayoutParams(dpToPx(160), dpToPx(90)));
-            GradientDrawable baseShape = new GradientDrawable();
-            baseShape.setColor(Color.parseColor("#FF1A1A1A"));
-            baseShape.setCornerRadius(dpToPx(14));
+            int tW = prefs.getInt("TileSize", 160), tH = tW * 9 / 16, tD = prefs.getInt("TileCornerRadius", 30);
+            int tR = dpToPx((int) Math.round((tH / 2.0f) * (tD / 90.0f)));
+            bannerCard.setLayoutParams(new android.widget.FrameLayout.LayoutParams(dpToPx(tW), dpToPx(tH)));
+            GradientDrawable baseShape = new GradientDrawable(); baseShape.setColor(Color.parseColor("#FF1A1A1A"));
+            baseShape.setCornerRadius(tR);
             bannerCard.setBackground(baseShape);
             bannerCard.setClipToOutline(true);
 

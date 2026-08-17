@@ -303,7 +303,7 @@ public class LauncherActivity extends Activity {
     private void toggleSideDrawer(boolean open) {
         isSideDrawerOpen = open;
         if (open) {
-            buildMainMenuInDrawer();
+            if (!isInSubmenu) buildMainMenuInDrawer();
             sideDrawerContainer.setVisibility(View.VISIBLE);
             sideDrawerContainer.animate().translationX(0f).setDuration(250).start();
         } else {
@@ -1202,7 +1202,7 @@ private void openWallpaperSubmenu() {
                 case KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> {
                     if (isSideDrawerOpen) {
                         View f = getCurrentFocus();
-                        if (f == null || f == sideDrawerContainer || f == sideDrawerContentScrollView) {
+                        if (!isViewInsideContainer(sideDrawerContainer, f)) {
                             return true;
                         }
                     }
@@ -1757,5 +1757,15 @@ private void openWallpaperSubmenu() {
                 loadCustomWallpaper();
             } catch (Exception ignored) {}
         }
+    }
+
+    private boolean isViewInsideContainer(View container, View view) {
+        if (view == null || container == null) return false;
+        android.view.ViewParent p = view.getParent();
+        while (p != null) {
+            if (p == container) return true;
+            p = p.getParent();
+        }
+        return false;
     }
 }

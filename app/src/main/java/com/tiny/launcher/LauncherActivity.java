@@ -895,7 +895,32 @@ public class LauncherActivity extends Activity {
         sideDrawerContentScrollView.addView(container);
     }
 
-            private void openSlideshowFolderSubmenu() {
+                private int countWallpapersInFolder(File dir) {
+        if (dir == null || !dir.exists() || !dir.isDirectory()) return 0;
+        File[] files = dir.listFiles((d, name) -> {
+            String n = name.toLowerCase();
+            return n.endsWith(".jpg") || n.endsWith(".jpeg") || n.endsWith(".png") || n.endsWith(".webp");
+        });
+        return files != null ? files.length : 0;
+    }
+
+    private View addDrawerFolderItem(LinearLayout container, String title, int count, Runnable onClick) {
+        LinearLayout row = new LinearLayout(this); row.setOrientation(LinearLayout.HORIZONTAL); row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(dpToPx(12), dpToPx(10), dpToPx(12), dpToPx(10)); row.setFocusable(true); row.setFocusableInTouchMode(true);
+        TextView sym = new TextView(this); sym.setText("⧉"); sym.setTextColor(Color.parseColor("#5A5E6B")); sym.setTextSize(16);
+        sym.setLayoutParams(new LinearLayout.LayoutParams(dpToPx(28), -2)); row.addView(sym);
+        TextView lbl = new TextView(this); lbl.setText(title); lbl.setTextColor(Color.WHITE); lbl.setTextSize(14);
+        lbl.setLayoutParams(new LinearLayout.LayoutParams(0, -2, 1.0f)); row.addView(lbl);
+        TextView cnt = new TextView(this); cnt.setText(String.valueOf(count)); cnt.setTextColor(Color.parseColor("#8E8E93")); cnt.setTextSize(13);
+        cnt.setPadding(dpToPx(8), 0, dpToPx(4), 0); row.addView(cnt);
+        row.setOnFocusChangeListener((v, h) -> {
+            if (h) { GradientDrawable s = new GradientDrawable(); s.setColor(Color.parseColor("#333842")); s.setCornerRadius(dpToPx(8)); v.setBackground(s); }
+            else v.setBackgroundColor(Color.TRANSPARENT);
+        });
+        row.setOnClickListener(v -> onClick.run()); container.addView(row); return row;
+    }
+
+        private void openSlideshowFolderSubmenu() {
         isInSubmenu = true; drawerBackAction = () -> openWallpaperSubmenu();
         if (android.os.Build.VERSION.SDK_INT >= 33) {
             if (checkSelfPermission("android.permission.READ_MEDIA_IMAGES") != android.content.pm.PackageManager.PERMISSION_GRANTED) {
@@ -915,12 +940,12 @@ public class LauncherActivity extends Activity {
         });
 
         java.util.List<File> folders = new java.util.ArrayList<>();
-        File root = new File("/storage/emulated/0");
-        File pics = new File(root, "Pictures");
+        File root = new File("/storage/emulated/0"); File pics = new File(root, "Pictures");
         if (pics.exists() && pics.isDirectory()) {
             File[] subs = pics.listFiles(File::isDirectory);
             if (subs != null) {
                 for (File s : subs) {
+                    if (s.getName().startsWith(".")) continue;
                     if (s.getName().equalsIgnoreCase("wallpapers") || s.getName().equalsIgnoreCase("wallpaper")) folders.add(0, s);
                     else folders.add(s);
                 }
@@ -931,10 +956,12 @@ public class LauncherActivity extends Activity {
         File dcim = new File(root, "DCIM"); if (dcim.exists() && !folders.contains(dcim)) folders.add(dcim);
 
         for (File f : folders) {
+            if (f.getName().startsWith(".")) continue;
             String label = f.getName();
             if (f.getParentFile() != null && !f.getParentFile().getName().equals("0")) label = f.getParentFile().getName() + " / " + f.getName();
             final String target = f.getAbsolutePath();
-            addDrawerMenuItem(container, "⧉", Color.parseColor("#5A5E6B"), label, () -> {
+            int c = countWallpapersInFolder(f);
+            addDrawerFolderItem(container, label, c, () -> {
                 try { getFileStreamPath("custom_wallpaper.jpg").delete(); } catch (Exception ignored) {}
                 prefs.edit().putString("WallpaperFolder", target).apply();
                 loadWallpapers(); startWallpaperRotation(); openWallpaperSubmenu();

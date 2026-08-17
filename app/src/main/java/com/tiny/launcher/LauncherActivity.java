@@ -896,7 +896,12 @@ public class LauncherActivity extends Activity {
     }
 
         private void openSlideshowFolderSubmenu() {
-        isInSubmenu = true; drawerBackAction = () -> openWallpaperSubmenu();
+        isInSubmenu = true;
+        if (android.os.Build.VERSION.SDK_INT >= 33) {
+            if (checkSelfPermission("android.permission.READ_MEDIA_IMAGES") != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(new String[]{"android.permission.READ_MEDIA_IMAGES"}, 2001);
+            }
+        } drawerBackAction = () -> openWallpaperSubmenu();
         sideDrawerContentScrollView.removeAllViews();
         if (drawerTitleView != null) drawerTitleView.setText("Slideshow folder");
         LinearLayout container = new LinearLayout(this); container.setOrientation(LinearLayout.VERTICAL);
@@ -1311,7 +1316,7 @@ public class LauncherActivity extends Activity {
         wallpaperFiles.clear();
         if (android.os.Build.VERSION.SDK_INT >= 33) {
             if (checkSelfPermission("android.permission.READ_MEDIA_IMAGES") != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-                requestPermissions(new String[]{"android.permission.READ_MEDIA_IMAGES"}, 2001);
+                return;
             }
         }
         String folderPath = prefs.getString("WallpaperFolder", "/sdcard/Pictures/Wallpapers");
@@ -1826,5 +1831,13 @@ public class LauncherActivity extends Activity {
             p = p.getParent();
         }
         return false;
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == 2001 && grantResults.length > 0 && grantResults[0] == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            loadWallpapers();
+        }
     }
 }

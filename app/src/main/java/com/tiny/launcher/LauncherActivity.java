@@ -1512,8 +1512,11 @@ public class LauncherActivity extends Activity {
             File file = wallpaperFiles.get(currentWallpaperIndex);
             Bitmap bitmap = BitmapFactory.decodeFile(file.getAbsolutePath());
             if (bitmap != null && wallpaperSwitcher != null) {
+                View curF = getCurrentFocus(); wallpaperSwitcher.setFocusable(false);
+                wallpaperSwitcher.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
                 wallpaperSwitcher.setImageDrawable(new BitmapDrawable(getResources(), bitmap));
                 extractAccentColorFromBitmap(bitmap);
+                if (curF != null) curF.post(() -> curF.requestFocus());
             }
         }
     }
@@ -1531,8 +1534,11 @@ public class LauncherActivity extends Activity {
                 File file = wallpaperFiles.get(currentWallpaperIndex);
                 Bitmap bitmap = BitmapFactory.decodeFile(file.getAbsolutePath());
                 if (bitmap != null) {
+                    View curF = getCurrentFocus(); wallpaperSwitcher.setFocusable(false);
+                    wallpaperSwitcher.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
                     wallpaperSwitcher.setImageDrawable(new BitmapDrawable(getResources(), bitmap));
                     extractAccentColorFromBitmap(bitmap);
+                    if (curF != null) curF.post(() -> curF.requestFocus());
                 }
                 prefs.edit().putInt("LastWallpaperIndex", currentWallpaperIndex).apply();
                 currentWallpaperIndex = (currentWallpaperIndex + 1) % wallpaperFiles.size();

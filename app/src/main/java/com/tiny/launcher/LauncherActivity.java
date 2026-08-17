@@ -978,7 +978,7 @@ public class LauncherActivity extends Activity {
         if (drawerTitleView != null) drawerTitleView.setText("Wallpaper/slideshow");
         addDrawerMenuItem(container, "Set wallpaper", () -> openSetWallpaperSubmenu());
         addDrawerMenuItem(container, "Slideshow folder", () -> openSlideshowFolderSubmenu());
-        addSlideshowDurationMenuItem(container); startWallpaperRotation(); openWallpaperSubmenu(2); });
+        addSlideshowDurationMenuItem(container);
         boolean hideIdle = prefs.getBoolean("HideUiWhenIdle", true); addDrawerMenuItem(container, "Hide UI when idle: " + (hideIdle ? "On" : "Off"), () -> { prefs.edit().putBoolean("HideUiWhenIdle", !hideIdle).apply(); openWallpaperSubmenu(3); });
         boolean chgRst = prefs.getBoolean("ChangeEachRestart", false); addDrawerMenuItem(container, "Change each restart: " + (chgRst ? "On" : "Off"), () -> { prefs.edit().putBoolean("ChangeEachRestart", !chgRst).apply(); openWallpaperSubmenu(4); });
         sideDrawerContentScrollView.addView(container);

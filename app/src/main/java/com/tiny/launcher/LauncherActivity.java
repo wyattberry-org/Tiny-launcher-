@@ -976,12 +976,11 @@ public class LauncherActivity extends Activity {
         sideDrawerContentScrollView.removeAllViews();
         LinearLayout container = new LinearLayout(this); container.setOrientation(LinearLayout.VERTICAL);
         if (drawerTitleView != null) drawerTitleView.setText("Wallpaper/slideshow");
-        int darkColor = Color.parseColor("#5A5E6B");
-        addDrawerMenuItem(container, "🖼️", darkColor, "Set wallpaper", () -> openSetWallpaperSubmenu());
-        addDrawerMenuItem(container, "📁", darkColor, "Slideshow folder", () -> openSlideshowFolderSubmenu());
+        addDrawerMenuItem(container, "⧈", "Set wallpaper", () -> openSetWallpaperSubmenu());
+        addDrawerMenuItem(container, "⎘", "Slideshow folder", () -> openSlideshowFolderSubmenu());
         addSlideshowDurationMenuItem(container);
-        boolean hideIdle = prefs.getBoolean("HideUiWhenIdle", true); addDrawerMenuItem(container, "👁️", darkColor, "Hide UI when idle: " + (hideIdle ? "On" : "Off"), () -> { prefs.edit().putBoolean("HideUiWhenIdle", !hideIdle).apply(); openWallpaperSubmenu(3); });
-        boolean chgRst = prefs.getBoolean("ChangeEachRestart", false); addDrawerMenuItem(container, "🔄", darkColor, "Change each restart: " + (chgRst ? "On" : "Off"), () -> { prefs.edit().putBoolean("ChangeEachRestart", !chgRst).apply(); openWallpaperSubmenu(4); });
+        boolean hideIdle = prefs.getBoolean("HideUiWhenIdle", true); addDrawerMenuItem(container, "⧇", "Hide UI when idle: " + (hideIdle ? "On" : "Off"), () -> { prefs.edit().putBoolean("HideUiWhenIdle", !hideIdle).apply(); openWallpaperSubmenu(3); });
+        boolean chgRst = prefs.getBoolean("ChangeEachRestart", false); addDrawerMenuItem(container, "↻", "Change each restart: " + (chgRst ? "On" : "Off"), () -> { prefs.edit().putBoolean("ChangeEachRestart", !chgRst).apply(); openWallpaperSubmenu(4); });
         sideDrawerContentScrollView.addView(container);
         container.post(() -> { if (container.getChildCount() > focusIdx) container.getChildAt(focusIdx).requestFocus(); });
     }

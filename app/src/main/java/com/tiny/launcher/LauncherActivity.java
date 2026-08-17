@@ -895,13 +895,13 @@ public class LauncherActivity extends Activity {
         sideDrawerContentScrollView.addView(container);
     }
 
-        private void openSlideshowFolderSubmenu() {
-        isInSubmenu = true;
+            private void openSlideshowFolderSubmenu() {
+        isInSubmenu = true; drawerBackAction = () -> openWallpaperSubmenu();
         if (android.os.Build.VERSION.SDK_INT >= 33) {
             if (checkSelfPermission("android.permission.READ_MEDIA_IMAGES") != android.content.pm.PackageManager.PERMISSION_GRANTED) {
                 requestPermissions(new String[]{"android.permission.READ_MEDIA_IMAGES"}, 2001);
             }
-        } drawerBackAction = () -> openWallpaperSubmenu();
+        }
         sideDrawerContentScrollView.removeAllViews();
         if (drawerTitleView != null) drawerTitleView.setText("Slideshow folder");
         LinearLayout container = new LinearLayout(this); container.setOrientation(LinearLayout.VERTICAL);
@@ -914,22 +914,29 @@ public class LauncherActivity extends Activity {
             } catch (Exception ignored) {}
         });
 
-        String[][] presets = {
-            {"Pictures / Wallpapers", "/sdcard/Pictures/Wallpapers"},
-            {"Pictures Folder", "/sdcard/Pictures"},
-            {"Download Folder", "/sdcard/Download"},
-            {"DCIM Folder", "/sdcard/DCIM"}
-        };
+        java.util.List<File> folders = new java.util.ArrayList<>();
+        File root = new File("/storage/emulated/0");
+        File pics = new File(root, "Pictures");
+        if (pics.exists() && pics.isDirectory()) {
+            File[] subs = pics.listFiles(File::isDirectory);
+            if (subs != null) {
+                for (File s : subs) {
+                    if (s.getName().equalsIgnoreCase("wallpapers") || s.getName().equalsIgnoreCase("wallpaper")) folders.add(0, s);
+                    else folders.add(s);
+                }
+            }
+            folders.add(pics);
+        }
+        File dl = new File(root, "Download"); if (dl.exists() && !folders.contains(dl)) folders.add(dl);
+        File dcim = new File(root, "DCIM"); if (dcim.exists() && !folders.contains(dcim)) folders.add(dcim);
 
-        for (String[] p : presets) {
-            String name = p[0]; String path = p[1];
-            addDrawerMenuItem(container, "⧉", Color.parseColor("#5A5E6B"), name, () -> {
+        for (File f : folders) {
+            String label = f.getName();
+            if (f.getParentFile() != null && !f.getParentFile().getName().equals("0")) label = f.getParentFile().getName() + " / " + f.getName();
+            final String target = f.getAbsolutePath();
+            addDrawerMenuItem(container, "⧉", Color.parseColor("#5A5E6B"), label, () -> {
                 try { getFileStreamPath("custom_wallpaper.jpg").delete(); } catch (Exception ignored) {}
-                String targetPath = path;
-                File checkDir = new File(path.replace("/sdcard", "/storage/emulated/0"));
-                if (!checkDir.exists()) checkDir = new File("/storage/emulated/0/Pictures/wallpapers");
-                if (checkDir.exists()) targetPath = checkDir.getAbsolutePath();
-                prefs.edit().putString("WallpaperFolder", targetPath).apply();
+                prefs.edit().putString("WallpaperFolder", target).apply();
                 loadWallpapers(); startWallpaperRotation(); openWallpaperSubmenu();
             });
         }

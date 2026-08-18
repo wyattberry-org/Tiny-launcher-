@@ -1382,10 +1382,50 @@ public class LauncherActivity extends Activity {
                     } catch (Exception ignored) {}
                 }
 
-                String finalTemp = tempStr;
-                String finalRh = rhStr;
+                String finalTemp = tempStr; String finalRh = rhStr;
+                runOnUiThread(() -> { if (weatherTextView != null) weatherTextView.setText(statusStr + " • " + finalTemp + " • " + finalRh); });
+            } catch (Exception ignored) {}
+        }).start();
+    }
 
-                            runOnUiThread(() -> {
+    private void animateTileAccentSweep(int oldColor) {
+        if (horizontalAppContainer == null) return;
+        int targetColor = getTileBackgroundColor(), screenW = getResources().getDisplayMetrics().widthPixels;
+        int tileH = prefs.getInt("TileSize", 160) * 9 / 16, tileDeg = prefs.getInt("TileCornerRadius", 30), radPx = dpToPx((int) Math.round((tileH / 2.0f) * (tileDeg / 90.0f)));
+        android.animation.ArgbEvaluator eval = new android.animation.ArgbEvaluator();
+        for (int i = 0; i < horizontalAppContainer.getChildCount(); i++) {
+            View child = horizontalAppContainer.getChildAt(i);
+            if (child instanceof LinearLayout) {
+                LinearLayout ic = (LinearLayout) child;
+                if (ic.getChildCount() > 0 && ic.getChildAt(0) instanceof FrameLayout) {
+                    FrameLayout bc = (FrameLayout) ic.getChildAt(0);
+                    int[] loc = new int[2]; bc.getLocationOnScreen(loc);
+                    float ratio = Math.max(0.0f, Math.min(1.0f, (float) loc[0] / screenW));
+                    android.animation.ValueAnimator anim = android.animation.ValueAnimator.ofObject(eval, oldColor, targetColor);
+                    anim.setDuration(600); anim.setStartDelay((long) (ratio * 1400));
+                    anim.addUpdateListener(a -> {
+                        GradientDrawable shape = new GradientDrawable(); shape.setColor((int) a.getAnimatedValue()); shape.setCornerRadius(radPx); bc.setBackground(shape);
+                    });
+                    anim.start();
+                }
+            }
+        }
+    }
+
+    private void extractAccentColorFromBitmap(Bitmap bitmap) {
+        if (bitmap == null) return;
+        new Thread(() -> {
+            int width = bitmap.getWidth(), height = bitmap.getHeight();
+            int maxSatPixel = Color.parseColor("#007AFF"); float maxSat = -1f;
+            for (int x = 0; x < width; x += Math.max(1, width / 20)) {
+                for (int y = 0; y < height; y += Math.max(1, height / 20)) {
+                    int pixel = bitmap.getPixel(x, y); float[] hsv = new float[3];
+                    Color.colorToHSV(pixel, hsv);
+                    if (hsv[1] > maxSat && hsv[2] > 0.3f && hsv[2] < 0.9f) { maxSat = hsv[1]; maxSatPixel = pixel; }
+                }
+            }
+            int finalColor = maxSatPixel;
+            runOnUiThread(() -> {
                 int oldColor = getTileBackgroundColor();
                 currentAccentColor = finalColor;
                 animateTileAccentSweep(oldColor);

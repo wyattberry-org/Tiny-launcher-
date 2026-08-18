@@ -1879,7 +1879,7 @@ public class LauncherActivity extends Activity {
         }, popup);
 
         boolean hasCustomBanner = getFileStreamPath("banner_" + app.packageName() + ".png").exists() || getFileStreamPath("banner_" + app.packageName() + ".jpg").exists();
-        addPopupMenuItem(menuView, "⧉", "Replace Banner", () -> showFileManagerPickerPopup(position, anchorView), popup);
+        addPopupMenuItemNoDismiss(menuView, "⧉", "Replace Banner", () -> showFileManagerPickerInSameWindow(app, menuView, popup));
         if (hasCustomBanner) {
             addPopupMenuItem(menuView, "↺", "Reset Banner", () -> {
                 try { getFileStreamPath("banner_" + app.packageName() + ".png").delete(); } catch (Exception ignored) {}
@@ -2145,12 +2145,19 @@ public class LauncherActivity extends Activity {
         menuView.post(() -> { for (int i = 0; i < menuView.getChildCount(); i++) { View c = menuView.getChildAt(i); if (c.isFocusable()) { c.requestFocus(); break; } } });
     }
 
-            private void showFileManagerPickerPopup(int position, View anchorView) {
-        AppModel app = appList.get(position); replacingBannerPkg = app.packageName();
-        LinearLayout menuView = new LinearLayout(this); menuView.setOrientation(LinearLayout.VERTICAL); menuView.setPadding(dpToPx(6), dpToPx(6), dpToPx(6), dpToPx(6));
-        GradientDrawable bg = new GradientDrawable(); bg.setColor(Color.parseColor("#1A1D24")); bg.setCornerRadius(dpToPx(12)); menuView.setBackground(bg);
-        android.widget.PopupWindow popup = new android.widget.PopupWindow(menuView, ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, true);
-        popup.setElevation(0); popup.setOutsideTouchable(true);
+                private void addPopupMenuItemNoDismiss(LinearLayout container, String iconSymbol, String labelText, Runnable onClick) {
+        LinearLayout row = new LinearLayout(this); row.setOrientation(LinearLayout.HORIZONTAL); row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(dpToPx(10), dpToPx(8), dpToPx(10), dpToPx(8)); row.setFocusable(true); row.setFocusableInTouchMode(true);
+        TextView iconView = new TextView(this); iconView.setText(iconSymbol); iconView.setTextColor(Color.parseColor("#5A5E6B")); iconView.setTextSize(13); iconView.setGravity(Gravity.START | Gravity.CENTER_VERTICAL); iconView.setLayoutParams(new LinearLayout.LayoutParams(dpToPx(22), ViewGroup.LayoutParams.WRAP_CONTENT));
+        TextView labelView = new TextView(this); labelView.setText(labelText); labelView.setTextColor(Color.WHITE); labelView.setTextSize(13); labelView.setGravity(Gravity.START | Gravity.CENTER_VERTICAL); labelView.setSingleLine(true); labelView.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        row.addView(iconView); row.addView(labelView);
+        row.setOnFocusChangeListener((v, hasFocus) -> { GradientDrawable s = new GradientDrawable(); s.setCornerRadius(dpToPx(8)); s.setColor(hasFocus ? Color.parseColor("#333842") : Color.TRANSPARENT); v.setBackground(s); });
+        row.setOnClickListener(v -> onClick.run()); container.addView(row);
+    }
+
+    private void showFileManagerPickerInSameWindow(AppModel app, LinearLayout menuView, android.widget.PopupWindow popup) {
+        replacingBannerPkg = app.packageName(); int w = menuView.getWidth() > 0 ? menuView.getWidth() : dpToPx(180); int h = menuView.getHeight();
+        menuView.removeAllViews(); if (w > 0) menuView.setMinimumWidth(w); if (h > 0) menuView.setMinimumHeight(h);
         String[][] explorers = {{"Cx File", "com.cxinventor.file.explorer"}, {"X-plore", "com.lonelycatgames.Xplore"}, {"Solid File", "pl.solidexplorer2"}, {"FX File", "nextapp.fx"}, {"Total Commander", "com.ghisler.android.TotalCommander"}, {"System Files", "com.google.android.documentsui"}, {"Native File", "com.android.documentsui"}};
         boolean found = false; PackageManager pm = getPackageManager();
         for (String[] exp : explorers) {
@@ -2163,13 +2170,7 @@ public class LauncherActivity extends Activity {
                 }, popup);
             } catch (Exception ignored) {}
         }
-        if (!found) { addPopupMenuItem(menuView, "Ø", "No Explorer", () -> {}, popup); }
-        menuView.measure(View.MeasureSpec.makeMeasureSpec(dpToPx(180), View.MeasureSpec.AT_MOST), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
-        int popupW = menuView.getMeasuredWidth(); int popupH = menuView.getMeasuredHeight();
-        int[] location = new int[2]; anchorView.getLocationOnScreen(location);
-        int xOffset = location[0] + (anchorView.getWidth() / 2) - (popupW / 2);
-        int yOffset = location[1] - popupH - dpToPx(8);
-        popup.showAtLocation(anchorView, Gravity.NO_GRAVITY, xOffset, yOffset);
+        if (!found) addPopupMenuItem(menuView, "Ø", "No Explorer", () -> {}, popup);
         menuView.post(() -> { for (int i = 0; i < menuView.getChildCount(); i++) { View c = menuView.getChildAt(i); if (c.isFocusable()) { c.requestFocus(); break; } } });
     }
 

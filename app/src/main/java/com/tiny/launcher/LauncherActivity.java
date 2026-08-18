@@ -418,6 +418,13 @@ public class LauncherActivity extends Activity {
         if (horizontalAppScrollView != null) horizontalAppScrollView.setTranslationY(dpToPx(-posDp));
     }
 
+        private int getTileBackgroundColor() {
+        int r = (int) (Color.red(currentAccentColor) * 0.4f + 0x1A * 0.6f);
+        int g = (int) (Color.green(currentAccentColor) * 0.4f + 0x1A * 0.6f);
+        int b = (int) (Color.blue(currentAccentColor) * 0.4f + 0x1A * 0.6f);
+        return Color.rgb(r, g, b);
+    }
+
     private void applyTileStyles() {
         int W = prefs.getInt("TileSize", 160), H = W * 9 / 16, D = prefs.getInt("TileCornerRadius", 30);
         int R = dpToPx((int) Math.round((H / 2.0f) * (D / 90.0f)));
@@ -430,7 +437,7 @@ public class LauncherActivity extends Activity {
                 if (ic.getChildCount() > 0 && ic.getChildAt(0) instanceof FrameLayout) {
                     FrameLayout bc = (FrameLayout) ic.getChildAt(0);
                     bc.setLayoutParams(new LinearLayout.LayoutParams(dpToPx(W), dpToPx(H)));
-                    GradientDrawable s = new GradientDrawable(); s.setColor(Color.parseColor("#FF1A1A1A"));
+                    GradientDrawable s = new GradientDrawable(); s.setColor(getTileBackgroundColor());
                     s.setCornerRadius(R); bc.setBackground(s);
                 }
                 if (ic.getChildCount() > 1 && ic.getChildAt(1) instanceof TextView) {
@@ -1687,7 +1694,7 @@ public class LauncherActivity extends Activity {
             int tW = prefs.getInt("TileSize", 160), tH = tW * 9 / 16, tD = prefs.getInt("TileCornerRadius", 30);
             int tR = dpToPx((int) Math.round((tH / 2.0f) * (tD / 90.0f)));
             bannerCard.setLayoutParams(new android.widget.FrameLayout.LayoutParams(dpToPx(tW), dpToPx(tH)));
-            GradientDrawable baseShape = new GradientDrawable(); baseShape.setColor(Color.parseColor("#FF1A1A1A"));
+            GradientDrawable baseShape = new GradientDrawable(); baseShape.setColor(getTileBackgroundColor());
             baseShape.setCornerRadius(tR);
             bannerCard.setBackground(baseShape);
             bannerCard.setClipToOutline(true);

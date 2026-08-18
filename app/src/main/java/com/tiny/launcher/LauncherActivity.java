@@ -1696,9 +1696,7 @@ public class LauncherActivity extends Activity {
                 resetIdleTimer();
                 titleView.setVisibility(hasFocus ? View.VISIBLE : View.INVISIBLE);
                 v.animate().scaleX(hasFocus ? 1.25f : 1.0f).scaleY(hasFocus ? 1.25f : 1.0f).setDuration(150).start();
-                float elevation = 0f;
-                itemContainer.setElevation(elevation);
-                v.setElevation(elevation);
+                itemContainer.setTranslationZ(hasFocus ? dpToPx(16) : 0f);
             });
 
             bannerCard.setOnClickListener(v -> {

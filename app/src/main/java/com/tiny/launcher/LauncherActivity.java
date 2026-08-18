@@ -1695,6 +1695,10 @@ public class LauncherActivity extends Activity {
                 titleView.setVisibility(hasFocus ? View.VISIBLE : View.INVISIBLE);
                 v.animate().scaleX(hasFocus ? 1.25f : 1.0f).scaleY(hasFocus ? 1.25f : 1.0f).setDuration(150).start();
                 itemContainer.setTranslationZ(hasFocus ? dpToPx(16) : 0f);
+                GradientDrawable shape = new GradientDrawable();
+                shape.setColor(getTileBackgroundColor()); shape.setCornerRadius(tR);
+                if (hasFocus) shape.setStroke(Math.max(1, Math.round(dpToPx(1) * 0.8f)), currentAccentColor);
+                v.setBackground(shape);
             });
 
             bannerCard.setOnClickListener(v -> {

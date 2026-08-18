@@ -1383,7 +1383,11 @@ public class LauncherActivity extends Activity {
                 }
 
                 String finalTemp = tempStr; String finalRh = rhStr;
-                runOnUiThread(() -> { if (weatherTextView != null) weatherTextView.setText(statusStr + " • " + finalTemp + " • " + finalRh); });
+                runOnUiThread(() -> {
+                    if (weatherStatusTextView != null) weatherStatusTextView.setText(statusStr);
+                    if (weatherTempTextView != null) weatherTempTextView.setText(finalTemp);
+                    if (weatherRhTextView != null) weatherRhTextView.setText(finalRh);
+                });
             } catch (Exception ignored) {}
         }).start();
     }

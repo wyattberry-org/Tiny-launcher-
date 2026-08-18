@@ -471,9 +471,6 @@ public class LauncherActivity extends Activity {
                     bc.setLayoutParams(new LinearLayout.LayoutParams(dpToPx(W), dpToPx(H)));
                     GradientDrawable s = new GradientDrawable(); s.setColor(getTileBackgroundColor());
                     s.setCornerRadius(R);
-                    if (isMoveMode && i == moveSourcePosition) {
-                        s.setStroke(dpToPx(3), Color.parseColor("#007AFF"));
-                    }
                     bc.setBackground(s);
                 }
                 if (ic.getChildCount() > 1 && ic.getChildAt(1) instanceof TextView) {
@@ -1629,8 +1626,10 @@ public class LauncherActivity extends Activity {
                 itemA.setTranslationX(0);
                 itemB.setTranslationX(0);
 
+                if (horizontalAppScrollView != null) horizontalAppScrollView.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
                 horizontalAppContainer.removeView(itemA);
                 horizontalAppContainer.addView(itemA, toIdx);
+                if (horizontalAppScrollView != null) horizontalAppScrollView.setDescendantFocusability(ViewGroup.FOCUS_AFTER_DESCENDANTS);
 
                 AppModel temp = appList.get(fromIdx);
                 appList.set(fromIdx, appList.get(toIdx));
@@ -1641,7 +1640,8 @@ public class LauncherActivity extends Activity {
                 isAnimatingMove = false;
 
                 if (itemA instanceof ViewGroup && ((ViewGroup) itemA).getChildCount() > 0) {
-                    ((ViewGroup) itemA).getChildAt(0).requestFocus();
+                    View card = ((ViewGroup) itemA).getChildAt(0);
+                    card.requestFocus();
                 }
 
                 if (itemA instanceof ViewGroup) {
@@ -1730,6 +1730,7 @@ public class LauncherActivity extends Activity {
             itemContainer.setClipToPadding(false);
 
             bannerCard.setOnFocusChangeListener((v, hasFocus) -> {
+                if (isAnimatingMove) return;
                 if (hasFocus) lastFocusedAppIdx = position;
                 resetIdleTimer();
                 titleView.setVisibility(hasFocus ? View.VISIBLE : View.INVISIBLE);

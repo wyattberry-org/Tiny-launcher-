@@ -1755,6 +1755,15 @@ public class LauncherActivity extends Activity {
             itemContainer.addView(bannerCard); itemContainer.addView(titleView);
             horizontalAppContainer.addView(itemContainer);
         }
+        int targetIdx = Math.max(0, Math.min(lastFocusedAppIdx, horizontalAppContainer.getChildCount() - 1));
+        if (horizontalAppContainer.getChildCount() > 0) {
+            horizontalAppContainer.post(() -> {
+                View child = horizontalAppContainer.getChildAt(targetIdx);
+                if (child instanceof LinearLayout && ((LinearLayout) child).getChildCount() > 0) {
+                    ((LinearLayout) child).getChildAt(0).requestFocus();
+                }
+            });
+        }
     }
 
         private void addPopupMenuItem(LinearLayout container, String iconSymbol, String labelText, Runnable onClick, android.widget.PopupWindow popup) {
@@ -1822,6 +1831,7 @@ public class LauncherActivity extends Activity {
             Set<String> hidden = new HashSet<>(prefs.getStringSet("HiddenApps", new HashSet<>()));
             hidden.add(app.packageName());
             prefs.edit().putStringSet("HiddenApps", hidden).apply();
+            lastFocusedAppIdx = Math.max(0, Math.min(position, appList.size() - 2));
             loadInstalledApps();
         }, popup);
 

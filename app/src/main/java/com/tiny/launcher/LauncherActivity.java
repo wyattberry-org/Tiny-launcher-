@@ -1631,6 +1631,7 @@ public class LauncherActivity extends Activity {
                 horizontalAppContainer.addView(itemA, toIdx);
                 if (horizontalAppScrollView != null) horizontalAppScrollView.setDescendantFocusability(ViewGroup.FOCUS_AFTER_DESCENDANTS);
 
+                updateTileFocusTraps();
                 AppModel temp = appList.get(fromIdx);
                 appList.set(fromIdx, appList.get(toIdx));
                 appList.set(toIdx, temp);
@@ -1701,8 +1702,7 @@ public class LauncherActivity extends Activity {
                 if (settingsGear.getId() == View.NO_ID) settingsGear.setId(View.generateViewId());
                 bannerCard.setNextFocusUpId(settingsGear.getId());
             }
-            if (i == 0) bannerCard.setNextFocusLeftId(cardId);
-            if (i == appList.size() - 1) bannerCard.setNextFocusRightId(cardId);
+            // Dynamic focus traps handled by updateTileFocusTraps()
             int tW = prefs.getInt("TileSize", 160), tH = tW * 9 / 16, tD = prefs.getInt("TileCornerRadius", 30);
             int tR = dpToPx((int) Math.round((tH / 2.0f) * (tD / 90.0f)));
             bannerCard.setLayoutParams(new android.widget.FrameLayout.LayoutParams(dpToPx(tW), dpToPx(tH)));
@@ -2198,6 +2198,21 @@ public class LauncherActivity extends Activity {
         }
         if (!found) addPopupMenuItem(menuView, "Ø", "No Explorer", () -> {}, popup);
         menuView.post(() -> { for (int i = 0; i < menuView.getChildCount(); i++) { View c = menuView.getChildAt(i); if (c.isFocusable()) { c.requestFocus(); break; } } });
+    }
+
+        private void updateTileFocusTraps() {
+        if (horizontalAppContainer == null) return;
+        int count = horizontalAppContainer.getChildCount();
+        for (int i = 0; i < count; i++) {
+            View item = horizontalAppContainer.getChildAt(i);
+            if (item instanceof ViewGroup && ((ViewGroup) item).getChildCount() > 0) {
+                View card = ((ViewGroup) item).getChildAt(0);
+                int cardId = card.getId();
+                if (cardId == View.NO_ID) { cardId = View.generateViewId(); card.setId(cardId); }
+                card.setNextFocusLeftId(i == 0 ? cardId : View.NO_ID);
+                card.setNextFocusRightId(i == count - 1 ? cardId : View.NO_ID);
+            }
+        }
     }
 
     private boolean isViewInsideContainer(View container, View view) {

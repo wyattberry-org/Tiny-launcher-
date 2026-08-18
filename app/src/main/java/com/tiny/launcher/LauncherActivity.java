@@ -1878,10 +1878,15 @@ public class LauncherActivity extends Activity {
             startActivity(unIntent);
         }, popup);
 
-        addPopupMenuItem(menuView, "⧉", "Replace Banner", () -> {
-            openManageAppsSubmenu();
-            toggleSideDrawer(true);
-        }, popup);
+        boolean hasCustomBanner = getFileStreamPath("banner_" + app.packageName() + ".png").exists() || getFileStreamPath("banner_" + app.packageName() + ".jpg").exists();
+        addPopupMenuItem(menuView, "⧉", "Replace Banner", () -> launchBannerPicker(app.packageName()), popup);
+        if (hasCustomBanner) {
+            addPopupMenuItem(menuView, "↺", "Reset Banner", () -> {
+                try { getFileStreamPath("banner_" + app.packageName() + ".png").delete(); } catch (Exception ignored) {}
+                try { getFileStreamPath("banner_" + app.packageName() + ".jpg").delete(); } catch (Exception ignored) {}
+                renderAppBanners();
+            }, popup);
+        }
 
         addPopupMenuItem(menuView, "↔", "Move App", () -> {
             isMoveMode = true;
@@ -1989,7 +1994,16 @@ public class LauncherActivity extends Activity {
         try { unregisterReceiver(packageReceiver); } catch (Exception ignored) {}
     }
 
+    private String replacingBannerPkg = null;
+
     private android.graphics.drawable.Drawable getCustomDrawableForPackage(String pkg, android.graphics.drawable.Drawable fallback) {
+        if (pkg == null) return fallback;
+        java.io.File customBanner = getFileStreamPath("banner_" + pkg + ".png");
+        if (!customBanner.exists()) customBanner = getFileStreamPath("banner_" + pkg + ".jpg");
+        if (customBanner.exists()) {
+            android.graphics.drawable.Drawable d = android.graphics.drawable.Drawable.createFromPath(customBanner.getAbsolutePath());
+            if (d != null) return d;
+        }
         if (pkg == null) return fallback;
         String resName = null;
         String p = pkg.toLowerCase();
@@ -2051,6 +2065,15 @@ public class LauncherActivity extends Activity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == 1002 && resultCode == RESULT_OK && data != null && data.getData() != null) { android.net.Uri uri = data.getData(); try { getContentResolver().takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION); } catch (Exception ignored) {} String p = uri.getPath(); if (p != null && p.contains(":")) { String[] parts = p.split(":"); if (parts.length > 1) p = "/sdcard/" + parts[1]; } prefs.edit().putString("WallpaperFolder", p != null ? p : uri.toString()).apply(); loadWallpapers(); startWallpaperRotation(); }
+        if (requestCode == 1003 && resultCode == RESULT_OK && data != null && data.getData() != null && replacingBannerPkg != null) {
+            try (java.io.InputStream in = getContentResolver().openInputStream(data.getData());
+                 java.io.OutputStream out = openFileOutput("banner_" + replacingBannerPkg + ".png", MODE_PRIVATE)) {
+                byte[] buf = new byte[8192];
+                int len;
+                while ((len = in.read(buf)) > 0) out.write(buf, 0, len);
+                renderAppBanners();
+            } catch (Exception ignored) {}
+        }
         if (requestCode == 1001 && resultCode == RESULT_OK && data != null && data.getData() != null) {
             try (java.io.InputStream in = getContentResolver().openInputStream(data.getData());
                  java.io.OutputStream out = openFileOutput("custom_wallpaper.jpg", MODE_PRIVATE)) {
@@ -2058,6 +2081,21 @@ public class LauncherActivity extends Activity {
                 int len;
                 while ((len = in.read(buf)) > 0) out.write(buf, 0, len);
                 loadCustomWallpaper();
+            } catch (Exception ignored) {}
+        }
+    }
+
+        private void launchBannerPicker(String pkg) {
+        replacingBannerPkg = pkg;
+        try {
+            Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+            intent.setType("image/*");
+            startActivityForResult(intent, 1003);
+        } catch (Exception e) {
+            try {
+                Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+                intent.setType("image/*");
+                startActivityForResult(intent, 1003);
             } catch (Exception ignored) {}
         }
     }

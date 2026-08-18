@@ -1744,16 +1744,14 @@ public class LauncherActivity extends Activity {
 
             bannerCard.setOnClickListener(v -> {
                 if (isMoveMode) {
-                    if (moveSourcePosition != -1 && moveSourcePosition != position) {
-                        AppModel sourceApp = appList.remove(moveSourcePosition);
-                        appList.add(position, sourceApp);
-                        saveCustomAppOrder();
-                        
-        renderAppBanners();
-                        android.widget.Toast.makeText(this, "App position updated", android.widget.Toast.LENGTH_SHORT).show();
+                    if (moveSourcePosition != -1) {
+                        lastFocusedAppIdx = moveSourcePosition;
                     }
                     isMoveMode = false;
+                    saveCustomAppOrder();
                     moveSourcePosition = -1;
+                    renderAppBanners();
+                    android.widget.Toast.makeText(this, "Tile position saved", android.widget.Toast.LENGTH_SHORT).show();
                     return;
                 }
                 Intent launchIntent = getPackageManager().getLaunchIntentForPackage(app.packageName());
@@ -1774,6 +1772,9 @@ public class LauncherActivity extends Activity {
                     } else if (keyCode == android.view.KeyEvent.KEYCODE_DPAD_CENTER || keyCode == android.view.KeyEvent.KEYCODE_ENTER || keyCode == android.view.KeyEvent.KEYCODE_BACK) {
                         if (!isAnimatingMove) {
                             isMoveMode = false;
+                            if (moveSourcePosition != -1) {
+                                lastFocusedAppIdx = moveSourcePosition;
+                            }
                             saveCustomAppOrder();
                             moveSourcePosition = -1;
                             renderAppBanners();

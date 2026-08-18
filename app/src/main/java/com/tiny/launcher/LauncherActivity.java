@@ -903,24 +903,34 @@ public class LauncherActivity extends Activity {
         LinearLayout container = new LinearLayout(this);
         container.setOrientation(LinearLayout.VERTICAL);
 
+        drawerBackAction = () -> buildMainMenuInDrawer();
         boolean enabled = prefs.getBoolean("ParentalControlEnabled", false);
         View row1 = addDrawerStatusItem(container, "⚿", "Parental control", enabled ? "ON" : "OFF", null);
-        row1.setOnClickListener(v -> {
-            boolean cur = prefs.getBoolean("ParentalControlEnabled", false);
-            boolean next = !cur;
-            prefs.edit().putBoolean("ParentalControlEnabled", next).apply();
-            TextView tv = row1.findViewById(1001);
-            if (tv != null) tv.setText(next ? "ON" : "OFF");
+        row1.setOnClickListener(null);
+        row1.setOnKeyListener((v, kCode, evt) -> {
+            if (evt.getAction() != KeyEvent.ACTION_DOWN) return false;
+            if (kCode == KeyEvent.KEYCODE_DPAD_RIGHT || kCode == KeyEvent.KEYCODE_DPAD_LEFT) {
+                boolean cur = prefs.getBoolean("ParentalControlEnabled", false);
+                boolean next = !cur; prefs.edit().putBoolean("ParentalControlEnabled", next).apply();
+                TextView tv = row1.findViewById(1001); if (tv != null) tv.setText(next ? "ON" : "OFF");
+                return true;
+            }
+            return false;
         });
 
         int passIndex = prefs.getInt("PasscodeIndex", 1);
-        View row2 = addDrawerStatusItem(container, "🔑", "Passcode", PASSCODE_PRESETS[passIndex], null);
-        row2.setOnClickListener(v -> {
-            int idx = prefs.getInt("PasscodeIndex", 1);
-            int nextIndex = (idx + 1) % PASSCODE_PRESETS.length;
-            prefs.edit().putInt("PasscodeIndex", nextIndex).apply();
-            TextView tv = row2.findViewById(1001);
-            if (tv != null) tv.setText(PASSCODE_PRESETS[nextIndex]);
+        View row2 = addDrawerStatusItem(container, "⚿", "Passcode", PASSCODE_PRESETS[passIndex], null);
+        row2.setOnClickListener(null);
+        row2.setOnKeyListener((v, kCode, evt) -> {
+            if (evt.getAction() != KeyEvent.ACTION_DOWN) return false;
+            if (kCode == KeyEvent.KEYCODE_DPAD_RIGHT || kCode == KeyEvent.KEYCODE_DPAD_LEFT) {
+                int idx = prefs.getInt("PasscodeIndex", 1);
+                int nIdx = (kCode == KeyEvent.KEYCODE_DPAD_RIGHT) ? (idx + 1) % PASSCODE_PRESETS.length : (idx - 1 + PASSCODE_PRESETS.length) % PASSCODE_PRESETS.length;
+                prefs.edit().putInt("PasscodeIndex", nIdx).apply();
+                TextView tv = row2.findViewById(1001); if (tv != null) tv.setText(PASSCODE_PRESETS[nIdx]);
+                return true;
+            }
+            return false;
         });
 
         sideDrawerContentScrollView.addView(container);

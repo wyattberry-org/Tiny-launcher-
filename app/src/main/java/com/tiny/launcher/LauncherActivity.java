@@ -470,7 +470,11 @@ public class LauncherActivity extends Activity {
                     FrameLayout bc = (FrameLayout) ic.getChildAt(0);
                     bc.setLayoutParams(new LinearLayout.LayoutParams(dpToPx(W), dpToPx(H)));
                     GradientDrawable s = new GradientDrawable(); s.setColor(getTileBackgroundColor());
-                    s.setCornerRadius(R); bc.setBackground(s);
+                    s.setCornerRadius(R);
+                    if (isMoveMode && i == moveSourcePosition) {
+                        s.setStroke(dpToPx(3), Color.parseColor("#007AFF"));
+                    }
+                    bc.setBackground(s);
                 }
                 if (ic.getChildCount() > 1 && ic.getChildAt(1) instanceof TextView) {
                     TextView tv = (TextView) ic.getChildAt(1);
@@ -1771,6 +1775,7 @@ public class LauncherActivity extends Activity {
                             isMoveMode = false;
                             saveCustomAppOrder();
                             moveSourcePosition = -1;
+                            renderAppBanners();
                             android.widget.Toast.makeText(this, "Tile position saved", android.widget.Toast.LENGTH_SHORT).show();
                         }
                         return true;
@@ -1846,6 +1851,11 @@ public class LauncherActivity extends Activity {
     }
 
             private void showAppOptionDialog(int position, View anchorView) {
+        if (anchorView != null && horizontalAppContainer != null) {
+            View parentContainer = (anchorView.getParent() instanceof View) ? (View) anchorView.getParent() : anchorView;
+            int realIdx = horizontalAppContainer.indexOfChild(parentContainer);
+            if (realIdx != -1) position = realIdx;
+        }
         AppModel app = appList.get(position);
 
         LinearLayout menuView = new LinearLayout(this);
@@ -1896,6 +1906,7 @@ public class LauncherActivity extends Activity {
         addPopupMenuItem(menuView, "↔", "Move App", () -> {
             isMoveMode = true;
             moveSourcePosition = position;
+            applyTileStyles();
             android.widget.Toast.makeText(this, "Move Mode: Use D-pad arrows to glide tile", android.widget.Toast.LENGTH_LONG).show();
         }, popup);
 

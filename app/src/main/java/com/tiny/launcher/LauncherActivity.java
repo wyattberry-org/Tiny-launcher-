@@ -1439,8 +1439,11 @@ public class LauncherActivity extends Activity {
                     float ratio = Math.max(0.0f, Math.min(1.0f, (float) loc[0] / screenW));
                     android.animation.ValueAnimator anim = android.animation.ValueAnimator.ofObject(eval, oldColor, targetColor);
                     anim.setDuration(600); anim.setStartDelay((long) (ratio * 1400));
+                    final int tileIdx = i;
                     anim.addUpdateListener(a -> {
-                        GradientDrawable shape = new GradientDrawable(); shape.setColor((int) a.getAnimatedValue()); shape.setCornerRadius(radPx); bc.setBackground(shape);
+                        GradientDrawable shape = new GradientDrawable(); shape.setColor((int) a.getAnimatedValue()); shape.setCornerRadius(radPx);
+                        if (tileIdx == lastFocusedAppIdx) shape.setStroke(Math.max(1, Math.round(getResources().getDisplayMetrics().density * 0.6f)), currentAccentColor);
+                        bc.setBackground(shape);
                     });
                     anim.start();
                 }
@@ -1697,7 +1700,7 @@ public class LauncherActivity extends Activity {
                 itemContainer.setTranslationZ(hasFocus ? dpToPx(16) : 0f);
                 GradientDrawable shape = new GradientDrawable();
                 shape.setColor(getTileBackgroundColor()); shape.setCornerRadius(tR);
-                if (hasFocus) shape.setStroke(Math.max(1, Math.round(dpToPx(1) * 0.8f)), currentAccentColor);
+                if (hasFocus) shape.setStroke(Math.max(1, Math.round(getResources().getDisplayMetrics().density * 0.6f)), currentAccentColor);
                 v.setBackground(shape);
             });
 

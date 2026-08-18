@@ -1879,7 +1879,7 @@ public class LauncherActivity extends Activity {
         }, popup);
 
         boolean hasCustomBanner = getFileStreamPath("banner_" + app.packageName() + ".png").exists() || getFileStreamPath("banner_" + app.packageName() + ".jpg").exists();
-        addPopupMenuItem(menuView, "⧉", "Replace Banner", () -> openSelectBannerSubmenu(app.packageName()), popup);
+        addPopupMenuItem(menuView, "⧉", "Replace Banner", () -> showFileManagerPickerInPopup(app.packageName(), menuView, popup), popup);
         if (hasCustomBanner) {
             addPopupMenuItem(menuView, "↺", "Reset Banner", () -> {
                 try { getFileStreamPath("banner_" + app.packageName() + ".png").delete(); } catch (Exception ignored) {}
@@ -2071,7 +2071,6 @@ public class LauncherActivity extends Activity {
                 byte[] buf = new byte[8192];
                 int len;
                 while ((len = in.read(buf)) > 0) out.write(buf, 0, len);
-                toggleSideDrawer(false);
                 renderAppBanners();
             } catch (Exception ignored) {}
         }
@@ -2120,6 +2119,30 @@ public class LauncherActivity extends Activity {
         }
         if (!found) { TextView info = new TextView(this); info.setText("No file explorer installed.\nPlease install Cx File Explorer or X-plore."); info.setTextColor(Color.LTGRAY); info.setTextSize(14); info.setPadding(dpToPx(12), dpToPx(12), dpToPx(12), dpToPx(12)); container.addView(info); }
         sideDrawerContentScrollView.addView(container); toggleSideDrawer(true);
+    }
+
+        private void showFileManagerPickerInPopup(String pkgName, LinearLayout menuView, android.widget.PopupWindow popup) {
+        replacingBannerPkg = pkgName; menuView.removeAllViews();
+        TextView titleView = new TextView(this); titleView.setText("Select File Explorer"); titleView.setTextColor(Color.WHITE);
+        titleView.setTextSize(14); titleView.setGravity(Gravity.CENTER); titleView.setPadding(0, dpToPx(4), 0, dpToPx(6));
+        menuView.addView(titleView);
+        View divider = new View(this); divider.setBackgroundColor(Color.parseColor("#33FFFFFF"));
+        divider.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(1)));
+        menuView.addView(divider);
+        String[][] explorers = {{"Cx File Explorer", "com.cxinventor.file.explorer"}, {"X-plore", "com.lonelycatgames.Xplore"}, {"Solid Explorer", "pl.solidexplorer2"}, {"FX File Explorer", "nextapp.fx"}, {"Total Commander", "com.ghisler.android.TotalCommander"}, {"System Files", "com.google.android.documentsui"}, {"Native Explorer", "com.android.documentsui"}};
+        boolean found = false; PackageManager pm = getPackageManager();
+        for (String[] exp : explorers) {
+            String name = exp[0]; String pkg = exp[1];
+            try {
+                pm.getPackageInfo(pkg, 0); found = true;
+                addPopupMenuItem(menuView, "⧉", name, () -> {
+                    try { Intent intent = new Intent(Intent.ACTION_GET_CONTENT); intent.setType("image/*"); intent.setPackage(pkg); startActivityForResult(intent, 1003); }
+                    catch (Exception e) { try { Intent fb = new Intent(Intent.ACTION_OPEN_DOCUMENT); fb.setType("image/*"); fb.setPackage(pkg); startActivityForResult(fb, 1003); } catch (Exception ignored) {} }
+                }, popup);
+            } catch (Exception ignored) {}
+        }
+        if (!found) { TextView info = new TextView(this); info.setText("No file explorer installed."); info.setTextColor(Color.LTGRAY); info.setTextSize(12); info.setPadding(dpToPx(8), dpToPx(8), dpToPx(8), dpToPx(8)); menuView.addView(info); }
+        menuView.post(() -> { for (int i = 0; i < menuView.getChildCount(); i++) { View c = menuView.getChildAt(i); if (c.isFocusable()) { c.requestFocus(); break; } } });
     }
 
     private boolean isViewInsideContainer(View container, View view) {

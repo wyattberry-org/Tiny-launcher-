@@ -1879,7 +1879,7 @@ public class LauncherActivity extends Activity {
         }, popup);
 
         boolean hasCustomBanner = getFileStreamPath("banner_" + app.packageName() + ".png").exists() || getFileStreamPath("banner_" + app.packageName() + ".jpg").exists();
-        addPopupMenuItem(menuView, "⧉", "Replace Banner", () -> launchBannerPicker(app.packageName()), popup);
+        addPopupMenuItem(menuView, "⧉", "Replace Banner", () -> openSelectBannerSubmenu(app.packageName()), popup);
         if (hasCustomBanner) {
             addPopupMenuItem(menuView, "↺", "Reset Banner", () -> {
                 try { getFileStreamPath("banner_" + app.packageName() + ".png").delete(); } catch (Exception ignored) {}
@@ -2071,6 +2071,7 @@ public class LauncherActivity extends Activity {
                 byte[] buf = new byte[8192];
                 int len;
                 while ((len = in.read(buf)) > 0) out.write(buf, 0, len);
+                toggleSideDrawer(false);
                 renderAppBanners();
             } catch (Exception ignored) {}
         }
@@ -2098,6 +2099,27 @@ public class LauncherActivity extends Activity {
                 startActivityForResult(intent, 1003);
             } catch (Exception ignored) {}
         }
+    }
+
+        private void openSelectBannerSubmenu(String targetPkg) {
+        replacingBannerPkg = targetPkg; isInSubmenu = true; drawerBackAction = () -> toggleSideDrawer(false);
+        sideDrawerContentScrollView.removeAllViews();
+        if (drawerTitleView != null) drawerTitleView.setText("Select Banner");
+        LinearLayout container = new LinearLayout(this); container.setOrientation(LinearLayout.VERTICAL);
+        String[][] explorers = {{"Cx File Explorer", "com.cxinventor.file.explorer"}, {"X-plore", "com.lonelycatgames.Xplore"}, {"Solid Explorer", "pl.solidexplorer2"}, {"FX File Explorer", "nextapp.fx"}, {"Total Commander", "com.ghisler.android.TotalCommander"}, {"System Files", "com.google.android.documentsui"}, {"Native Explorer", "com.android.documentsui"}};
+        boolean found = false; PackageManager pm = getPackageManager();
+        for (String[] exp : explorers) {
+            String name = exp[0]; String pkg = exp[1];
+            try {
+                pm.getPackageInfo(pkg, 0); found = true;
+                addDrawerMenuItem(container, "⧉", Color.parseColor("#5A5E6B"), name, () -> {
+                    try { Intent intent = new Intent(Intent.ACTION_GET_CONTENT); intent.setType("image/*"); intent.setPackage(pkg); startActivityForResult(intent, 1003); }
+                    catch (Exception e) { try { Intent fb = new Intent(Intent.ACTION_OPEN_DOCUMENT); fb.setType("image/*"); fb.setPackage(pkg); startActivityForResult(fb, 1003); } catch (Exception ignored) {} }
+                });
+            } catch (Exception ignored) {}
+        }
+        if (!found) { TextView info = new TextView(this); info.setText("No file explorer installed.\nPlease install Cx File Explorer or X-plore."); info.setTextColor(Color.LTGRAY); info.setTextSize(14); info.setPadding(dpToPx(12), dpToPx(12), dpToPx(12), dpToPx(12)); container.addView(info); }
+        sideDrawerContentScrollView.addView(container); toggleSideDrawer(true);
     }
 
     private boolean isViewInsideContainer(View container, View view) {

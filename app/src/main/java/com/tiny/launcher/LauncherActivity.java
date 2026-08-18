@@ -1658,6 +1658,13 @@ public class LauncherActivity extends Activity {
 
             android.widget.FrameLayout bannerCard = new android.widget.FrameLayout(this);
             bannerCard.setFocusable(true); bannerCard.setFocusableInTouchMode(true);
+            int cardId = View.generateViewId(); bannerCard.setId(cardId);
+            if (settingsGear != null) {
+                if (settingsGear.getId() == View.NO_ID) settingsGear.setId(View.generateViewId());
+                bannerCard.setNextFocusUpId(settingsGear.getId());
+            }
+            if (i == 0) bannerCard.setNextFocusLeftId(cardId);
+            if (i == appList.size() - 1) bannerCard.setNextFocusRightId(cardId);
             int tW = prefs.getInt("TileSize", 160), tH = tW * 9 / 16, tD = prefs.getInt("TileCornerRadius", 30);
             int tR = dpToPx((int) Math.round((tH / 2.0f) * (tD / 90.0f)));
             bannerCard.setLayoutParams(new android.widget.FrameLayout.LayoutParams(dpToPx(tW), dpToPx(tH)));

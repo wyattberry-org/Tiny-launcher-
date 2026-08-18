@@ -308,26 +308,24 @@ public class LauncherActivity extends Activity {
             if (keyCode == android.view.KeyEvent.KEYCODE_BACK) {
                 if (isSideDrawerOpen) {
                     if (isInSubmenu) {
-                        if (drawerBackAction != null) drawerBackAction.run();
-                        else buildMainMenuInDrawer();
-                    } else {
-                        toggleSideDrawer(false);
-                    }
+                        if (drawerBackAction != null) drawerBackAction.run(); else buildMainMenuInDrawer();
+                    } else toggleSideDrawer(false);
                     return true;
                 }
                 return true;
             }
             if (isSideDrawerOpen) {
                 View cur = getCurrentFocus();
-                if (cur == null || !isViewInsideContainer(sideDrawerContainer, cur)) {
-                    if (sideDrawerContentScrollView != null && sideDrawerContentScrollView.getChildCount() > 0) {
-                        View content = sideDrawerContentScrollView.getChildAt(0);
-                        if (content instanceof ViewGroup && ((ViewGroup) content).getChildCount() > 0) {
-                            ((ViewGroup) content).getChildAt(0).requestFocus();
-                        } else {
-                            content.requestFocus();
-                        }
+                if (cur != null && isViewInsideContainer(sideDrawerContainer, cur)) {
+                    if (cur.getParent() instanceof LinearLayout) {
+                        LinearLayout vg = (LinearLayout) cur.getParent(); int idx = vg.indexOfChild(cur);
+                        if (idx == 0 && keyCode == android.view.KeyEvent.KEYCODE_DPAD_UP) return true;
+                        if (idx == vg.getChildCount() - 1 && keyCode == android.view.KeyEvent.KEYCODE_DPAD_DOWN) return true;
                     }
+                } else if (sideDrawerContentScrollView != null && sideDrawerContentScrollView.getChildCount() > 0) {
+                    View c = sideDrawerContentScrollView.getChildAt(0);
+                    if (c instanceof ViewGroup && ((ViewGroup) c).getChildCount() > 0) ((ViewGroup) c).getChildAt(0).requestFocus();
+                    else c.requestFocus();
                     return true;
                 }
             }
@@ -395,7 +393,7 @@ public class LauncherActivity extends Activity {
         addDrawerMenuItem(drawerContent, "ℹ", "About", () -> { lastMainMenuIdx = 8; openAboutSubmenu(); });
         sideDrawerContentScrollView.addView(drawerContent);
         sideDrawerContainer.addView(sideDrawerContentScrollView);
-        drawerContent.post(() -> { if (drawerContent.getChildCount() > lastMainMenuIdx) drawerContent.getChildAt(lastMainMenuIdx).requestFocus(); });
+        drawerContent.post(() -> { if (drawerContent.getChildCount() > 0) drawerContent.getChildAt(0).requestFocus(); });
         }
 
     private void addDrawerMenuItem(LinearLayout container, String title, Runnable onClick) {

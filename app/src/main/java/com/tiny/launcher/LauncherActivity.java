@@ -1850,12 +1850,14 @@ public class LauncherActivity extends Activity {
         container.addView(row);
     }
 
-            private void showAppOptionDialog(int position, View anchorView) {
+            private void showAppOptionDialog(int initialPos, View anchorView) {
+        int resolvedPos = initialPos;
         if (anchorView != null && horizontalAppContainer != null) {
             View parentContainer = (anchorView.getParent() instanceof View) ? (View) anchorView.getParent() : anchorView;
             int realIdx = horizontalAppContainer.indexOfChild(parentContainer);
-            if (realIdx != -1) position = realIdx;
+            if (realIdx != -1) resolvedPos = realIdx;
         }
+        final int position = resolvedPos;
         AppModel app = appList.get(position);
 
         LinearLayout menuView = new LinearLayout(this);

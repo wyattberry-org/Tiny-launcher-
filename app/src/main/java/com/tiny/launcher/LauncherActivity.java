@@ -1633,7 +1633,12 @@ public class LauncherActivity extends Activity {
                 appList.set(toIdx, temp);
 
                 moveSourcePosition = toIdx;
+                lastFocusedAppIdx = toIdx;
                 isAnimatingMove = false;
+
+                if (itemA instanceof ViewGroup && ((ViewGroup) itemA).getChildCount() > 0) {
+                    ((ViewGroup) itemA).getChildAt(0).requestFocus();
+                }
 
                 if (itemA instanceof ViewGroup) {
                     View card = ((ViewGroup) itemA).getChildAt(0);

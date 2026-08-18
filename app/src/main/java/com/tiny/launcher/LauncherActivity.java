@@ -1772,12 +1772,18 @@ public class LauncherActivity extends Activity {
                     } else if (keyCode == android.view.KeyEvent.KEYCODE_DPAD_CENTER || keyCode == android.view.KeyEvent.KEYCODE_ENTER || keyCode == android.view.KeyEvent.KEYCODE_BACK) {
                         if (!isAnimatingMove) {
                             isMoveMode = false;
-                            if (moveSourcePosition != -1) {
-                                lastFocusedAppIdx = moveSourcePosition;
-                            }
+                            int targetPos = moveSourcePosition != -1 ? moveSourcePosition : lastFocusedAppIdx;
+                            if (moveSourcePosition != -1) lastFocusedAppIdx = moveSourcePosition;
                             saveCustomAppOrder();
                             moveSourcePosition = -1;
-                            renderAppBanners();
+                            if (horizontalAppContainer != null && targetPos >= 0 && targetPos < horizontalAppContainer.getChildCount()) {
+                                View item = horizontalAppContainer.getChildAt(targetPos);
+                                if (item != null) {
+                                    item.animate().scaleX(1.05f).scaleY(1.05f).setDuration(100).withEndAction(() -> {
+                                        item.animate().scaleX(1.0f).scaleY(1.0f).setDuration(150).setInterpolator(new android.view.animation.DecelerateInterpolator()).start();
+                                    }).start();
+                                }
+                            }
                             android.widget.Toast.makeText(this, "Tile position saved", android.widget.Toast.LENGTH_SHORT).show();
                         }
                         return true;
@@ -1910,7 +1916,7 @@ public class LauncherActivity extends Activity {
         addPopupMenuItem(menuView, "↔", "Move App", () -> {
             isMoveMode = true;
             moveSourcePosition = position;
-            applyTileStyles();
+            if (anchorView != null) anchorView.requestFocus();
             android.widget.Toast.makeText(this, "Move Mode: Use D-pad arrows to glide tile", android.widget.Toast.LENGTH_LONG).show();
         }, popup);
 

@@ -1442,7 +1442,10 @@ public class LauncherActivity extends Activity {
                     final int tileIdx = i;
                     anim.addUpdateListener(a -> {
                         GradientDrawable shape = new GradientDrawable(); shape.setColor((int) a.getAnimatedValue()); shape.setCornerRadius(radPx);
-                        if (tileIdx == lastFocusedAppIdx) shape.setStroke(Math.max(1, Math.round(getResources().getDisplayMetrics().density * 0.6f)), currentAccentColor);
+                        if (tileIdx == lastFocusedAppIdx) {
+                            int appAccent = (tileIdx < appList.size()) ? extractDrawableAccentColor(appList.get(tileIdx).icon()) : currentAccentColor;
+                            shape.setStroke(Math.max(1, Math.round(getResources().getDisplayMetrics().density * 0.6f)), appAccent);
+                        }
                         bc.setBackground(shape);
                     });
                     anim.start();
@@ -1640,6 +1643,30 @@ public class LauncherActivity extends Activity {
             .start();
     }
 
+    private int extractDrawableAccentColor(android.graphics.drawable.Drawable drawable) {
+        if (drawable == null) return Color.parseColor("#007AFF");
+        try {
+            Bitmap b;
+            if (drawable instanceof android.graphics.drawable.BitmapDrawable) {
+                b = ((android.graphics.drawable.BitmapDrawable) drawable).getBitmap();
+            } else {
+                int w = Math.max(1, drawable.getIntrinsicWidth()), h = Math.max(1, drawable.getIntrinsicHeight());
+                b = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+                Canvas c = new Canvas(b); drawable.setBounds(0, 0, w, h); drawable.draw(c);
+            }
+            if (b == null) return Color.parseColor("#007AFF");
+            int w = b.getWidth(), h = b.getHeight(), maxSatPixel = Color.parseColor("#007AFF"); float maxSat = -1f;
+            for (int x = 0; x < w; x += Math.max(1, w / 12)) {
+                for (int y = 0; y < h; y += Math.max(1, h / 12)) {
+                    int p = b.getPixel(x, y); if (Color.alpha(p) < 128) continue;
+                    float[] hsv = new float[3]; Color.colorToHSV(p, hsv);
+                    if (hsv[1] > maxSat && hsv[2] > 0.2f) { maxSat = hsv[1]; maxSatPixel = p; }
+                }
+            }
+            return maxSatPixel;
+        } catch (Exception e) { return Color.parseColor("#007AFF"); }
+    }
+
     private void renderAppBanners() {
         horizontalAppContainer.removeAllViews();
         horizontalAppContainer.setClipChildren(false);
@@ -1650,6 +1677,7 @@ public class LauncherActivity extends Activity {
         }
         for (int i = 0; i < appList.size(); i++) {
             final int position = i; AppModel app = appList.get(i);
+            int appAccentColor = extractDrawableAccentColor(app.icon());
             LinearLayout itemContainer = new LinearLayout(this);
             itemContainer.setOrientation(LinearLayout.VERTICAL);
             itemContainer.setGravity(Gravity.CENTER_HORIZONTAL);
@@ -1700,7 +1728,7 @@ public class LauncherActivity extends Activity {
                 itemContainer.setTranslationZ(hasFocus ? dpToPx(16) : 0f);
                 GradientDrawable shape = new GradientDrawable();
                 shape.setColor(getTileBackgroundColor()); shape.setCornerRadius(tR);
-                if (hasFocus) shape.setStroke(Math.max(1, Math.round(getResources().getDisplayMetrics().density * 0.6f)), currentAccentColor);
+                if (hasFocus) shape.setStroke(Math.max(1, Math.round(getResources().getDisplayMetrics().density * 0.6f)), appAccentColor);
                 v.setBackground(shape);
             });
 

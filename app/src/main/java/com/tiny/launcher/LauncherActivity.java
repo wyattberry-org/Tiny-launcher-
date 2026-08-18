@@ -411,6 +411,7 @@ public class LauncherActivity extends Activity {
         row.setPadding(dpToPx(12), dpToPx(10), dpToPx(12), dpToPx(10));
         row.setFocusable(true);
         row.setFocusableInTouchMode(true);
+        int id = View.generateViewId(); row.setId(id); row.setNextFocusLeftId(id); row.setNextFocusRightId(id);
 
         if (!symbol.isEmpty()) {
             TextView symbolView = new TextView(this);
@@ -546,6 +547,7 @@ public class LauncherActivity extends Activity {
         row.setPadding(dpToPx(12), dpToPx(10), dpToPx(12), dpToPx(10));
         row.setFocusable(true);
         row.setFocusableInTouchMode(true);
+        int id = View.generateViewId(); row.setId(id); row.setNextFocusLeftId(id); row.setNextFocusRightId(id);
 
         ImageView iconView = new ImageView(this);
         iconView.setImageDrawable(iconDrawable);
@@ -835,6 +837,7 @@ public class LauncherActivity extends Activity {
         row.setPadding(dpToPx(12), dpToPx(10), dpToPx(12), dpToPx(10));
         row.setFocusable(true);
         row.setFocusableInTouchMode(true);
+        int id = View.generateViewId(); row.setId(id); row.setNextFocusLeftId(id); row.setNextFocusRightId(id);
 
         TextView symbolView = new TextView(this);
         symbolView.setText(symbol);
@@ -1822,6 +1825,7 @@ public class LauncherActivity extends Activity {
         row.setPadding(dpToPx(10), dpToPx(8), dpToPx(10), dpToPx(8));
         row.setFocusable(true);
         row.setFocusableInTouchMode(true);
+        int id = View.generateViewId(); row.setId(id); row.setNextFocusLeftId(id); row.setNextFocusRightId(id);
 
         // Column 1: Left-aligned symbol in a fixed 22dp column
         TextView iconView = new TextView(this);

@@ -302,7 +302,6 @@ public class LauncherActivity extends Activity {
 
     // --- Side Drawer Switcher (Zero Redrawing / Zero Flickering) ---
     @Override
-    @Override
     public boolean dispatchKeyEvent(android.view.KeyEvent event) {
         if (event.getAction() == android.view.KeyEvent.ACTION_DOWN && event.getKeyCode() == android.view.KeyEvent.KEYCODE_BACK) {
             if (isSideDrawerOpen) {

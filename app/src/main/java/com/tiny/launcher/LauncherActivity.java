@@ -303,17 +303,34 @@ public class LauncherActivity extends Activity {
     // --- Side Drawer Switcher (Zero Redrawing / Zero Flickering) ---
     @Override
     public boolean dispatchKeyEvent(android.view.KeyEvent event) {
-        if (event.getAction() == android.view.KeyEvent.ACTION_DOWN && event.getKeyCode() == android.view.KeyEvent.KEYCODE_BACK) {
-            if (isSideDrawerOpen) {
-                if (isInSubmenu) {
-                    if (drawerBackAction != null) drawerBackAction.run();
-                    else buildMainMenuInDrawer();
-                } else {
-                    toggleSideDrawer(false);
+        if (event.getAction() == android.view.KeyEvent.ACTION_DOWN) {
+            int keyCode = event.getKeyCode();
+            if (keyCode == android.view.KeyEvent.KEYCODE_BACK) {
+                if (isSideDrawerOpen) {
+                    if (isInSubmenu) {
+                        if (drawerBackAction != null) drawerBackAction.run();
+                        else buildMainMenuInDrawer();
+                    } else {
+                        toggleSideDrawer(false);
+                    }
+                    return true;
                 }
                 return true;
             }
-            return true;
+            if (isSideDrawerOpen) {
+                View cur = getCurrentFocus();
+                if (cur == null || !isViewInsideContainer(sideDrawerContainer, cur)) {
+                    if (sideDrawerContentScrollView != null && sideDrawerContentScrollView.getChildCount() > 0) {
+                        View content = sideDrawerContentScrollView.getChildAt(0);
+                        if (content instanceof ViewGroup && ((ViewGroup) content).getChildCount() > 0) {
+                            ((ViewGroup) content).getChildAt(0).requestFocus();
+                        } else {
+                            content.requestFocus();
+                        }
+                    }
+                    return true;
+                }
+            }
         }
         return super.dispatchKeyEvent(event);
     }

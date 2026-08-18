@@ -2145,17 +2145,13 @@ public class LauncherActivity extends Activity {
         menuView.post(() -> { for (int i = 0; i < menuView.getChildCount(); i++) { View c = menuView.getChildAt(i); if (c.isFocusable()) { c.requestFocus(); break; } } });
     }
 
-        private void showFileManagerPickerPopup(int position, View anchorView) {
+            private void showFileManagerPickerPopup(int position, View anchorView) {
         AppModel app = appList.get(position); replacingBannerPkg = app.packageName();
         LinearLayout menuView = new LinearLayout(this); menuView.setOrientation(LinearLayout.VERTICAL); menuView.setPadding(dpToPx(6), dpToPx(6), dpToPx(6), dpToPx(6));
         GradientDrawable bg = new GradientDrawable(); bg.setColor(Color.parseColor("#1A1D24")); bg.setCornerRadius(dpToPx(12)); menuView.setBackground(bg);
-        TextView titleView = new TextView(this); titleView.setText("Select File Explorer"); titleView.setTextColor(Color.WHITE);
-        titleView.setTextSize(13); titleView.setGravity(Gravity.CENTER); titleView.setPadding(0, dpToPx(4), 0, dpToPx(6)); menuView.addView(titleView);
-        View divider = new View(this); divider.setBackgroundColor(Color.parseColor("#33FFFFFF"));
-        divider.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(1))); menuView.addView(divider);
         android.widget.PopupWindow popup = new android.widget.PopupWindow(menuView, ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, true);
         popup.setElevation(0); popup.setOutsideTouchable(true);
-        String[][] explorers = {{"Cx File Explorer", "com.cxinventor.file.explorer"}, {"X-plore", "com.lonelycatgames.Xplore"}, {"Solid Explorer", "pl.solidexplorer2"}, {"FX File Explorer", "nextapp.fx"}, {"Total Commander", "com.ghisler.android.TotalCommander"}, {"System Files", "com.google.android.documentsui"}, {"Native Explorer", "com.android.documentsui"}};
+        String[][] explorers = {{"Cx File", "com.cxinventor.file.explorer"}, {"X-plore", "com.lonelycatgames.Xplore"}, {"Solid File", "pl.solidexplorer2"}, {"FX File", "nextapp.fx"}, {"Total Commander", "com.ghisler.android.TotalCommander"}, {"System Files", "com.google.android.documentsui"}, {"Native File", "com.android.documentsui"}};
         boolean found = false; PackageManager pm = getPackageManager();
         for (String[] exp : explorers) {
             String name = exp[0]; String pkg = exp[1];
@@ -2167,8 +2163,13 @@ public class LauncherActivity extends Activity {
                 }, popup);
             } catch (Exception ignored) {}
         }
-        if (!found) { TextView info = new TextView(this); info.setText("No file explorer installed."); info.setTextColor(Color.LTGRAY); info.setTextSize(12); info.setPadding(dpToPx(8), dpToPx(8), dpToPx(8), dpToPx(8)); menuView.addView(info); }
-        popup.showAtLocation(anchorView, Gravity.CENTER, 0, 0);
+        if (!found) { addPopupMenuItem(menuView, "Ø", "No Explorer", () -> {}, popup); }
+        menuView.measure(View.MeasureSpec.makeMeasureSpec(dpToPx(180), View.MeasureSpec.AT_MOST), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+        int popupW = menuView.getMeasuredWidth(); int popupH = menuView.getMeasuredHeight();
+        int[] location = new int[2]; anchorView.getLocationOnScreen(location);
+        int xOffset = location[0] + (anchorView.getWidth() / 2) - (popupW / 2);
+        int yOffset = location[1] - popupH - dpToPx(8);
+        popup.showAtLocation(anchorView, Gravity.NO_GRAVITY, xOffset, yOffset);
         menuView.post(() -> { for (int i = 0; i < menuView.getChildCount(); i++) { View c = menuView.getChildAt(i); if (c.isFocusable()) { c.requestFocus(); break; } } });
     }
 

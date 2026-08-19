@@ -392,7 +392,7 @@ public class LauncherActivity extends Activity {
             symbolView.setText(symbol);
             symbolView.setTextColor(symbolColor);
             symbolView.setTextSize(16);
-            symbolView.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
+            symbolView.setGravity(Gravity.CENTER);
             symbolView.setLayoutParams(new LinearLayout.LayoutParams(dpToPx(28), ViewGroup.LayoutParams.WRAP_CONTENT));
             row.addView(symbolView);
         }

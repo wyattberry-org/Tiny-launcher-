@@ -53,7 +53,7 @@ public class WeatherWidget extends LinearLayout {
         setPadding(dp(8), dp(8), dp(8), dp(8)); setFocusable(false); setClickable(false);
         LinearLayout.LayoutParams centerLp = new LinearLayout.LayoutParams(-2, -2);
         centerLp.gravity = Gravity.CENTER_VERTICAL;
-        LinearLayout col1 = new LinearLayout(context); col1.setOrientation(VERTICAL); col1.setGravity(Gravity.CENTER_HORIZONTAL); col1.setTranslationY(-dp(2));
+        LinearLayout col1 = new LinearLayout(context); col1.setOrientation(VERTICAL); col1.setGravity(Gravity.CENTER_HORIZONTAL); col1.setTranslationY(-dp(4));
         ivIcon = new ImageView(context); ivIcon.setLayoutParams(new LinearLayout.LayoutParams(dp(56), dp(56))); ivIcon.setScaleType(ImageView.ScaleType.FIT_CENTER);
         tvCondition = new TextView(context); tvCondition.setTextColor(Color.WHITE); tvCondition.setTextSize(14); tvCondition.setGravity(Gravity.CENTER);
         col1.addView(ivIcon); col1.addView(tvCondition); addView(col1, centerLp);

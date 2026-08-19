@@ -1241,13 +1241,7 @@ public class LauncherActivity extends Activity {
         }).start();
     }
 
-    private void applyWeatherWidgetPosition() {
-        if (weatherWidget == null) return;
-        int posY = prefs.getInt("WeatherWidgetPosY", 0);
-        int posX = prefs.getInt("WeatherWidgetPosX", 0);
-        weatherWidget.setTranslationY(dpToPx(posY));
-        weatherWidget.setTranslationX(dpToPx(posX));
-    }
+    
 
     private void addWeatherPositionRow(LinearLayout c, String sym, String title, String key, int def, int min, int max, int step, Runnable onChg) {
         int val = prefs.getInt(key, def);
@@ -1311,6 +1305,20 @@ public class LauncherActivity extends Activity {
         addTileMenuRow(container, "Aa", "Clock/date size", "ClockTextSize", 22, 10, 50, 1, "sp", this::applyClockPosition);
         sideDrawerContentScrollView.addView(container);
         container.post(() -> { if (container.getChildCount() > 0) container.getChildAt(0).requestFocus(); });
+    }
+
+    private void applyWeatherWidgetPosition() {
+        if (weatherWidget == null) return;
+        int posY = prefs.getInt("WeatherWidgetPosY", 0);
+        int posX = prefs.getInt("WeatherWidgetPosX", 0);
+        int size = prefs.getInt("WeatherWidgetSize", 100);
+        float scale = size / 100.0f;
+        weatherWidget.setPivotX(0f);
+        weatherWidget.setPivotY(0f);
+        weatherWidget.setScaleX(scale);
+        weatherWidget.setScaleY(scale);
+        weatherWidget.setTranslationY(dpToPx(posY));
+        weatherWidget.setTranslationX(dpToPx(posX));
     }
 
     private void openWeatherSubmenu() {

@@ -1211,6 +1211,43 @@ public class LauncherActivity extends Activity {
         });
     }
 
+        private void searchAndEnrollLocation(String query) {
+        if (query.isEmpty()) return;
+        new Thread(() -> {
+            try {
+                String urlStr = "https://geocoding-api.open-meteo.com/v1/search?name=" + java.net.URLEncoder.encode(query, "UTF-8") + "&count=5";
+                java.net.HttpURLConnection conn = (java.net.HttpURLConnection) new java.net.URL(urlStr).openConnection();
+                conn.setRequestProperty("User-Agent", "Mozilla/5.0");
+                if (conn.getResponseCode() == 200) {
+                    java.io.BufferedReader r = new java.io.BufferedReader(new java.io.InputStreamReader(conn.getInputStream()));
+                    StringBuilder sb = new StringBuilder(); String line;
+                    while ((line = r.readLine()) != null) sb.append(line); r.close();
+                    org.json.JSONObject root = new org.json.JSONObject(sb.toString());
+                    org.json.JSONArray res = root.optJSONArray("results");
+                    if (res != null && res.length() > 0) {
+                        final String[] lbls = new String[res.length()]; final String[] urls = new String[res.length()];
+                        for (int i = 0; i < res.length(); i++) {
+                            org.json.JSONObject item = res.getJSONObject(i);
+                            String nm = item.optString("name", ""), ctry = item.optString("country", ""), adm = item.optString("admin1", "");
+                            double lat = item.optDouble("latitude", 0.0), lon = item.optDouble("longitude", 0.0);
+                            lbls[i] = nm + (adm.isEmpty() ? "" : ", " + adm) + (ctry.isEmpty() ? "" : ", " + ctry);
+                            urls[i] = "https://api.open-meteo.com/v1/forecast?latitude=" + lat + "&longitude=" + lon + "&current=weather_code,temperature_2m,relative_humidity_2m,wind_speed_10m,wind_gusts_10m,is_day&wind_speed_unit=ms&timezone=auto";
+                        }
+                        runOnUiThread(() -> {
+                            AlertDialog.Builder d = new AlertDialog.Builder(LauncherActivity.this);
+                            d.setTitle("Select Location").setItems(lbls, (dlg, w) -> {
+                                prefs.edit().putString(KEY_WEATHER_LOCATION, lbls[w]).putString(KEY_WEATHER_PROVIDER_API, urls[w]).apply();
+                                if (weatherWidget != null) weatherWidget.forceRefresh();
+                                Toast.makeText(LauncherActivity.this, "Location set to " + lbls[w], Toast.LENGTH_SHORT).show();
+                            }).show();
+                        }); return;
+                    }
+                }
+                runOnUiThread(() -> Toast.makeText(LauncherActivity.this, "No locations found for " + query, Toast.LENGTH_SHORT).show());
+            } catch (Exception e) { runOnUiThread(() -> Toast.makeText(LauncherActivity.this, "Search failed: " + e.getMessage(), Toast.LENGTH_SHORT).show()); }
+        }).start();
+    }
+
     private void openWeatherSubmenu() {
     isInSubmenu = true; drawerBackAction = () -> buildMainMenuInDrawer();
     if (drawerTitleView != null) drawerTitleView.setText("Weather menu");

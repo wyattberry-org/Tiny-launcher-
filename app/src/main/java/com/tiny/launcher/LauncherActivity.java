@@ -1313,6 +1313,7 @@ public class LauncherActivity extends Activity {
         if (weatherWidget == null) return;
         int posY = prefs.getInt("WeatherWidgetPosY", 0);
         int posX = prefs.getInt("WeatherWidgetPosX", 0);
+        addTileMenuRow(container, "Aa", "Widget size", "WeatherWidgetSize", 100, 50, 200, 5, "%";, this::applyWeatherWidgetPosition);
         int size = prefs.getInt("WeatherWidgetSize", 100);
         float scale = size / 100.0f;
         weatherWidget.setPivotX(0f);

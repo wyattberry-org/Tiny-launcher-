@@ -182,6 +182,8 @@ public class LauncherActivity extends Activity {
         clockTextView = new TextView(this);
         clockTextView.setTextSize(22);
         clockTextView.setTextColor(Color.WHITE);
+        clockTextView.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.BOLD));
+        clockTextView.setShadowLayer(8f, 2f, 4f, Color.parseColor("#B0000000"));
         clockTextView.setGravity(Gravity.END);
         clockTextView.setPadding(0, 0, 30, 0);
         LinearLayout.LayoutParams flexClockParams = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f);
@@ -1506,7 +1508,7 @@ public class LauncherActivity extends Activity {
             if (mode.equals("Off")) {
                 clockTextView.setText("");
             } else {
-                String pattern = mode.equals("Time Only") ? "HH:mm" : "EEE, d MMM  HH:mm";
+                String pattern = mode.equals("Time Only") ? "HH:mm" : "EEEE, d MMM  HH:mm";
                 SimpleDateFormat sdf = new SimpleDateFormat(pattern, Locale.getDefault());
                 clockTextView.setText(sdf.format(new Date()));
             }

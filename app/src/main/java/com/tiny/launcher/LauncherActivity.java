@@ -65,6 +65,13 @@ import java.util.Map;
 import java.util.Set;
 
 public class LauncherActivity extends Activity {
+    public static final String KEY_SHOW_WEATHER_WIDGET = "show_weather_widget";
+    public static final String KEY_WEATHER_LOCATION = "weather_location";
+    public static final String KEY_WEATHER_SHELLY_API = "weather_shelly_api";
+    public static final String KEY_WEATHER_PROVIDER_API = "weather_provider_api";
+    private com.tiny.launcher.weather.WeatherWidget weatherWidget;
+
+
 
     // --- Pure Java 17 Record ---
     public record AppModel(String name, Drawable icon, String packageName, boolean isLeanback) {}
@@ -244,6 +251,14 @@ public class LauncherActivity extends Activity {
 
         rootOverlayFrame.addView(sideDrawerContainer);
 
+                weatherWidget = new com.tiny.launcher.weather.WeatherWidget(this);
+        weatherWidget.setVisibility(prefs.getBoolean(KEY_SHOW_WEATHER_WIDGET, true) ? View.VISIBLE : View.GONE);
+        FrameLayout.LayoutParams wParams = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        wParams.gravity = Gravity.TOP | Gravity.START;
+        wParams.topMargin = dpToPx(5);
+        wParams.leftMargin = dpToPx(25);
+        weatherWidget.setLayoutParams(wParams);
+        rootOverlayFrame.addView(weatherWidget, 0);
         setContentView(rootOverlayFrame);
 
         loadWallpapers();
@@ -1137,14 +1152,91 @@ public class LauncherActivity extends Activity {
     container.post(() -> { if (container.getChildCount() > 0) container.getChildAt(0).requestFocus(); });
 }
 
-    private void openWeatherSubmenu() {
-        isInSubmenu = true; drawerBackAction = () -> buildMainMenuInDrawer();
-        if (drawerTitleView != null) drawerTitleView.setText("Weather menu");
-        sideDrawerContentScrollView.removeAllViews();
-        LinearLayout container = new LinearLayout(this);
-        container.setOrientation(LinearLayout.VERTICAL);
-        sideDrawerContentScrollView.addView(container);
+        private void toggleWeatherWidget() {
+        boolean enabled = !prefs.getBoolean(KEY_SHOW_WEATHER_WIDGET, true);
+        prefs.edit().putBoolean(KEY_SHOW_WEATHER_WIDGET, enabled).apply();
+        if (weatherWidget != null) weatherWidget.setVisibility(enabled ? View.VISIBLE : View.GONE);
     }
+
+        private void showWeatherInputDialog(String title, String prefKey, String hint) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(title);
+        final EditText input = new EditText(this);
+        input.setHint(hint); input.setText(prefs.getString(prefKey, ""));
+        if (input.getText() != null) input.setSelection(input.getText().length());
+        builder.setView(input);
+        builder.setPositiveButton(prefKey.equals(KEY_WEATHER_LOCATION) ? "Search" : "Save", (dialog, which) -> {
+            String val = input.getText().toString().trim();
+            if (prefKey.equals(KEY_WEATHER_LOCATION)) searchAndEnrollLocation(val);
+            else { prefs.edit().putString(prefKey, val).apply(); if (weatherWidget != null) weatherWidget.forceRefresh(); }
+        });
+        builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
+        builder.show();
+    }
+
+        private void showWeatherInfoDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        String info = "• Location\nUses general Open-Meteo data. Type city name and select Search.\n\n• Shelly API\nEnter Shelly Cloud API URL for real-time temp/humidity.\n\n• Weather Provider API\nPowered by Open-Meteo. Enter custom API endpoint if desired.\n\n• Web Setup\nScan QR code on iPhone to open setup page and paste URLs.";
+        builder.setTitle("Weather info").setMessage(info).setPositiveButton("OK", null).show();
+    }
+
+        private void showWeatherWebSetupDialog() {
+        String ip = com.tiny.launcher.weather.WeatherConfigServer.getLocalIpAddress();
+        String webUrl = "http://" + ip + ":8080";
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("iPhone Web Setup");
+        LinearLayout container = new LinearLayout(this);
+        container.setOrientation(LinearLayout.VERTICAL); container.setPadding(40, 30, 40, 20);
+        TextView msg = new TextView(this);
+        msg.setText("1. Connect iPhone to same Wi-Fi\n2. Open Safari and go to:\n\n" + webUrl + "\n\nServer active while popup is open.");
+        msg.setTextColor(Color.WHITE); msg.setTextSize(15); container.addView(msg);
+        ImageView qrImg = new ImageView(this); container.addView(qrImg);
+        new Thread(() -> {
+            try {
+                String qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=" + java.net.URLEncoder.encode(webUrl, "UTF-8");
+                java.io.InputStream in = new java.net.URL(qrUrl).openStream();
+                Bitmap bmp = BitmapFactory.decodeStream(in);
+                runOnUiThread(() -> { qrImg.setImageBitmap(bmp); qrImg.setPadding(0, 20, 0, 0); });
+            } catch (Exception ignored) {}
+        }).start();
+        builder.setView(container).setNegativeButton("Close", (dialog, which) -> dialog.dismiss());
+        AlertDialog dlg = builder.create();
+        dlg.setOnDismissListener(d -> com.tiny.launcher.weather.WeatherConfigServer.stop());
+        dlg.show();
+        com.tiny.launcher.weather.WeatherConfigServer.start(this, (shellyUrl) -> {
+            runOnUiThread(() -> {
+                if (dlg.isShowing()) dlg.dismiss();
+                if (weatherWidget != null) weatherWidget.forceRefresh();
+            });
+        });
+    }
+
+    private void openWeatherSubmenu() {
+    isInSubmenu = true; drawerBackAction = () -> buildMainMenuInDrawer();
+    if (drawerTitleView != null) drawerTitleView.setText("Weather menu");
+    sideDrawerContentScrollView.removeAllViews();
+    LinearLayout container = new LinearLayout(this); container.setOrientation(LinearLayout.VERTICAL);
+    boolean enabled = prefs.getBoolean(KEY_SHOW_WEATHER_WIDGET, true);
+    View weatherRow = addDrawerStatusItem(container, "☁", "Weather widget", enabled ? "On" : "Off", null);
+    if (weatherRow != null) {
+        weatherRow.setFocusable(true); int id = View.generateViewId(); weatherRow.setId(id); weatherRow.setNextFocusLeftId(id); weatherRow.setNextFocusRightId(id);
+        weatherRow.setOnKeyListener((v, kCode, evt) -> {
+            if (evt.getAction() != KeyEvent.ACTION_DOWN) return false;
+            if (kCode == KeyEvent.KEYCODE_DPAD_RIGHT || kCode == KeyEvent.KEYCODE_DPAD_LEFT || kCode == KeyEvent.KEYCODE_DPAD_CENTER || kCode == KeyEvent.KEYCODE_ENTER) {
+                toggleWeatherWidget();
+                boolean n = prefs.getBoolean(KEY_SHOW_WEATHER_WIDGET, true);
+                TextView tv = weatherRow.findViewById(1001); if (tv != null) tv.setText(n ? "On" : "Off"); return true;
+            } return false;
+        });
+    }
+    addDrawerMenuItem(container, "📍", "Location", () -> showWeatherInputDialog("Location", KEY_WEATHER_LOCATION, "Enter town/city (e.g. Warsaw)"));
+    addDrawerMenuItem(container, "⚡", "Shelly API", () -> showWeatherInputDialog("Shelly API", KEY_WEATHER_SHELLY_API, "Enter full Shelly Cloud API URL/Key"));
+    addDrawerMenuItem(container, "☼", "Weather Provider API", () -> showWeatherInputDialog("Weather Provider API", KEY_WEATHER_PROVIDER_API, "Enter Public Weather API URL/Key"));
+    addDrawerMenuItem(container, "📱", "Web Setup (iPhone)", () -> showWeatherWebSetupDialog());
+    addDrawerMenuItem(container, "ℹ", "Info", () -> showWeatherInfoDialog());
+    sideDrawerContentScrollView.addView(container);
+    container.post(() -> { if (container.getChildCount() > 0) container.getChildAt(0).requestFocus(); });
+}
 
     private void animateTileAccentSweep(int oldColor) {
         if (horizontalAppContainer == null) return;

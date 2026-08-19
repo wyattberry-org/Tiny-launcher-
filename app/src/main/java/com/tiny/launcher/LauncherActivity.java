@@ -261,9 +261,10 @@ public class LauncherActivity extends Activity {
         wParams.leftMargin = dpToPx(25);
         weatherWidget.setLayoutParams(wParams);
         rootOverlayFrame.addView(weatherWidget);
+        applyWeatherWidgetPosition();
         
         setContentView(rootOverlayFrame);
-        if (weatherWidget != null) weatherWidget.bringToFront();
+        if (weatherWidget != null) weatherWidget.bringToFront(); applyWeatherWidgetPosition();
 
         loadWallpapers();
         loadInstalledApps();
@@ -1262,6 +1263,35 @@ public class LauncherActivity extends Activity {
         }).start();
     }
 
+    private void applyWeatherWidgetPosition() {
+        if (weatherWidget == null) return;
+        int posY = prefs.getInt("WeatherWidgetPosY", 0);
+        int posX = prefs.getInt("WeatherWidgetPosX", 0);
+        weatherWidget.setTranslationY(dpToPx(posY));
+        weatherWidget.setTranslationX(dpToPx(posX));
+    }
+
+    private void addWeatherPositionRow(LinearLayout c, String sym, String title, String key, int def, int min, int max, int step, Runnable onChg) {
+        int val = prefs.getInt(key, def);
+        View row = addDrawerStatusItem(c, sym, title, (val > 0 ? "+" : "") + val + "dp", null);
+        if (row == null) return;
+        row.setLayoutParams(new LinearLayout.LayoutParams(-1, -2));
+        int id = View.generateViewId(); row.setId(id); row.setNextFocusLeftId(id); row.setNextFocusRightId(id);
+        row.setOnKeyListener((v, kCode, evt) -> {
+            if (evt.getAction() != KeyEvent.ACTION_DOWN) return false;
+            if (kCode == KeyEvent.KEYCODE_DPAD_RIGHT || kCode == KeyEvent.KEYCODE_DPAD_LEFT) {
+                int cVal = prefs.getInt(key, def);
+                int nVal = (kCode == KeyEvent.KEYCODE_DPAD_RIGHT) ? Math.min(max, cVal + step) : Math.max(min, cVal - step);
+                prefs.edit().putInt(key, nVal).apply();
+                TextView tv = row.findViewById(1001);
+                if (tv != null) tv.setText((nVal > 0 ? "+" : "") + nVal + "dp");
+                if (onChg != null) onChg.run();
+                return true;
+            }
+            return false;
+        });
+    }
+
     private void openWeatherSubmenu() {
         isInSubmenu = true; drawerBackAction = () -> buildMainMenuInDrawer();
         if (drawerTitleView != null) drawerTitleView.setText("Weather menu");
@@ -1285,6 +1315,8 @@ public class LauncherActivity extends Activity {
         addDrawerMenuItem(container, "\u263C\uFE0E", "Weather Provider API", () -> showWeatherInputDialog("Weather Provider API", KEY_WEATHER_PROVIDER_API, "Enter Public Weather API URL/Key"));
         addDrawerMenuItem(container, "\u2398\uFE0E", "Web Setup (iPhone)", () -> showWeatherWebSetupDialog());
         addDrawerMenuItem(container, "\u2139\uFE0E", "Info", () -> showWeatherInfoDialog());
+        addWeatherPositionRow(container, "\u2195\uFE0E", "Widget position vertical", "WeatherWidgetPosY", 0, -100, 100, 5, this::applyWeatherWidgetPosition);
+        addWeatherPositionRow(container, "\u2194\uFE0E", "Widget position horizontal", "WeatherWidgetPosX", 0, -100, 500, 5, this::applyWeatherWidgetPosition);
         sideDrawerContentScrollView.addView(container);
         container.post(() -> { if (container.getChildCount() > 0) container.getChildAt(0).requestFocus(); });
     }

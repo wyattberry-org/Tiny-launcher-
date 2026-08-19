@@ -1314,9 +1314,9 @@ public class LauncherActivity extends Activity {
         addDrawerMenuItem(container, "\u26A1\uFE0E", "Shelly API", () -> showWeatherInputDialog("Shelly API", KEY_WEATHER_SHELLY_API, "Enter full Shelly Cloud API URL/Key"));
         addDrawerMenuItem(container, "\u263C\uFE0E", "Weather Provider API", () -> showWeatherInputDialog("Weather Provider API", KEY_WEATHER_PROVIDER_API, "Enter Public Weather API URL/Key"));
         addDrawerMenuItem(container, "\u2398\uFE0E", "Web Setup (iPhone)", () -> showWeatherWebSetupDialog());
+        addWeatherPositionRow(container, "\u2195\uFE0E", "Widget position vertical", "WeatherWidgetPosY", 0, -15, 800, 5, this::applyWeatherWidgetPosition);
+        addWeatherPositionRow(container, "\u2194\uFE0E", "Widget position horizontal", "WeatherWidgetPosX", 0, -35, 630, 5, this::applyWeatherWidgetPosition);
         addDrawerMenuItem(container, "\u2139\uFE0E", "Info", () -> showWeatherInfoDialog());
-        addWeatherPositionRow(container, "\u2195\uFE0E", "Widget position vertical", "WeatherWidgetPosY", 0, -100, 100, 5, this::applyWeatherWidgetPosition);
-        addWeatherPositionRow(container, "\u2194\uFE0E", "Widget position horizontal", "WeatherWidgetPosX", 0, -100, 500, 5, this::applyWeatherWidgetPosition);
         sideDrawerContentScrollView.addView(container);
         container.post(() -> { if (container.getChildCount() > 0) container.getChildAt(0).requestFocus(); });
     }

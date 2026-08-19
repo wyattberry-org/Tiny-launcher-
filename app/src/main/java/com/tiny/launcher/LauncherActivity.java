@@ -346,6 +346,13 @@ public class LauncherActivity extends Activity {
             sideDrawerContainer.setVisibility(View.VISIBLE);
             sideDrawerContainer.animate().translationX(0f).setDuration(250).start();
         } else {
+            lastFocusedAppIdx = 0;
+            if (horizontalAppContainer != null && horizontalAppContainer.getChildCount() > 0) {
+                View firstTile = horizontalAppContainer.getChildAt(0);
+                if (firstTile != null) {
+                    firstTile.post(() -> firstTile.requestFocus());
+                }
+            }
             sideDrawerContainer.animate().translationX(dpToPx(360)).setDuration(200)
                     .withEndAction(() -> sideDrawerContainer.setVisibility(View.GONE)).start();
         }

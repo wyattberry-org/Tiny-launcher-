@@ -284,6 +284,26 @@ public class LauncherActivity extends Activity {
     public boolean dispatchKeyEvent(android.view.KeyEvent event) {
         if (event.getAction() == android.view.KeyEvent.ACTION_DOWN) {
             int keyCode = event.getKeyCode();
+            if (keyCode == android.view.KeyEvent.KEYCODE_DPAD_RIGHT && !isSideDrawerOpen) {
+                View cur = getCurrentFocus();
+                if (cur != null && horizontalAppContainer != null) {
+                    int cnt = horizontalAppContainer.getChildCount();
+                    if (cnt > 0) {
+                        View lastTile = horizontalAppContainer.getChildAt(cnt - 1);
+                        if (cur == lastTile || isViewInsideContainer(lastTile, cur)) return true;
+                    }
+                }
+            }
+            if (keyCode == android.view.KeyEvent.KEYCODE_DPAD_LEFT && !isSideDrawerOpen) {
+                View cur = getCurrentFocus();
+                if (cur != null && horizontalAppContainer != null) {
+                    int cnt = horizontalAppContainer.getChildCount();
+                    if (cnt > 0) {
+                        View firstTile = horizontalAppContainer.getChildAt(0);
+                        if (cur == firstTile || isViewInsideContainer(firstTile, cur)) return true;
+                    }
+                }
+            }
             if (keyCode == android.view.KeyEvent.KEYCODE_BACK) {
                 if (isSideDrawerOpen) {
                     if (isInSubmenu) {

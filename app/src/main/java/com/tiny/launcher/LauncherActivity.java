@@ -2151,7 +2151,6 @@ public class LauncherActivity extends Activity {
     private void showFileManagerPickerInSameWindow(AppModel app, LinearLayout menuView, android.widget.PopupWindow popup) {
         replacingBannerPkg = app.packageName(); int w = menuView.getWidth() > 0 ? menuView.getWidth() : dpToPx(180); int h = menuView.getHeight();
         menuView.removeAllViews(); if (w > 0) menuView.setMinimumWidth(w); if (h > 0) menuView.setMinimumHeight(h);
-        addPopupMenuItem(menuView, "⬇", "Import", () -> { if (popup != null) popup.dismiss(); showProjectivyBannerImportDialog(); }, popup);
         boolean hasCustom = getFileStreamPath("banner_" + app.packageName() + ".png").exists() || getFileStreamPath("banner_" + app.packageName() + ".jpg").exists() || new File(new File(android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_PICTURES), "banners"), app.packageName() + ".png").exists();
         if (hasCustom) {
             addPopupMenuItem(menuView, "↺", "Reset Banner", () -> {
@@ -2162,6 +2161,7 @@ public class LauncherActivity extends Activity {
                 renderAppBanners();
             }, popup);
         }
+        addPopupMenuItem(menuView, "⬇", "Import", () -> { if (popup != null) popup.dismiss(); showProjectivyBannerImportDialog(); }, popup);
         String[][] explorers = {{"Cx File", "com.cxinventor.file.explorer"}, {"X-plore", "com.lonelycatgames.Xplore"}, {"Solid File", "pl.solidexplorer2"}, {"FX File", "nextapp.fx"}, {"Total Commander", "com.ghisler.android.TotalCommander"}, {"System Files", "com.google.android.documentsui"}, {"Native File", "com.android.documentsui"}};
         boolean found = false; PackageManager pm = getPackageManager();
         for (String[] exp : explorers) {

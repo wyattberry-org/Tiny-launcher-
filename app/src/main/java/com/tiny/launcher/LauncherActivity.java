@@ -1,5 +1,7 @@
 package com.tiny.launcher;
 
+import com.tiny.launcher.weather.WeatherWidget;
+
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.BroadcastReceiver;
@@ -258,7 +260,8 @@ public class LauncherActivity extends Activity {
         wParams.topMargin = dpToPx(5);
         wParams.leftMargin = dpToPx(25);
         weatherWidget.setLayoutParams(wParams);
-        rootOverlayFrame.addView(weatherWidget, 0);
+        rootOverlayFrame.addView(weatherWidget);
+        
         setContentView(rootOverlayFrame);
 
         loadWallpapers();

@@ -33,7 +33,11 @@ public class WeatherWidget extends LinearLayout {
     public WeatherWidget(Context c, AttributeSet a) { super(c, a); }
 
     private String getShellyUrl() { return getContext().getSharedPreferences("tiny_launcher", Context.MODE_PRIVATE).getString("weather_shelly_api", "").trim(); }
-    private String getWeatherUrl() { return getContext().getSharedPreferences("tiny_launcher", Context.MODE_PRIVATE).getString("weather_provider_api", "").trim(); }
+    private String getWeatherUrl() {
+    String url = getContext().getSharedPreferences("tiny_launcher", Context.MODE_PRIVATE).getString("weather_provider_api", "").trim();
+    if (url.isEmpty()) return "https://api.open-meteo.com/v1/forecast?latitude=52.2297&longitude=21.0122&current=weather_code,temperature_2m,relative_humidity_2m,wind_speed_10m,wind_gusts_10m,is_day&wind_speed_unit=ms&timezone=auto";
+    return url;
+}
 
     private View createDivider(Context c) {
         View div = new View(c);

@@ -1131,45 +1131,9 @@ public class LauncherActivity extends Activity {
         }
     }
 
-    private void applyClockPosition() {
-        if (clockTextView == null) return;
-        int posY = prefs.getInt("ClockPosY", 0);
-        int posX = prefs.getInt("ClockPosX", 0);
-        clockTextView.setTranslationY(dpToPx(posY));
-        clockTextView.setTranslationX(dpToPx(posX));
-    }
+    
 
-    private void openClockSubmenu() {
-        isInSubmenu = true;
-        drawerBackAction = () -> buildMainMenuInDrawer();
-        sideDrawerContentScrollView.removeAllViews();
-        if (drawerTitleView != null) drawerTitleView.setText("Clock menu");
-        LinearLayout container = new LinearLayout(this);
-        container.setOrientation(LinearLayout.VERTICAL);
-        String mode = prefs.getString("ClockMode", "Full");
-        View row = addDrawerStatusItem(container, "◷", "Visibility", mode, null);
-        if (row != null) {
-            row.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
-            int id = View.generateViewId(); row.setId(id); row.setNextFocusLeftId(id); row.setNextFocusRightId(id);
-            row.setOnClickListener(null);
-            row.setOnKeyListener((v, keyCode, event) -> {
-                if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
-                if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT || keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
-                    String cur = prefs.getString("ClockMode", "Full");
-                    boolean n = (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT);
-                    String nm = n ? (cur.equals("Full") ? "Time Only" : cur.equals("Time Only") ? "Off" : "Full") : (cur.equals("Full") ? "Off" : cur.equals("Off") ? "Time Only" : "Full");
-                    prefs.edit().putString("ClockMode", nm).apply();
-                    TextView tv = row.findViewById(1001); if (tv != null) tv.setText(nm);
-                    return true;
-                }
-                return false;
-            });
-        }
-        addWeatherPositionRow(container, "↕︎", "Clock position vertical", "ClockPosY", 0, -150, 450, 5, this::applyClockPosition);
-        addWeatherPositionRow(container, "↔︎", "Clock position horizontal", "ClockPosX", 0, -600, 600, 5, this::applyClockPosition);
-        sideDrawerContentScrollView.addView(container);
-        container.post(() -> { if (container.getChildCount() > 0) container.getChildAt(0).requestFocus(); });
-    }
+    
 
         private void toggleWeatherWidget() {
         boolean enabled = !prefs.getBoolean(KEY_SHOW_WEATHER_WIDGET, true);
@@ -1304,6 +1268,49 @@ public class LauncherActivity extends Activity {
             }
             return false;
         });
+    }
+
+    private void applyClockPosition() {
+        if (clockTextView == null) return;
+        int posY = prefs.getInt("ClockPosY", 0);
+        int posX = prefs.getInt("ClockPosX", 0);
+        int size = prefs.getInt("ClockTextSize", 22);
+        clockTextView.setTextSize(size);
+        clockTextView.setTranslationY(dpToPx(posY));
+        clockTextView.setTranslationX(dpToPx(posX));
+    }
+
+    private void openClockSubmenu() {
+        isInSubmenu = true;
+        drawerBackAction = () -> buildMainMenuInDrawer();
+        sideDrawerContentScrollView.removeAllViews();
+        if (drawerTitleView != null) drawerTitleView.setText("Clock menu");
+        LinearLayout container = new LinearLayout(this);
+        container.setOrientation(LinearLayout.VERTICAL);
+        String mode = prefs.getString("ClockMode", "Full");
+        View row = addDrawerStatusItem(container, "◷", "Visibility", mode, null);
+        if (row != null) {
+            row.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+            int id = View.generateViewId(); row.setId(id); row.setNextFocusLeftId(id); row.setNextFocusRightId(id);
+            row.setOnClickListener(null);
+            row.setOnKeyListener((v, keyCode, event) -> {
+                if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
+                if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT || keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
+                    String cur = prefs.getString("ClockMode", "Full");
+                    boolean n = (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT);
+                    String nm = n ? (cur.equals("Full") ? "Time Only" : cur.equals("Time Only") ? "Off" : "Full") : (cur.equals("Full") ? "Off" : cur.equals("Off") ? "Time Only" : "Full");
+                    prefs.edit().putString("ClockMode", nm).apply();
+                    TextView tv = row.findViewById(1001); if (tv != null) tv.setText(nm);
+                    return true;
+                }
+                return false;
+            });
+        }
+        addTileMenuRow(container, "↕︎", "Clock position vertical", "ClockPosY", 0, -20, 470, 5, "dp", this::applyClockPosition);
+        addTileMenuRow(container, "↔︎", "Clock position horizontal", "ClockPosX", 0, -620, 75, 5, "dp", this::applyClockPosition);
+        addTileMenuRow(container, "Aa", "Clock/date size", "ClockTextSize", 22, 10, 50, 1, "sp", this::applyClockPosition);
+        sideDrawerContentScrollView.addView(container);
+        container.post(() -> { if (container.getChildCount() > 0) container.getChildAt(0).requestFocus(); });
     }
 
     private void openWeatherSubmenu() {

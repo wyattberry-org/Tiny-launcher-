@@ -494,6 +494,9 @@ public class LauncherActivity extends Activity {
     }
 
     private void openAboutSubmenu() {
+        isInSubmenu = true;
+        drawerBackAction = () -> buildMainMenuInDrawer();
+        if (drawerTitleView != null) drawerTitleView.setText("About");
         sideDrawerContentScrollView.removeAllViews();
 
         LinearLayout container = new LinearLayout(this);

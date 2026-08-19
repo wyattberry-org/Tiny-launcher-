@@ -493,37 +493,7 @@ public class LauncherActivity extends Activity {
         });
     }
 
-    private void openAboutSubmenu() {
-        isInSubmenu = true;
-        drawerBackAction = () -> buildMainMenuInDrawer();
-        if (drawerTitleView != null) drawerTitleView.setText("About");
-        sideDrawerContentScrollView.removeAllViews();
-
-        LinearLayout container = new LinearLayout(this);
-        container.setOrientation(LinearLayout.VERTICAL);
-
-        TextView title = new TextView(this);
-        title.setText("About");
-        title.setTextColor(Color.WHITE);
-        title.setTextSize(18);
-        title.setPadding(dpToPx(12), 0, 0, dpToPx(16));
-        container.addView(title);
-
-        View divider = new View(this);
-        divider.setBackgroundColor(Color.parseColor("#33FFFFFF"));
-        divider.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(1)));
-        container.addView(divider);
-
-        TextView infoText = new TextView(this);
-        infoText.setText("Tiny Launcher v1.0\nPure Java 17 Android TV Launcher\nZero External Dependencies");
-        infoText.setTextColor(Color.LTGRAY);
-        infoText.setTextSize(14);
-        infoText.setPadding(dpToPx(12), dpToPx(16), dpToPx(12), dpToPx(16));
-        container.addView(infoText);
-
-        
-        sideDrawerContentScrollView.addView(container);
-    }
+    
 
     private void addDrawerAppItem(LinearLayout container, Drawable iconDrawable, String title, java.util.function.Consumer<View> onClick) {
         LinearLayout row = new LinearLayout(this);
@@ -1051,6 +1021,41 @@ public class LauncherActivity extends Activity {
 
         sideDrawerContentScrollView.addView(container);
         container.post(() -> { if (container.getChildCount() > 0) container.getChildAt(0).requestFocus(); });
+    }
+
+    private void openAboutSubmenu() {
+        isInSubmenu = true;
+        drawerBackAction = () -> buildMainMenuInDrawer();
+        if (drawerTitleView != null) drawerTitleView.setText("About");
+        sideDrawerContentScrollView.removeAllViews();
+
+        LinearLayout container = new LinearLayout(this);
+        container.setOrientation(LinearLayout.VERTICAL);
+
+        TextView title = new TextView(this);
+        title.setText("About");
+        title.setTextColor(Color.WHITE);
+        title.setTextSize(18);
+        title.setPadding(dpToPx(12), 0, 0, dpToPx(16));
+        container.addView(title);
+
+        View divider = new View(this);
+        divider.setBackgroundColor(Color.parseColor("#33FFFFFF"));
+        divider.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(1)));
+        container.addView(divider);
+
+        TextView infoText = new TextView(this);
+        infoText.setText("Tiny Launcher v1.0\nPure Java 17 Android TV Launcher\nZero External Dependencies");
+        infoText.setTextColor(Color.LTGRAY);
+        infoText.setTextSize(14);
+        infoText.setPadding(dpToPx(12), dpToPx(16), dpToPx(12), dpToPx(16));
+        infoText.setFocusable(true);
+        infoText.setFocusableInTouchMode(true);
+        int id = View.generateViewId(); infoText.setId(id); infoText.setNextFocusLeftId(id); infoText.setNextFocusRightId(id);
+        container.addView(infoText);
+
+        sideDrawerContentScrollView.addView(container);
+        container.post(() -> infoText.requestFocus());
     }
 
     private void openWallpaperSubmenu() { openWallpaperSubmenu(0); }

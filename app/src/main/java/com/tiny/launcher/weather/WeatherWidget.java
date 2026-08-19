@@ -33,11 +33,11 @@ public class WeatherWidget extends LinearLayout {
     public WeatherWidget(Context c, AttributeSet a) { super(c, a); init(c); }
 
     private String getShellyUrl() { return getContext().getSharedPreferences("BareLauncherPrefs", Context.MODE_PRIVATE).getString("weather_shelly_api", "").trim(); }
+    
+
     private String getWeatherUrl() {
-    String url = getContext().getSharedPreferences("BareLauncherPrefs", Context.MODE_PRIVATE).getString("weather_provider_api", "").trim();
-    if (url.isEmpty()) return "https://api.open-meteo.com/v1/forecast?latitude=52.2297&longitude=21.0122&current=weather_code,temperature_2m,relative_humidity_2m,wind_speed_10m,wind_gusts_10m,is_day&wind_speed_unit=ms&timezone=auto";
-    return url;
-}
+        return getContext().getSharedPreferences("BareLauncherPrefs", Context.MODE_PRIVATE).getString("weather_provider_api", "").trim();
+    }
 
     private View createDivider(Context c) {
         View div = new View(c);
@@ -162,7 +162,7 @@ public class WeatherWidget extends LinearLayout {
         final int fIcon = iconResId;
         final boolean show = hasValidData;
         mainHandler.post(() -> {
-            if (tvCondition != null) tvCondition.setText(condText);
+            if (tvCondition != null) tvCondition.setText(show ? condText : "--");
             if (tvTemp != null) tvTemp.setText(show ? String.valueOf(fTemp) : "--");
             if (tvRh != null) tvRh.setText(show ? String.valueOf(fRh) : "--");
             if (tvWindSpeed != null) tvWindSpeed.setText(show ? "Wind: " + fSpeed + " m/s" : "Wind: --");

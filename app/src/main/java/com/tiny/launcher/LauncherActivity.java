@@ -44,14 +44,11 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.net.HttpURLConnection;
-import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.URL;
 import java.text.SimpleDateFormat;
@@ -79,8 +76,8 @@ public class LauncherActivity extends Activity {
     private LinearLayout horizontalAppContainer;
     private TextView drawerTitleView;
     private Runnable drawerBackAction = null;
-    private TextView clockTextView, weatherStatusTextView, weatherTempTextView, weatherRhTextView, weatherWindTextView;
-    private ImageView weatherIconView, settingsGear;
+    private TextView clockTextView;
+    private ImageView settingsGear;
     private LinearLayout topWidgetRow, sideDrawerContainer;
     private ScrollView sideDrawerContentScrollView;
 
@@ -99,8 +96,8 @@ public class LauncherActivity extends Activity {
     private final Handler clockHandler = new Handler(Looper.getMainLooper());
     private final Handler idleHandler = new Handler(Looper.getMainLooper());
     private final Handler wallpaperHandler = new Handler(Looper.getMainLooper());
-    private final Handler weatherHandler = new Handler(Looper.getMainLooper());
-    private Runnable clockRunnable, idleRunnable, wallpaperRunnable, weatherRunnable;
+    
+    private Runnable clockRunnable, idleRunnable, wallpaperRunnable;
 
     // --- Wallpapers & State ---
     private final List<File> wallpaperFiles = new ArrayList<>();
@@ -110,9 +107,7 @@ public class LauncherActivity extends Activity {
     private int lastMainMenuIdx = 0;
     private final String[] PASSCODE_PRESETS = {"►", "► ► ◄", "▲ ▲ ◄", "▲ ► ▼", "◄ ◄ ►", "▼ ▼ ▲"};
     private String shortcutPickerKey = null;
-    private ServerSocket webSetupServerSocket;
-    private boolean isWebServerRunning = false;
-
+        
     // --- Slideshow Interval Options (in Milliseconds) ---
     private final long[] SLIDESHOW_INTERVALS = {15000L, 30000L, 60000L, 300000L, 600000L, 1200000L, 1800000L, 0L};
     private final long[] IDLE_TIMEOUT_MS = {120000L, 300000L, 60000L, 0L};
@@ -164,54 +159,13 @@ public class LauncherActivity extends Activity {
         mainOverlayLayout.setLayoutParams(new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
-        // --- 4. Top Status Header (Weather + Clock + Gear) ---
+        // --- 4. Top Status Header (Clock + Gear) ---
         topWidgetRow = new LinearLayout(this);
         topWidgetRow.setOrientation(LinearLayout.HORIZONTAL);
         topWidgetRow.setGravity(Gravity.CENTER_VERTICAL);
         topWidgetRow.setPadding(0, 0, 0, 20);
 
-        // Weather Section (Left)
-        LinearLayout weatherSection = new LinearLayout(this);
-        weatherSection.setOrientation(LinearLayout.HORIZONTAL);
-        weatherSection.setGravity(Gravity.CENTER_VERTICAL);
-
-        weatherIconView = new ImageView(this);
-        weatherIconView.setLayoutParams(new LinearLayout.LayoutParams(64, 64));
-        weatherIconView.setImageResource(android.R.drawable.ic_menu_compass);
-
-        LinearLayout weatherTextGroup = new LinearLayout(this);
-        weatherTextGroup.setOrientation(LinearLayout.VERTICAL);
-        weatherTextGroup.setPadding(15, 0, 30, 0);
-
-        weatherStatusTextView = new TextView(this);
-        weatherStatusTextView.setText("Clear");
-        weatherStatusTextView.setTextColor(Color.WHITE);
-        weatherStatusTextView.setTextSize(16);
-
-        weatherWindTextView = new TextView(this);
-        weatherWindTextView.setText("Wind: 1 m/s  Gusts: 3 m/s");
-        weatherWindTextView.setTextColor(Color.LTGRAY);
-        weatherWindTextView.setTextSize(12);
-
-        weatherTextGroup.addView(weatherStatusTextView);
-        weatherTextGroup.addView(weatherWindTextView);
-
-        weatherTempTextView = new TextView(this);
-        weatherTempTextView.setText("21° Temp");
-        weatherTempTextView.setTextColor(Color.WHITE);
-        weatherTempTextView.setTextSize(22);
-        weatherTempTextView.setPadding(20, 0, 20, 0);
-
-        weatherRhTextView = new TextView(this);
-        weatherRhTextView.setText("51 RH");
-        weatherRhTextView.setTextColor(Color.WHITE);
-        weatherRhTextView.setTextSize(22);
-        weatherRhTextView.setPadding(20, 0, 20, 0);
-
-        weatherSection.addView(weatherIconView);
-        weatherSection.addView(weatherTextGroup);
-        weatherSection.addView(weatherTempTextView);
-        weatherSection.addView(weatherRhTextView);
+        
 
         // Clock Section (Center Flex)
         clockTextView = new TextView(this);
@@ -239,7 +193,7 @@ public class LauncherActivity extends Activity {
             return true;
         });
 
-        topWidgetRow.addView(weatherSection);
+        
         topWidgetRow.addView(clockTextView);
         topWidgetRow.addView(settingsGear);
         mainOverlayLayout.addView(topWidgetRow);
@@ -297,7 +251,7 @@ public class LauncherActivity extends Activity {
         registerPackageReceiver();
         startLiveClock();
         setupIdleAutoTimer();
-        startWeatherEngine();
+        
     }
 
     // --- Side Drawer Switcher (Zero Redrawing / Zero Flickering) ---
@@ -1184,258 +1138,12 @@ public class LauncherActivity extends Activity {
 }
 
     private void openWeatherSubmenu() {
+        isInSubmenu = true; drawerBackAction = () -> buildMainMenuInDrawer();
+        if (drawerTitleView != null) drawerTitleView.setText("Weather menu");
         sideDrawerContentScrollView.removeAllViews();
-
         LinearLayout container = new LinearLayout(this);
         container.setOrientation(LinearLayout.VERTICAL);
-
-        TextView title = new TextView(this);
-        title.setText("Weather Settings");
-        title.setTextColor(Color.WHITE);
-        title.setTextSize(18);
-        title.setPadding(10, 0, 0, 20);
-        container.addView(title);
-
-        boolean enabled = prefs.getBoolean("WeatherEnabled", true);
-        View weatherRow = addDrawerStatusItem(container, "☁️", "Weather Widget", enabled ? "On" : "Off", null);
-        weatherRow.setOnClickListener(v -> {
-            boolean cur = prefs.getBoolean("WeatherEnabled", true);
-            boolean next = !cur;
-            prefs.edit().putBoolean("WeatherEnabled", next).apply();
-            weatherSectionVisibility(next);
-            TextView tv = weatherRow.findViewById(1001);
-            if (tv != null) tv.setText(next ? "On" : "Off");
-        });
-
-        addDrawerMenuItem(container, "📍", "Location (Open-Meteo)", () -> {
-            final EditText input = new EditText(this);
-            input.setHint("Type City Name...");
-            new AlertDialog.Builder(this).setTitle("City Search").setView(input)
-                    .setPositiveButton("Search", (d, w) -> searchCityCoordinates(input.getText().toString())).show();
-        });
-
-        addDrawerMenuItem(container, "⚡", "Shelly API URL", () -> {
-            final EditText input = new EditText(this);
-            input.setText(prefs.getString("ShellyApiUrl", ""));
-            new AlertDialog.Builder(this).setTitle("Shelly Cloud Endpoint").setView(input)
-                    .setPositiveButton("Save", (d, w) -> {
-                        prefs.edit().putString("ShellyApiUrl", input.getText().toString()).apply();
-                        fetchWeatherData();
-                    }).show();
-        });
-
-        addDrawerMenuItem(container, "📱 Web Setup (iPhone)", () -> launchiPhoneWebSetupDialog());
-        addDrawerMenuItem(container, "ℹ️ Info", () -> new AlertDialog.Builder(this)
-                .setTitle("Weather Info")
-                .setMessage("Weather status and wind are powered by Open-Meteo API. Temperature & Humidity can be linked to your local Shelly Cloud API.")
-                .setPositiveButton("OK", null).show());
-
-        
         sideDrawerContentScrollView.addView(container);
-    }
-
-    private void weatherSectionVisibility(boolean visible) {
-        weatherIconView.setVisibility(visible ? View.VISIBLE : View.GONE);
-        weatherStatusTextView.setVisibility(visible ? View.VISIBLE : View.GONE);
-        weatherWindTextView.setVisibility(visible ? View.VISIBLE : View.GONE);
-        weatherTempTextView.setVisibility(visible ? View.VISIBLE : View.GONE);
-        weatherRhTextView.setVisibility(visible ? View.VISIBLE : View.GONE);
-    }
-
-    // --- iPhone Web Setup (Embedded Java Server + TV Canvas QR Code) ---
-    private void launchiPhoneWebSetupDialog() {
-        startEmbeddedWebServer();
-
-        String ipAddress = getWifiIpAddress();
-        String webUrl = "http://" + ipAddress + ":8080";
-
-        LinearLayout dialogView = new LinearLayout(this);
-        dialogView.setOrientation(LinearLayout.VERTICAL);
-        dialogView.setGravity(Gravity.CENTER);
-        dialogView.setPadding(30, 30, 30, 30);
-
-        TextView infoText = new TextView(this);
-        infoText.setText("1. Connect iPhone to same Wi-Fi\n2. Open Safari and go to:\n\n" + webUrl + "\n");
-        infoText.setTextColor(Color.WHITE);
-        infoText.setTextSize(16);
-
-        ImageView qrImageView = new ImageView(this);
-        qrImageView.setLayoutParams(new LinearLayout.LayoutParams(250, 250));
-        qrImageView.setImageBitmap(generateSimpleQrBitmap(webUrl));
-
-        dialogView.addView(infoText);
-        dialogView.addView(qrImageView);
-
-        new AlertDialog.Builder(this)
-                .setTitle("📱 iPhone Web Setup")
-                .setView(dialogView)
-                .setPositiveButton("Close", (d, w) -> stopEmbeddedWebServer())
-                .show();
-    }
-
-    private String getWifiIpAddress() {
-        try {
-            WifiManager wm = (WifiManager) getApplicationContext().getSystemService(WIFI_SERVICE);
-            return Formatter.formatIpAddress(wm.getConnectionInfo().getIpAddress());
-        } catch (Exception e) {
-            return "192.168.1.100";
-        }
-    }
-
-    private void startEmbeddedWebServer() {
-        if (isWebServerRunning) return;
-        isWebServerRunning = true;
-
-        new Thread(() -> {
-            try {
-                webSetupServerSocket = new ServerSocket(8080);
-                while (isWebServerRunning) {
-                    Socket socket = webSetupServerSocket.accept();
-                    BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                    OutputStream out = socket.getOutputStream();
-
-                    String line = in.readLine();
-                    if (line != null && line.contains("POST")) {
-                        StringBuilder body = new StringBuilder();
-                        while (in.ready()) body.append((char) in.read());
-
-                        String data = body.toString();
-                        if (data.contains("shelly=")) {
-                            String shellyUrl = extractFormParam(data, "shelly");
-                            prefs.edit().putString("ShellyApiUrl", shellyUrl).apply();
-                            weatherHandler.post(this::fetchWeatherData);
-                        }
-                    }
-
-                    String html = "<html><body style='font-family:sans-serif;padding:20px;'>"
-                            + "<h2>Tiny Launcher TV Setup</h2>"
-                            + "<form method='POST'>"
-                            + "Shelly API URL:<br><input style='width:100%;padding:10px;' name='shelly' placeholder='http://shelly-api...'><br><br>"
-                            + "<input style='padding:10px 20px;background:#007AFF;color:#fff;border:none;' type='submit' value='Save to TV'>"
-                            + "</form></body></html>";
-
-                    out.write(("HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + html.length() + "\r\n\r\n" + html).getBytes());
-                    out.flush();
-                    socket.close();
-                }
-            } catch (Exception ignored) {}
-        }).start();
-    }
-
-    private void stopEmbeddedWebServer() {
-        isWebServerRunning = false;
-        try {
-            if (webSetupServerSocket != null) webSetupServerSocket.close();
-        } catch (Exception ignored) {}
-    }
-
-    private String extractFormParam(String body, String paramName) {
-        try {
-            for (String pair : body.split("&")) {
-                String[] kv = pair.split("=");
-                if (kv.length == 2 && kv[0].equals(paramName)) {
-                    return java.net.URLDecoder.decode(kv[1], "UTF-8");
-                }
-            }
-        } catch (Exception ignored) {}
-        return "";
-    }
-
-    private Bitmap generateSimpleQrBitmap(String text) {
-        Bitmap bmp = Bitmap.createBitmap(250, 250, Bitmap.Config.ARGB_8888);
-        Canvas canvas = new Canvas(bmp);
-        canvas.drawColor(Color.WHITE);
-        Paint paint = new Paint();
-        paint.setColor(Color.BLACK);
-
-        // Simple placeholder QR grid visual on Canvas
-        int margin = 20;
-        int size = 210;
-        canvas.drawRect(margin, margin, margin + 60, margin + 60, paint);
-        canvas.drawRect(margin + size - 60, margin, margin + size, margin + 60, paint);
-        canvas.drawRect(margin, margin + size - 60, margin + 60, margin + size, paint);
-
-        return bmp;
-    }
-
-    // --- Weather API Engine (Open-Meteo + Shelly API) ---
-    private void startWeatherEngine() {
-        weatherRunnable = new Runnable() {
-            @Override
-            public void run() {
-                fetchWeatherData();
-                weatherHandler.postDelayed(this, 600000L); // 10 min refresh
-            }
-        };
-        weatherHandler.post(weatherRunnable);
-    }
-
-    private void searchCityCoordinates(String cityName) {
-        new Thread(() -> {
-            try {
-                URL url = new URL("https://geocoding-api.open-meteo.com/v1/search?name=" + cityName + "&count=1");
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-                StringBuilder json = new StringBuilder();
-                String line;
-                while ((line = reader.readLine()) != null) json.append(line);
-
-                JSONObject res = new JSONObject(json.toString()).getJSONArray("results").getJSONObject(0);
-                double lat = res.getDouble("latitude");
-                double lon = res.getDouble("longitude");
-
-                prefs.edit().putFloat("Lat", (float) lat).putFloat("Lon", (float) lon).apply();
-                runOnUiThread(this::fetchWeatherData);
-            } catch (Exception e) {
-                runOnUiThread(() -> new AlertDialog.Builder(this).setMessage("City not found!").show());
-            }
-        }).start();
-    }
-
-    private void fetchWeatherData() {
-        new Thread(() -> {
-            try {
-                float lat = prefs.getFloat("Lat", 52.52f);
-                float lon = prefs.getFloat("Lon", 13.41f);
-
-                URL url = new URL("https://api.open-meteo.com/v1/forecast?latitude=" + lat + "&longitude=" + lon + "&current_weather=true");
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-                StringBuilder json = new StringBuilder();
-                String line;
-                while ((line = reader.readLine()) != null) json.append(line);
-
-                JSONObject cw = new JSONObject(json.toString()).getJSONObject("current_weather");
-                double wind = cw.getDouble("windspeed");
-                int code = cw.getInt("weathercode");
-
-                String statusStr = code == 0 ? "Clear" : code < 3 ? "Partly Cloudy" : "Cloudy/Rain";
-
-                // Shelly API Fetch (if configured)
-                String shellyUrlStr = prefs.getString("ShellyApiUrl", "");
-                String tempStr = "21° Temp";
-                String rhStr = "51 RH";
-
-                if (!shellyUrlStr.isEmpty()) {
-                    try {
-                        HttpURLConnection sConn = (HttpURLConnection) new URL(shellyUrlStr).openConnection();
-                        BufferedReader sReader = new BufferedReader(new InputStreamReader(sConn.getInputStream()));
-                        StringBuilder sJson = new StringBuilder();
-                        while ((line = sReader.readLine()) != null) sJson.append(line);
-                        JSONObject sObj = new JSONObject(sJson.toString());
-                        if (sObj.has("tmp")) tempStr = sObj.getInt("tmp") + "° Temp";
-                        if (sObj.has("hum")) rhStr = sObj.getInt("hum") + " RH";
-                    } catch (Exception ignored) {}
-                }
-
-                String finalTemp = tempStr; String finalRh = rhStr;
-                runOnUiThread(() -> {
-                    if (weatherStatusTextView != null) weatherStatusTextView.setText(statusStr);
-                    if (weatherTempTextView != null) weatherTempTextView.setText(finalTemp);
-                    if (weatherRhTextView != null) weatherRhTextView.setText(finalRh);
-                });
-            } catch (Exception ignored) {}
-        }).start();
     }
 
     private void animateTileAccentSweep(int oldColor) {
@@ -2026,11 +1734,10 @@ public class LauncherActivity extends Activity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        stopEmbeddedWebServer();
-        clockHandler.removeCallbacks(clockRunnable);
+                clockHandler.removeCallbacks(clockRunnable);
         idleHandler.removeCallbacks(idleRunnable);
         wallpaperHandler.removeCallbacks(wallpaperRunnable);
-        weatherHandler.removeCallbacks(weatherRunnable);
+        
         try { unregisterReceiver(packageReceiver); } catch (Exception ignored) {}
     }
 

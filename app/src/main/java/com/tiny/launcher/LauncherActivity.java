@@ -1258,7 +1258,7 @@ public class LauncherActivity extends Activity {
         sideDrawerContentScrollView.removeAllViews();
         LinearLayout container = new LinearLayout(this); container.setOrientation(LinearLayout.VERTICAL);
         boolean enabled = prefs.getBoolean(KEY_SHOW_WEATHER_WIDGET, true);
-        View weatherRow = addDrawerStatusItem(container, "☁", "Weather widget", enabled ? "On" : "Off", null);
+        View weatherRow = addDrawerStatusItem(container, "\u2601\uFE0E", "Weather widget", enabled ? "On" : "Off", null);
         if (weatherRow != null) {
             weatherRow.setFocusable(true); int id = View.generateViewId(); weatherRow.setId(id); weatherRow.setNextFocusLeftId(id); weatherRow.setNextFocusRightId(id);
             weatherRow.setOnKeyListener((v, kCode, evt) -> {
@@ -1270,11 +1270,11 @@ public class LauncherActivity extends Activity {
                 } return false;
             });
         }
-        addDrawerMenuItem(container, "⚲", "Location", () -> showWeatherInputDialog("Location", KEY_WEATHER_LOCATION, "Enter town/city (e.g. Warsaw)"));
-        addDrawerMenuItem(container, "⚡", "Shelly API", () -> showWeatherInputDialog("Shelly API", KEY_WEATHER_SHELLY_API, "Enter full Shelly Cloud API URL/Key"));
-        addDrawerMenuItem(container, "☼", "Weather Provider API", () -> showWeatherInputDialog("Weather Provider API", KEY_WEATHER_PROVIDER_API, "Enter Public Weather API URL/Key"));
-        addDrawerMenuItem(container, "⎘", "Web Setup (iPhone)", () -> showWeatherWebSetupDialog());
-        addDrawerMenuItem(container, "ℹ", "Info", () -> showWeatherInfoDialog());
+        addDrawerMenuItem(container, "\u26B2\uFE0E", "Location", () -> showWeatherInputDialog("Location", KEY_WEATHER_LOCATION, "Enter town/city (e.g. Warsaw)"));
+        addDrawerMenuItem(container, "\u26A1\uFE0E", "Shelly API", () -> showWeatherInputDialog("Shelly API", KEY_WEATHER_SHELLY_API, "Enter full Shelly Cloud API URL/Key"));
+        addDrawerMenuItem(container, "\u263C\uFE0E", "Weather Provider API", () -> showWeatherInputDialog("Weather Provider API", KEY_WEATHER_PROVIDER_API, "Enter Public Weather API URL/Key"));
+        addDrawerMenuItem(container, "\u2398\uFE0E", "Web Setup (iPhone)", () -> showWeatherWebSetupDialog());
+        addDrawerMenuItem(container, "\u2139\uFE0E", "Info", () -> showWeatherInfoDialog());
         sideDrawerContentScrollView.addView(container);
         container.post(() -> { if (container.getChildCount() > 0) container.getChildAt(0).requestFocus(); });
     }

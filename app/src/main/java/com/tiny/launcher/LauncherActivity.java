@@ -1673,6 +1673,16 @@ public class LauncherActivity extends Activity {
                 v.setBackground(shape);
             });
 
+            final int tilePos = position;
+            final int appCount = appList.size();
+            bannerCard.setOnKeyListener((v, kCode, evt) -> {
+                if (evt.getAction() == KeyEvent.ACTION_DOWN) {
+                    if (kCode == KeyEvent.KEYCODE_DPAD_RIGHT && tilePos == appCount - 1) return true;
+                    if (kCode == KeyEvent.KEYCODE_DPAD_LEFT && tilePos == 0) return true;
+                }
+                return false;
+            });
+
             bannerCard.setOnClickListener(v -> {
                 if (isMoveMode) {
                     if (moveSourcePosition != -1) {

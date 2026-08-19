@@ -1375,8 +1375,7 @@ public class LauncherActivity extends Activity {
                     final int tileIdx = i;
                     anim.addUpdateListener(a -> {
                         GradientDrawable shape = new GradientDrawable(); shape.setColor((int) a.getAnimatedValue()); shape.setCornerRadius(radPx);
-                        if (tileIdx == lastFocusedAppIdx) {
-                            int appAccent = (tileIdx < appList.size()) ? extractDrawableAccentColor(appList.get(tileIdx).icon()) : currentAccentColor;
+                        if (bc.hasFocus()) {
                             shape.setStroke(Math.max(1, Math.round(getResources().getDisplayMetrics().density * 0.6f)), Color.parseColor("#00E5FF"));
                         }
                         bc.setBackground(shape);

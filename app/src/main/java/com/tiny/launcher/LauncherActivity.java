@@ -817,6 +817,7 @@ public class LauncherActivity extends Activity {
         symbolView.setText(symbol);
         symbolView.setTextColor(Color.parseColor("#5A5E6B"));
         symbolView.setTextSize(16);
+        symbolView.setGravity(Gravity.CENTER);
         symbolView.setLayoutParams(new LinearLayout.LayoutParams(dpToPx(28), ViewGroup.LayoutParams.WRAP_CONTENT));
 
         TextView label = new TextView(this);

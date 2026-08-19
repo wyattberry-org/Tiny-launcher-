@@ -1180,8 +1180,18 @@ public class LauncherActivity extends Activity {
 
         private void showWeatherInfoDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        String info = "• Location\nUses general Open-Meteo data. Type city name and select Search.\n\n• Shelly API\nEnter Shelly Cloud API URL for real-time temp/humidity.\n\n• Weather Provider API\nPowered by Open-Meteo. Enter custom API endpoint if desired.\n\n• Web Setup\nScan QR code on iPhone to open setup page and paste URLs.";
-        builder.setTitle("Weather info").setMessage(info).setPositiveButton("OK", null).show();
+        LinearLayout container = new LinearLayout(this);
+        container.setOrientation(LinearLayout.VERTICAL);
+        container.setPadding(dpToPx(20), dpToPx(16), dpToPx(20), dpToPx(16));
+        String info = "• Location\nUses general Open-Meteo data. Type your town or city name, press Back on your remote to exit the keyboard, then select Search.\n\n" +
+            "• Shelly API\nIf you use Shelly smart home sensors, enter your Shelly Cloud API URL to display real-time local temperature and humidity directly from your device.\n\n" +
+            "• Weather Provider API\nPowered by Open-Meteo by default. Enter a custom API endpoint with exact coordinates if desired. Obtaining an Open-Meteo API URL is completely free.\n\n" +
+            "• Web Setup\nAvoid typing long URLs using your TV remote. Open Web Setup to display a QR code and local IP link. Scan the QR code with your phone (tested on iPhone) to open a webpage where you can easily paste API URLs for Shelly, Open-Meteo, or both.";
+        TextView desc = new TextView(this); desc.setText(info);
+        desc.setTextColor(Color.parseColor("#DDFFFFFF")); desc.setTextSize(14);
+        ScrollView scroll = new ScrollView(this); scroll.addView(desc);
+        container.addView(scroll, new LinearLayout.LayoutParams(-1, dpToPx(260)));
+        builder.setTitle("Weather info").setView(container).setPositiveButton("OK", null).show();
     }
 
         private void showWeatherWebSetupDialog() {

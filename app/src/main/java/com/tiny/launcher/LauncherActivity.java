@@ -263,6 +263,7 @@ public class LauncherActivity extends Activity {
         rootOverlayFrame.addView(weatherWidget);
         
         setContentView(rootOverlayFrame);
+        if (weatherWidget != null) weatherWidget.bringToFront();
 
         loadWallpapers();
         loadInstalledApps();

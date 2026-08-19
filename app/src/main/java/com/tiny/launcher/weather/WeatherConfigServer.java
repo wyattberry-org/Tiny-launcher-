@@ -45,7 +45,7 @@ public class WeatherConfigServer {
     private static void handleClient(Context context, Socket socket, OnSaveListener listener) {
         try (BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream())); OutputStream out = socket.getOutputStream()) {
             String line = in.readLine(); if (line == null) return;
-            SharedPreferences prefs = context.getSharedPreferences("tiny_launcher", Context.MODE_PRIVATE);
+            SharedPreferences prefs = context.getSharedPreferences("BareLauncherPrefs", Context.MODE_PRIVATE);
             if (line.contains("GET /save?")) {
                 SharedPreferences.Editor editor = prefs.edit();
                 String sUrl = getParam(line, "shelly="), pUrl = getParam(line, "provider=");

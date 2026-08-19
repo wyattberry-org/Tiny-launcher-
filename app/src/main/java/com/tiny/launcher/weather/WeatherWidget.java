@@ -42,6 +42,7 @@ public class WeatherWidget extends LinearLayout {
     private View createDivider(Context c) {
         View div = new View(c);
         LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(dp(1), dp(36));
+        p.gravity = Gravity.CENTER_VERTICAL;
         p.setMarginStart(dp(16)); p.setMarginEnd(dp(16));
         div.setLayoutParams(p); div.setBackgroundColor(Color.parseColor("#33FFFFFF"));
         return div;
@@ -50,34 +51,27 @@ public class WeatherWidget extends LinearLayout {
     private void init(Context context) {
         setOrientation(HORIZONTAL); setGravity(Gravity.CENTER_VERTICAL);
         setPadding(dp(8), dp(8), dp(8), dp(8)); setFocusable(false); setClickable(false);
-        LinearLayout col1 = new LinearLayout(context);
-        col1.setOrientation(VERTICAL); col1.setGravity(Gravity.CENTER_HORIZONTAL);
-        ivIcon = new ImageView(context);
-        ivIcon.setLayoutParams(new LinearLayout.LayoutParams(dp(56), dp(56)));
-        ivIcon.setScaleType(ImageView.ScaleType.FIT_CENTER);
-        tvCondition = new TextView(context);
-        tvCondition.setTextColor(Color.WHITE); tvCondition.setTextSize(14);
-        col1.addView(ivIcon); col1.addView(tvCondition); addView(col1);
+        LinearLayout.LayoutParams centerLp = new LinearLayout.LayoutParams(-2, -2);
+        centerLp.gravity = Gravity.CENTER_VERTICAL;
+        LinearLayout col1 = new LinearLayout(context); col1.setOrientation(VERTICAL); col1.setGravity(Gravity.CENTER_HORIZONTAL);
+        ivIcon = new ImageView(context); ivIcon.setLayoutParams(new LinearLayout.LayoutParams(dp(56), dp(56))); ivIcon.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        tvCondition = new TextView(context); tvCondition.setTextColor(Color.WHITE); tvCondition.setTextSize(14); tvCondition.setGravity(Gravity.CENTER);
+        col1.addView(ivIcon); col1.addView(tvCondition); addView(col1, centerLp);
         addView(createDivider(context));
-        LinearLayout col2 = new LinearLayout(context);
-        col2.setOrientation(VERTICAL); col2.setGravity(Gravity.CENTER_HORIZONTAL);
-        tvTemp = new TextView(context);
-        tvTemp.setTextColor(Color.WHITE); tvTemp.setTextSize(28); tvTemp.setTypeface(null, android.graphics.Typeface.BOLD);
-        TextView lblT = new TextView(context); lblT.setText("Temp"); lblT.setTextColor(Color.parseColor("#B0B0B0")); lblT.setTextSize(12);
-        col2.addView(tvTemp); col2.addView(lblT); addView(col2);
+        LinearLayout col2 = new LinearLayout(context); col2.setOrientation(VERTICAL); col2.setGravity(Gravity.CENTER_HORIZONTAL);
+        tvTemp = new TextView(context); tvTemp.setTextColor(Color.WHITE); tvTemp.setTextSize(28); tvTemp.setTypeface(null, android.graphics.Typeface.BOLD); tvTemp.setGravity(Gravity.CENTER);
+        TextView lblT = new TextView(context); lblT.setText("Temp"); lblT.setTextColor(Color.parseColor("#B0B0B0")); lblT.setTextSize(12); lblT.setGravity(Gravity.CENTER);
+        col2.addView(tvTemp); col2.addView(lblT); addView(col2, centerLp);
         addView(createDivider(context));
-        LinearLayout col3 = new LinearLayout(context);
-        col3.setOrientation(VERTICAL); col3.setGravity(Gravity.CENTER_HORIZONTAL);
-        tvRh = new TextView(context);
-        tvRh.setTextColor(Color.WHITE); tvRh.setTextSize(28); tvRh.setTypeface(null, android.graphics.Typeface.BOLD);
-        TextView lblRh = new TextView(context); lblRh.setText("RH"); lblRh.setTextColor(Color.parseColor("#B0B0B0")); lblRh.setTextSize(12);
-        col3.addView(tvRh); col3.addView(lblRh); addView(col3);
+        LinearLayout col3 = new LinearLayout(context); col3.setOrientation(VERTICAL); col3.setGravity(Gravity.CENTER_HORIZONTAL);
+        tvRh = new TextView(context); tvRh.setTextColor(Color.WHITE); tvRh.setTextSize(28); tvRh.setTypeface(null, android.graphics.Typeface.BOLD); tvRh.setGravity(Gravity.CENTER);
+        TextView lblRh = new TextView(context); lblRh.setText("RH"); lblRh.setTextColor(Color.parseColor("#B0B0B0")); lblRh.setTextSize(12); lblRh.setGravity(Gravity.CENTER);
+        col3.addView(tvRh); col3.addView(lblRh); addView(col3, centerLp);
         addView(createDivider(context));
-        LinearLayout col4 = new LinearLayout(context);
-        col4.setOrientation(VERTICAL); col4.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
+        LinearLayout col4 = new LinearLayout(context); col4.setOrientation(VERTICAL); col4.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
         tvWindSpeed = new TextView(context); tvWindSpeed.setTextColor(Color.WHITE); tvWindSpeed.setTextSize(14);
         tvWindGusts = new TextView(context); tvWindGusts.setTextColor(Color.WHITE); tvWindGusts.setTextSize(14);
-        col4.addView(tvWindSpeed); col4.addView(tvWindGusts); addView(col4);
+        col4.addView(tvWindSpeed); col4.addView(tvWindGusts); addView(col4, centerLp);
     }
 
     @Override protected void onAttachedToWindow() { super.onAttachedToWindow(); startPolling(); }

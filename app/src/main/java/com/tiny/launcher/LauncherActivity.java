@@ -257,7 +257,7 @@ public class LauncherActivity extends Activity {
         weatherWidget.setVisibility(prefs.getBoolean(KEY_SHOW_WEATHER_WIDGET, true) ? View.VISIBLE : View.GONE);
         FrameLayout.LayoutParams wParams = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         wParams.gravity = Gravity.TOP | Gravity.START;
-        wParams.topMargin = dpToPx(5);
+        wParams.topMargin = dpToPx(0);
         wParams.leftMargin = dpToPx(25);
         weatherWidget.setLayoutParams(wParams);
         rootOverlayFrame.addView(weatherWidget);

@@ -1313,8 +1313,6 @@ public class LauncherActivity extends Activity {
         if (weatherWidget == null) return;
         int posY = prefs.getInt("WeatherWidgetPosY", 0);
         int posX = prefs.getInt("WeatherWidgetPosX", 0);
-        addTileMenuRow(container, "Aa", "Widget size", "WeatherWidgetSize", 100, 50, 200, 5, "%", this::applyWeatherWidgetPosition);
-        int size = prefs.getInt("WeatherWidgetSize", 100);
         float scale = size / 100.0f;
         weatherWidget.setPivotX(0f);
         weatherWidget.setPivotY(0f);
@@ -1348,6 +1346,7 @@ public class LauncherActivity extends Activity {
         addDrawerMenuItem(container, "\u2398\uFE0E", "Web Setup (iPhone)", () -> showWeatherWebSetupDialog());
         addWeatherPositionRow(container, "\u2195\uFE0E", "Widget position vertical", "WeatherWidgetPosY", 0, -15, 450, 5, this::applyWeatherWidgetPosition);
         addWeatherPositionRow(container, "\u2194\uFE0E", "Widget position horizontal", "WeatherWidgetPosX", 0, -35, 620, 5, this::applyWeatherWidgetPosition);
+        addTileMenuRow(container, "Aa", "Widget size", "WeatherWidgetSize", 100, 50, 200, 5, "%", this::applyWeatherWidgetPosition);
         addDrawerMenuItem(container, "\u2139\uFE0E", "Info", () -> showWeatherInfoDialog());
         sideDrawerContentScrollView.addView(container);
         container.post(() -> { if (container.getChildCount() > 0) container.getChildAt(0).requestFocus(); });

@@ -1253,31 +1253,31 @@ public class LauncherActivity extends Activity {
     }
 
     private void openWeatherSubmenu() {
-    isInSubmenu = true; drawerBackAction = () -> buildMainMenuInDrawer();
-    if (drawerTitleView != null) drawerTitleView.setText("Weather menu");
-    sideDrawerContentScrollView.removeAllViews();
-    LinearLayout container = new LinearLayout(this); container.setOrientation(LinearLayout.VERTICAL);
-    boolean enabled = prefs.getBoolean(KEY_SHOW_WEATHER_WIDGET, true);
-    View weatherRow = addDrawerStatusItem(container, "☁", "Weather widget", enabled ? "On" : "Off", null);
-    if (weatherRow != null) {
-        weatherRow.setFocusable(true); int id = View.generateViewId(); weatherRow.setId(id); weatherRow.setNextFocusLeftId(id); weatherRow.setNextFocusRightId(id);
-        weatherRow.setOnKeyListener((v, kCode, evt) -> {
-            if (evt.getAction() != KeyEvent.ACTION_DOWN) return false;
-            if (kCode == KeyEvent.KEYCODE_DPAD_RIGHT || kCode == KeyEvent.KEYCODE_DPAD_LEFT || kCode == KeyEvent.KEYCODE_DPAD_CENTER || kCode == KeyEvent.KEYCODE_ENTER) {
-                toggleWeatherWidget();
-                boolean n = prefs.getBoolean(KEY_SHOW_WEATHER_WIDGET, true);
-                TextView tv = weatherRow.findViewById(1001); if (tv != null) tv.setText(n ? "On" : "Off"); return true;
-            } return false;
-        });
+        isInSubmenu = true; drawerBackAction = () -> buildMainMenuInDrawer();
+        if (drawerTitleView != null) drawerTitleView.setText("Weather menu");
+        sideDrawerContentScrollView.removeAllViews();
+        LinearLayout container = new LinearLayout(this); container.setOrientation(LinearLayout.VERTICAL);
+        boolean enabled = prefs.getBoolean(KEY_SHOW_WEATHER_WIDGET, true);
+        View weatherRow = addDrawerStatusItem(container, "☁", "Weather widget", enabled ? "On" : "Off", null);
+        if (weatherRow != null) {
+            weatherRow.setFocusable(true); int id = View.generateViewId(); weatherRow.setId(id); weatherRow.setNextFocusLeftId(id); weatherRow.setNextFocusRightId(id);
+            weatherRow.setOnKeyListener((v, kCode, evt) -> {
+                if (evt.getAction() != KeyEvent.ACTION_DOWN) return false;
+                if (kCode == KeyEvent.KEYCODE_DPAD_RIGHT || kCode == KeyEvent.KEYCODE_DPAD_LEFT || kCode == KeyEvent.KEYCODE_DPAD_CENTER || kCode == KeyEvent.KEYCODE_ENTER) {
+                    toggleWeatherWidget();
+                    boolean n = prefs.getBoolean(KEY_SHOW_WEATHER_WIDGET, true);
+                    TextView tv = weatherRow.findViewById(1001); if (tv != null) tv.setText(n ? "On" : "Off"); return true;
+                } return false;
+            });
+        }
+        addDrawerMenuItem(container, "⚲", "Location", () -> showWeatherInputDialog("Location", KEY_WEATHER_LOCATION, "Enter town/city (e.g. Warsaw)"));
+        addDrawerMenuItem(container, "⚡", "Shelly API", () -> showWeatherInputDialog("Shelly API", KEY_WEATHER_SHELLY_API, "Enter full Shelly Cloud API URL/Key"));
+        addDrawerMenuItem(container, "☼", "Weather Provider API", () -> showWeatherInputDialog("Weather Provider API", KEY_WEATHER_PROVIDER_API, "Enter Public Weather API URL/Key"));
+        addDrawerMenuItem(container, "⎘", "Web Setup (iPhone)", () -> showWeatherWebSetupDialog());
+        addDrawerMenuItem(container, "ℹ", "Info", () -> showWeatherInfoDialog());
+        sideDrawerContentScrollView.addView(container);
+        container.post(() -> { if (container.getChildCount() > 0) container.getChildAt(0).requestFocus(); });
     }
-    addDrawerMenuItem(container, "📍", "Location", () -> showWeatherInputDialog("Location", KEY_WEATHER_LOCATION, "Enter town/city (e.g. Warsaw)"));
-    addDrawerMenuItem(container, "⚡", "Shelly API", () -> showWeatherInputDialog("Shelly API", KEY_WEATHER_SHELLY_API, "Enter full Shelly Cloud API URL/Key"));
-    addDrawerMenuItem(container, "☼", "Weather Provider API", () -> showWeatherInputDialog("Weather Provider API", KEY_WEATHER_PROVIDER_API, "Enter Public Weather API URL/Key"));
-    addDrawerMenuItem(container, "📱", "Web Setup (iPhone)", () -> showWeatherWebSetupDialog());
-    addDrawerMenuItem(container, "ℹ", "Info", () -> showWeatherInfoDialog());
-    sideDrawerContentScrollView.addView(container);
-    container.post(() -> { if (container.getChildCount() > 0) container.getChildAt(0).requestFocus(); });
-}
 
     private void animateTileAccentSweep(int oldColor) {
         if (horizontalAppContainer == null) return;

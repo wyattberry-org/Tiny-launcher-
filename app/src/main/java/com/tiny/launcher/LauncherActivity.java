@@ -2113,6 +2113,47 @@ public class LauncherActivity extends Activity {
         row.setOnClickListener(v -> onClick.run()); container.addView(row);
     }
 
+    private void showProjectivyBannerImportDialog() {
+        new android.app.AlertDialog.Builder(this)
+            .setTitle("Import Banners")
+            .setMessage("Do you want to import Projectivy Icon pack banners into local storage directory Pictures/banners?")
+            .setNegativeButton("No", (dialog, which) -> dialog.dismiss())
+            .setPositiveButton("Yes", (dialog, which) -> startProjectivyBannerDownload())
+            .show();
+    }
+
+    private void startProjectivyBannerDownload() {
+        android.app.ProgressDialog pd = new android.app.ProgressDialog(this);
+        pd.setTitle("Importing Banners"); pd.setMessage("Connecting to GitHub..."); pd.setCancelable(false); pd.show();
+        new Thread(() -> {
+            try {
+                File bDir = new File(android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_PICTURES), "banners");
+                if (!bDir.exists()) bDir.mkdirs();
+                java.net.HttpURLConnection conn = (java.net.HttpURLConnection) new java.net.URL("https://api.github.com/repos/wyattberry-org/launcher-banners/git/trees/main?recursive=1").openConnection();
+                conn.setRequestProperty("User-Agent", "Mozilla/5.0");
+                if (conn.getResponseCode() != 200) throw new Exception("HTTP " + conn.getResponseCode());
+                java.io.BufferedReader r = new java.io.BufferedReader(new java.io.InputStreamReader(conn.getInputStream()));
+                StringBuilder sb = new StringBuilder(); String l; while ((l = r.readLine()) != null) sb.append(l); r.close();
+                org.json.JSONArray tree = new org.json.JSONObject(sb.toString()).optJSONArray("tree");
+                java.util.List<String> items = new java.util.ArrayList<>();
+                if (tree != null) { for (int i = 0; i < tree.length(); i++) { String p = tree.getJSONObject(i).optString("path", ""); if (p.startsWith("banners/") && p.toLowerCase().endsWith(".png")) items.add(p); } }
+                int tot = items.size();
+                for (int i = 0; i < tot; i++) {
+                    String itemPath = items.get(i); String fName = itemPath.substring(itemPath.lastIndexOf('/') + 1);
+                    File outFile = new File(bDir, fName);
+                    try {
+                        java.io.InputStream in = new java.net.URL("https://raw.githubusercontent.com/wyattberry-org/launcher-banners/main/" + itemPath).openStream();
+                        java.io.FileOutputStream out = new java.io.FileOutputStream(outFile);
+                        byte[] buf = new byte[8192]; int len; while ((len = in.read(buf)) > 0) out.write(buf, 0, len);
+                        out.close(); in.close();
+                    } catch (Exception ignored) {}
+                    final int cur = i + 1; runOnUiThread(() -> pd.setMessage("Downloading: " + cur + " / " + tot));
+                }
+                runOnUiThread(() -> { pd.dismiss(); android.widget.Toast.makeText(LauncherActivity.this, "Import Complete! Saved to Pictures/banners", android.widget.Toast.LENGTH_LONG).show(); renderAppBanners(); });
+            } catch (Exception e) { runOnUiThread(() -> { pd.dismiss(); android.widget.Toast.makeText(LauncherActivity.this, "Import failed: " + e.getMessage(), android.widget.Toast.LENGTH_LONG).show(); }); }
+        }).start();
+    }
+
     private void showFileManagerPickerInSameWindow(AppModel app, LinearLayout menuView, android.widget.PopupWindow popup) {
         replacingBannerPkg = app.packageName(); int w = menuView.getWidth() > 0 ? menuView.getWidth() : dpToPx(180); int h = menuView.getHeight();
         menuView.removeAllViews(); if (w > 0) menuView.setMinimumWidth(w); if (h > 0) menuView.setMinimumHeight(h);

@@ -1309,10 +1309,13 @@ public class LauncherActivity extends Activity {
 
     
 
+    
+
     private void applyWeatherWidgetPosition() {
         if (weatherWidget == null) return;
         int posY = prefs.getInt("WeatherWidgetPosY", 0);
         int posX = prefs.getInt("WeatherWidgetPosX", 0);
+        int size = prefs.getInt("WeatherWidgetSize", 100);
         float scale = size / 100.0f;
         weatherWidget.setPivotX(0f);
         weatherWidget.setPivotY(0f);

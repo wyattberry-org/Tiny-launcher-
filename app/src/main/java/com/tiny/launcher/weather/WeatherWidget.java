@@ -29,7 +29,8 @@ public class WeatherWidget extends LinearLayout {
     private long lastOpenMeteoFetchTime = 0;
 
     private int dp(int v) { return (int) (v * getResources().getDisplayMetrics().density); }
-    public WeatherWidget(Context c) { super(c); }
+    public WeatherWidget(Context c) { super(c); init(c); }
+    public WeatherWidget(Context c, AttributeSet a) { super(c, a); init(c); }
     public WeatherWidget(Context c, AttributeSet a) { super(c, a); }
 
     private String getShellyUrl() { return getContext().getSharedPreferences("BareLauncherPrefs", Context.MODE_PRIVATE).getString("weather_shelly_api", "").trim(); }

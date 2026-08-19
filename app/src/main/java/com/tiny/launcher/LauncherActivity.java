@@ -1377,7 +1377,7 @@ public class LauncherActivity extends Activity {
                         GradientDrawable shape = new GradientDrawable(); shape.setColor((int) a.getAnimatedValue()); shape.setCornerRadius(radPx);
                         if (tileIdx == lastFocusedAppIdx) {
                             int appAccent = (tileIdx < appList.size()) ? extractDrawableAccentColor(appList.get(tileIdx).icon()) : currentAccentColor;
-                            shape.setStroke(Math.max(1, Math.round(getResources().getDisplayMetrics().density * 0.6f)), appAccent);
+                            shape.setStroke(Math.max(1, Math.round(getResources().getDisplayMetrics().density * 0.6f)), Color.parseColor("#00E5FF"));
                         }
                         bc.setBackground(shape);
                     });
@@ -1670,7 +1670,7 @@ public class LauncherActivity extends Activity {
                 itemContainer.setTranslationZ(hasFocus ? dpToPx(16) : 0f);
                 GradientDrawable shape = new GradientDrawable();
                 shape.setColor(getTileBackgroundColor()); shape.setCornerRadius(tR);
-                if (hasFocus) shape.setStroke(Math.max(1, Math.round(getResources().getDisplayMetrics().density * 0.6f)), appAccentColor);
+                if (hasFocus) shape.setStroke(Math.max(1, Math.round(getResources().getDisplayMetrics().density * 0.6f)), Color.parseColor("#00E5FF"));
                 v.setBackground(shape);
             });
 

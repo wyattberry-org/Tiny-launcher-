@@ -368,11 +368,14 @@ public class LauncherActivity extends Activity {
         addDrawerMenuItem(drawerContent, "◷", "Clock menu", () -> { lastMainMenuIdx = 4; openClockSubmenu(); });
         addDrawerMenuItem(drawerContent, "◫", "Tile menu", () -> { lastMainMenuIdx = 5; openTileSettingsSubmenu(); });
         addDrawerMenuItem(drawerContent, "☼", "Weather menu", () -> { lastMainMenuIdx = 6; openWeatherSubmenu(); });
-        addDrawerMenuItem(drawerContent, "⚙", "System settings", () -> startActivity(new Intent(Settings.ACTION_SETTINGS)));
+        addDrawerMenuItem(drawerContent, "⚙", "System settings", () -> { lastMainMenuIdx = 7; startActivity(new Intent(Settings.ACTION_SETTINGS)); });
         addDrawerMenuItem(drawerContent, "ℹ", "About", () -> { lastMainMenuIdx = 8; openAboutSubmenu(); });
         sideDrawerContentScrollView.addView(drawerContent);
         sideDrawerContainer.addView(sideDrawerContentScrollView);
-        drawerContent.post(() -> { if (drawerContent.getChildCount() > 0) drawerContent.getChildAt(0).requestFocus(); });
+        drawerContent.post(() -> {
+            int targetIdx = Math.max(0, Math.min(lastMainMenuIdx, drawerContent.getChildCount() - 1));
+            if (drawerContent.getChildCount() > 0) drawerContent.getChildAt(targetIdx).requestFocus();
+        });
         }
 
     private void addDrawerMenuItem(LinearLayout container, String title, Runnable onClick) {

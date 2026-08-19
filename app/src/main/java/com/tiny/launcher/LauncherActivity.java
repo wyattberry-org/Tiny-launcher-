@@ -173,6 +173,8 @@ public class LauncherActivity extends Activity {
         topWidgetRow.setOrientation(LinearLayout.HORIZONTAL);
         topWidgetRow.setGravity(Gravity.CENTER_VERTICAL);
         topWidgetRow.setPadding(0, 0, 0, 20);
+        topWidgetRow.setClipChildren(false);
+        topWidgetRow.setClipToPadding(false);
 
         
 

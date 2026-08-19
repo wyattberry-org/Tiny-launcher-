@@ -2110,7 +2110,7 @@ public class LauncherActivity extends Activity {
     private void showProjectivyBannerImportDialog() {
         new android.app.AlertDialog.Builder(this)
             .setTitle("Import Banners")
-            .setMessage("Do you want to import Projectivy Icon pack banners into local storage directory Pictures/banners?")
+            .setMessage("Love would you like to import 857 banners (~10mb) from Projectivy icon pack ?")
             .setNegativeButton("No", (dialog, which) -> dialog.dismiss())
             .setPositiveButton("Yes", (dialog, which) -> startProjectivyBannerDownload())
             .show();

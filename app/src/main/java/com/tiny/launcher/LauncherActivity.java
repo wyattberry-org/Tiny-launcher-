@@ -1514,13 +1514,20 @@ public class LauncherActivity extends Activity {
     }
 
     private void setupIdleAutoTimer() {
-        idleRunnable = () -> horizontalAppScrollView.animate().alpha(0.0f).setDuration(600).start();
+        idleRunnable = () -> {
+            if (isSideDrawerOpen) toggleSideDrawer(false);
+            if (horizontalAppScrollView != null) horizontalAppScrollView.animate().alpha(0.0f).setDuration(600).start();
+            if (topWidgetRow != null) topWidgetRow.animate().alpha(0.0f).setDuration(600).start();
+        };
         resetIdleTimer();
     }
 
-        private void resetIdleTimer() {
-        if (horizontalAppScrollView.getAlpha() < 1.0f) {
+    private void resetIdleTimer() {
+        if (horizontalAppScrollView != null && horizontalAppScrollView.getAlpha() < 1.0f) {
             horizontalAppScrollView.animate().alpha(1.0f).setDuration(200).start();
+        }
+        if (topWidgetRow != null && topWidgetRow.getAlpha() < 1.0f) {
+            topWidgetRow.animate().alpha(1.0f).setDuration(200).start();
         }
         idleHandler.removeCallbacks(idleRunnable);
         long timeout = prefs.getLong("IdleTimeout", 300000L);

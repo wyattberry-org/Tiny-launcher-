@@ -518,7 +518,27 @@ public class LauncherActivity extends Activity {
         if (horizontalAppScrollView != null) horizontalAppScrollView.setTranslationY(dpToPx(-posDp));
     }
 
-        private int getTileBackgroundColor() {
+        private final String[] TILE_BG_COLORS = {"Off", "Red", "Green", "Blue", "Yellow", "Purple", "Dark", "Brown", "Cyan", "Pink"};
+
+    private int getManualTileColor(String name) {
+        switch (name) {
+            case "Red": return Color.parseColor("#3B1818");
+            case "Green": return Color.parseColor("#16331C");
+            case "Blue": return Color.parseColor("#15243B");
+            case "Yellow": return Color.parseColor("#383012");
+            case "Purple": return Color.parseColor("#2A163B");
+            case "Dark": return Color.parseColor("#1F2228");
+            case "Brown": return Color.parseColor("#332219");
+            case "Cyan": return Color.parseColor("#123336");
+            case "Pink": return Color.parseColor("#381628");
+            default: return 0;
+        }
+    }
+
+    private int getTileBackgroundColor() {
+        String opt = prefs.getString("TileBackgroundColor", "Off");
+        int manual = getManualTileColor(opt);
+        if (manual != 0) return manual;
         int r = (int) (Color.red(currentAccentColor) * 0.4f + 0x1A * 0.6f);
         int g = (int) (Color.green(currentAccentColor) * 0.4f + 0x1A * 0.6f);
         int b = (int) (Color.blue(currentAccentColor) * 0.4f + 0x1A * 0.6f);
@@ -549,6 +569,33 @@ public class LauncherActivity extends Activity {
         }
     }
 
+    private void addTileBackgroundColorMenuItem(LinearLayout container) {
+        String cur = prefs.getString("TileBackgroundColor", "Off");
+        View row = addDrawerStatusItem(container, "🎨", "Tile background colour", cur, null);
+        if (row != null) {
+            row.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+            int id = View.generateViewId(); row.setId(id); row.setNextFocusLeftId(id); row.setNextFocusRightId(id);
+            row.setOnClickListener(null);
+            row.setOnKeyListener((v, keyCode, event) -> {
+                if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
+                if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT || keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
+                    String curVal = prefs.getString("TileBackgroundColor", "Off");
+                    int idx = 0;
+                    for (int i = 0; i < TILE_BG_COLORS.length; i++) {
+                        if (TILE_BG_COLORS[i].equals(curVal)) { idx = i; break; }
+                    }
+                    int nextIdx = (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) ? (idx + 1) % TILE_BG_COLORS.length : (idx - 1 + TILE_BG_COLORS.length) % TILE_BG_COLORS.length;
+                    String nextVal = TILE_BG_COLORS[nextIdx];
+                    prefs.edit().putString("TileBackgroundColor", nextVal).apply();
+                    TextView tv = row.findViewById(1001); if (tv != null) tv.setText(nextVal);
+                    applyTileStyles();
+                    return true;
+                }
+                return false;
+            });
+        }
+    }
+
     private void openTileSettingsSubmenu() {
         isInSubmenu = true; drawerBackAction = () -> buildMainMenuInDrawer();
         sideDrawerContentScrollView.removeAllViews();
@@ -559,6 +606,7 @@ public class LauncherActivity extends Activity {
         addTileMenuRow(container, "↕", "Row position", "TileRowPosition", 0, -50, 50, 10, "dp", this::applyTileRowPosition);
         addTileMenuRow(container, "Aa", "Text size", "TileTextSize", 14, 10, 20, 1, "sp", this::applyTileStyles);
         addTileMenuRow(container, "⇕", "Text position", "TileTextPosition", 0, -150, 0, 2, "dp", this::applyTileStyles);
+        addTileBackgroundColorMenuItem(container);
         sideDrawerContentScrollView.addView(container);
         container.post(() -> { if (container.getChildCount() > 0) container.getChildAt(0).requestFocus(); });
     }
@@ -1496,6 +1544,7 @@ public class LauncherActivity extends Activity {
 
     private void animateTileAccentSweep(int oldColor) {
         if (horizontalAppContainer == null) return;
+        if (!"Off".equals(prefs.getString("TileBackgroundColor", "Off"))) return;
         int targetColor = getTileBackgroundColor(), screenW = getResources().getDisplayMetrics().widthPixels;
         int tileH = prefs.getInt("TileSize", 160) * 9 / 16, tileDeg = prefs.getInt("TileCornerRadius", 30), radPx = dpToPx((int) Math.round((tileH / 2.0f) * (tileDeg / 90.0f)));
         android.animation.ArgbEvaluator eval = new android.animation.ArgbEvaluator();

@@ -1529,6 +1529,13 @@ public class LauncherActivity extends Activity {
     private void resetIdleTimer() {
         if (horizontalAppScrollView != null && horizontalAppScrollView.getAlpha() < 1.0f) {
             horizontalAppScrollView.animate().alpha(1.0f).setDuration(200).start();
+            if (horizontalAppContainer != null && horizontalAppContainer.getChildCount() > 0) {
+                lastFocusedAppIdx = 0;
+                View firstTile = horizontalAppContainer.getChildAt(0);
+                if (firstTile != null) {
+                    firstTile.post(() -> firstTile.requestFocus());
+                }
+            }
         }
         if (topWidgetRow != null && topWidgetRow.getAlpha() < 1.0f) {
             topWidgetRow.animate().alpha(1.0f).setDuration(200).start();

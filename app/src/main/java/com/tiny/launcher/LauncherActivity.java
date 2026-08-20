@@ -1495,6 +1495,23 @@ public class LauncherActivity extends Activity {
         }).start();
     }
 
+    private Bitmap decodeSampledBitmap(String path, int reqW, int reqH) {
+        try {
+            BitmapFactory.Options opt = new BitmapFactory.Options();
+            opt.inJustDecodeBounds = true;
+            BitmapFactory.decodeFile(path, opt);
+            int inSample = 1;
+            if (opt.outHeight > reqH || opt.outWidth > reqW) {
+                int halfH = opt.outHeight / 2, halfW = opt.outWidth / 2;
+                while ((halfH / inSample) >= reqH && (halfW / inSample) >= reqW) inSample *= 2;
+            }
+            opt.inSampleSize = Math.max(1, inSample);
+            opt.inJustDecodeBounds = false;
+            opt.inPreferredConfig = Bitmap.Config.RGB_565;
+            return BitmapFactory.decodeFile(path, opt);
+        } catch (Exception e) { return null; }
+    }
+
     private void loadWallpapers() {
         try { getFileStreamPath("last_wallpaper.jpg").delete(); } catch (Exception ignored) {}
         wallpaperFiles.clear();
@@ -1538,7 +1555,7 @@ public class LauncherActivity extends Activity {
             currentWallpaperIndex = (last + 10) % wallpaperFiles.size();
             prefs.edit().putInt("LastWallpaperIndex", currentWallpaperIndex).apply();
             File file = wallpaperFiles.get(currentWallpaperIndex);
-            Bitmap bitmap = BitmapFactory.decodeFile(file.getAbsolutePath());
+            Bitmap bitmap = decodeSampledBitmap(file.getAbsolutePath(), 1920, 1080);
             if (bitmap != null && wallpaperSwitcher != null) {
                 View curF = getCurrentFocus(); wallpaperSwitcher.setFocusable(false);
                 wallpaperSwitcher.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
@@ -1574,7 +1591,7 @@ public class LauncherActivity extends Activity {
                 }
                 currentWallpaperIndex = currentWallpaperIndex % wallpaperFiles.size();
                 File file = wallpaperFiles.get(currentWallpaperIndex);
-                Bitmap bitmap = BitmapFactory.decodeFile(file.getAbsolutePath());
+                Bitmap bitmap = decodeSampledBitmap(file.getAbsolutePath(), 1920, 1080);
                 if (bitmap != null) {
                     View curF = getCurrentFocus(); wallpaperSwitcher.setFocusable(false);
                     wallpaperSwitcher.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);

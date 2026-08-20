@@ -1486,7 +1486,9 @@ public class LauncherActivity extends Activity {
 
     private void loadWallpapers() {
         java.io.File cache = getFileStreamPath("last_wallpaper.jpg");
-        if (cache.exists() && wallpaperSwitcher != null && wallpaperSwitcher.getDrawable() == null) {
+        android.view.View v = wallpaperSwitcher != null ? wallpaperSwitcher.getCurrentView() : null;
+        boolean hasDrawable = (v instanceof android.widget.ImageView) && (((android.widget.ImageView) v).getDrawable() != null);
+        if (cache.exists() && wallpaperSwitcher != null && !hasDrawable) {
             Bitmap cb = BitmapFactory.decodeFile(cache.getAbsolutePath());
             if (cb != null) {
                 wallpaperSwitcher.setImageDrawable(new BitmapDrawable(getResources(), cb));

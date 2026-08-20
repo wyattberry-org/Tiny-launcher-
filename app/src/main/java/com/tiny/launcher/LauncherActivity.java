@@ -1508,7 +1508,7 @@ public class LauncherActivity extends Activity {
             }
             opt.inSampleSize = Math.max(1, inSample);
             opt.inJustDecodeBounds = false;
-            opt.inPreferredConfig = Bitmap.Config.RGB_565;
+            opt.inPreferredConfig = Bitmap.Config.ARGB_8888;
             return BitmapFactory.decodeFile(path, opt);
         } catch (Exception e) { return null; }
     }
@@ -1556,7 +1556,7 @@ public class LauncherActivity extends Activity {
             currentWallpaperIndex = (last + 10) % wallpaperFiles.size();
             prefs.edit().putInt("LastWallpaperIndex", currentWallpaperIndex).apply();
             File file = wallpaperFiles.get(currentWallpaperIndex);
-            Bitmap bitmap = decodeSampledBitmap(file.getAbsolutePath(), 1920, 1080);
+            Bitmap bitmap = decodeSampledBitmap(file.getAbsolutePath(), 3840, 2160);
             if (bitmap != null && wallpaperSwitcher != null) {
                 View curF = getCurrentFocus(); wallpaperSwitcher.setFocusable(false);
                 wallpaperSwitcher.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
@@ -1592,7 +1592,7 @@ public class LauncherActivity extends Activity {
                 }
                 currentWallpaperIndex = currentWallpaperIndex % wallpaperFiles.size();
                 File file = wallpaperFiles.get(currentWallpaperIndex);
-                Bitmap bitmap = decodeSampledBitmap(file.getAbsolutePath(), 1920, 1080);
+                Bitmap bitmap = decodeSampledBitmap(file.getAbsolutePath(), 3840, 2160);
                 if (bitmap != null) {
                     View curF = getCurrentFocus(); wallpaperSwitcher.setFocusable(false);
                     wallpaperSwitcher.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);

@@ -1485,6 +1485,14 @@ public class LauncherActivity extends Activity {
     }
 
     private void loadWallpapers() {
+        java.io.File cache = getFileStreamPath("last_wallpaper.jpg");
+        if (cache.exists() && wallpaperSwitcher != null && wallpaperSwitcher.getDrawable() == null) {
+            Bitmap cb = BitmapFactory.decodeFile(cache.getAbsolutePath());
+            if (cb != null) {
+                wallpaperSwitcher.setImageDrawable(new BitmapDrawable(getResources(), cb));
+                extractAccentColorFromBitmap(cb);
+            }
+        }
         wallpaperFiles.clear();
         if (android.os.Build.VERSION.SDK_INT >= 33) {
             if (checkSelfPermission("android.permission.READ_MEDIA_IMAGES") != android.content.pm.PackageManager.PERMISSION_GRANTED) {
@@ -1528,6 +1536,12 @@ public class LauncherActivity extends Activity {
                 wallpaperSwitcher.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
                 wallpaperSwitcher.setImageDrawable(new BitmapDrawable(getResources(), bitmap));
                 extractAccentColorFromBitmap(bitmap);
+                    final Bitmap bmpCopy = bitmap;
+                    new Thread(() -> {
+                        try (java.io.FileOutputStream out = openFileOutput("last_wallpaper.jpg", MODE_PRIVATE)) {
+                            bmpCopy.compress(Bitmap.CompressFormat.JPEG, 85, out);
+                        } catch (Exception ignored) {}
+                    }).start();
                 if (curF != null) curF.post(() -> curF.requestFocus());
             }
         }
@@ -1551,6 +1565,12 @@ public class LauncherActivity extends Activity {
                     wallpaperSwitcher.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
                     wallpaperSwitcher.setImageDrawable(new BitmapDrawable(getResources(), bitmap));
                     extractAccentColorFromBitmap(bitmap);
+                    final Bitmap bmpCopy = bitmap;
+                    new Thread(() -> {
+                        try (java.io.FileOutputStream out = openFileOutput("last_wallpaper.jpg", MODE_PRIVATE)) {
+                            bmpCopy.compress(Bitmap.CompressFormat.JPEG, 85, out);
+                        } catch (Exception ignored) {}
+                    }).start();
                     if (curF != null) curF.post(() -> curF.requestFocus());
                 }
                 prefs.edit().putInt("LastWallpaperIndex", currentWallpaperIndex).apply();

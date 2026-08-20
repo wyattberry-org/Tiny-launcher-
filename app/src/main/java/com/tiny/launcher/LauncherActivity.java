@@ -1511,7 +1511,11 @@ public class LauncherActivity extends Activity {
             });
             if (files != null) Collections.addAll(wallpaperFiles, files);
         }
-        if (!wallpaperFiles.isEmpty()) startWallpaperRotation();
+        if (!wallpaperFiles.isEmpty()) {
+            startWallpaperRotation();
+        } else {
+            wallpaperHandler.postDelayed(this::loadWallpapers, 500L);
+        }
     }
 
                 @Override
@@ -1579,8 +1583,7 @@ public class LauncherActivity extends Activity {
                 if (interval > 0) wallpaperHandler.postDelayed(this, interval);
             }
         };
-        long interval = prefs.getLong("SlideshowInterval", 30000L);
-        if (interval > 0) wallpaperHandler.post(wallpaperRunnable);
+        wallpaperHandler.post(wallpaperRunnable);
     }
 
     private void setupIdleAutoTimer() {

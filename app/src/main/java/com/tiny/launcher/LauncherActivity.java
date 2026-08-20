@@ -1137,6 +1137,50 @@ public class LauncherActivity extends Activity {
         container.post(() -> infoText.requestFocus());
     }
 
+    private int[] getWallpaperTargetResolution() {
+        String res = prefs.getString("WallpaperResolution", "4k ARGB8888");
+        if ("2k ARGB8888".equals(res)) return new int[]{1920, 1080};
+        return new int[]{3840, 2160};
+    }
+
+    private void refreshCurrentWallpaper() {
+        File f = null;
+        if (!wallpaperFiles.isEmpty()) f = wallpaperFiles.get(currentWallpaperIndex % wallpaperFiles.size());
+        else { File c = getFileStreamPath("custom_wallpaper.jpg"); if (c.exists()) f = c; }
+        if (f != null && f.exists() && wallpaperSwitcher != null) {
+            int[] r = getWallpaperTargetResolution();
+            Bitmap b = decodeSampledBitmap(f.getAbsolutePath(), r[0], r[1]);
+            if (b != null) {
+                wallpaperSwitcher.setFocusable(false);
+                wallpaperSwitcher.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
+                wallpaperSwitcher.setImageDrawable(new BitmapDrawable(getResources(), b));
+                extractAccentColorFromBitmap(b);
+            }
+        }
+    }
+
+    private void addWallpaperResolutionMenuItem(LinearLayout container) {
+        String curRes = prefs.getString("WallpaperResolution", "4k ARGB8888");
+        View row = addDrawerStatusItem(container, "⧈", "Wallpaper resolution", curRes, null);
+        if (row != null) {
+            row.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+            int id = View.generateViewId(); row.setId(id); row.setNextFocusLeftId(id); row.setNextFocusRightId(id);
+            row.setOnClickListener(null);
+            row.setOnKeyListener((v, keyCode, event) -> {
+                if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
+                if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT || keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
+                    String cur = prefs.getString("WallpaperResolution", "4k ARGB8888");
+                    String next = "4k ARGB8888".equals(cur) ? "2k ARGB8888" : "4k ARGB8888";
+                    prefs.edit().putString("WallpaperResolution", next).apply();
+                    TextView tv = row.findViewById(1001); if (tv != null) tv.setText(next);
+                    refreshCurrentWallpaper();
+                    return true;
+                }
+                return false;
+            });
+        }
+    }
+
     private void openWallpaperSubmenu() { openWallpaperSubmenu(0); }
 
     private void openWallpaperSubmenu(int focusIdx) {
@@ -1150,6 +1194,7 @@ public class LauncherActivity extends Activity {
         addSlideshowDurationMenuItem(container);
         addHideUiIdleMenuItem(container);
         addChangeEachMenuItem(container);
+        addWallpaperResolutionMenuItem(container);
         sideDrawerContentScrollView.addView(container);
         container.post(() -> { if (container.getChildCount() > focusIdx) container.getChildAt(focusIdx).requestFocus(); });
     }
@@ -1559,7 +1604,8 @@ public class LauncherActivity extends Activity {
             currentWallpaperIndex = (last + 10) % wallpaperFiles.size();
             prefs.edit().putInt("LastWallpaperIndex", currentWallpaperIndex).apply();
             File file = wallpaperFiles.get(currentWallpaperIndex);
-            Bitmap bitmap = decodeSampledBitmap(file.getAbsolutePath(), 3840, 2160);
+            int[] targetRes = getWallpaperTargetResolution();
+            Bitmap bitmap = decodeSampledBitmap(file.getAbsolutePath(), targetRes[0], targetRes[1]);
             if (bitmap != null && wallpaperSwitcher != null) {
                 View curF = getCurrentFocus(); wallpaperSwitcher.setFocusable(false);
                 wallpaperSwitcher.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
@@ -1595,7 +1641,8 @@ public class LauncherActivity extends Activity {
                 }
                 currentWallpaperIndex = currentWallpaperIndex % wallpaperFiles.size();
                 File file = wallpaperFiles.get(currentWallpaperIndex);
-                Bitmap bitmap = decodeSampledBitmap(file.getAbsolutePath(), 3840, 2160);
+                int[] targetRes = getWallpaperTargetResolution();
+            Bitmap bitmap = decodeSampledBitmap(file.getAbsolutePath(), targetRes[0], targetRes[1]);
                 if (bitmap != null) {
                     View curF = getCurrentFocus(); wallpaperSwitcher.setFocusable(false);
                     wallpaperSwitcher.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
@@ -2184,8 +2231,9 @@ public class LauncherActivity extends Activity {
     private void loadCustomWallpaper() {
         java.io.File file = getFileStreamPath("custom_wallpaper.jpg");
         if (file.exists() && wallpaperSwitcher != null) {
-            android.graphics.drawable.Drawable d = android.graphics.drawable.Drawable.createFromPath(file.getAbsolutePath());
-            if (d != null) wallpaperSwitcher.setImageDrawable(d);
+            int[] targetRes = getWallpaperTargetResolution();
+            Bitmap b = decodeSampledBitmap(file.getAbsolutePath(), targetRes[0], targetRes[1]);
+            if (b != null) wallpaperSwitcher.setImageDrawable(new BitmapDrawable(getResources(), b));
         }
     }
 

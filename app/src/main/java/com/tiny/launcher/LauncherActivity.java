@@ -202,7 +202,11 @@ public class LauncherActivity extends Activity {
             }
         });
         settingsGear.setOnLongClickListener(v -> {
-            startActivity(new Intent(Settings.ACTION_SETTINGS));
+            if (prefs.getBoolean("ParentalControlEnabled", false)) {
+                verifyParentalPasscode(() -> startActivity(new Intent(Settings.ACTION_SETTINGS)));
+            } else {
+                startActivity(new Intent(Settings.ACTION_SETTINGS));
+            }
             return true;
         });
 

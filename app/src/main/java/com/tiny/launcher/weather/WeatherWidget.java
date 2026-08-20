@@ -74,16 +74,27 @@ public class WeatherWidget extends LinearLayout {
         col4.addView(tvWindSpeed); col4.addView(tvWindGusts); addView(col4, centerLp);
     }
 
-    @Override protected void onAttachedToWindow() { super.onAttachedToWindow(); startPolling(); }
+    @Override protected void onAttachedToWindow() { super.onAttachedToWindow(); if (getVisibility() == VISIBLE) startPolling(); }
     @Override protected void onDetachedFromWindow() { super.onDetachedFromWindow(); stopPolling(); }
-    public synchronized void forceRefresh() { lastOpenMeteoFetchTime = 0; startPolling(); }
-    private synchronized void startPolling() { stopPolling(); consecutiveFailures = 0; executor = Executors.newSingleThreadScheduledExecutor(); executor.execute(this::pollTask); }
+    @Override protected void onVisibilityChanged(View changedView, int visibility) {
+        super.onVisibilityChanged(changedView, visibility);
+        if (visibility == VISIBLE) startPolling(); else stopPolling();
+    }
+    public synchronized void forceRefresh() { lastOpenMeteoFetchTime = 0; if (getVisibility() == VISIBLE) startPolling(); }
+    private synchronized void startPolling() {
+        stopPolling();
+        if (getVisibility() != VISIBLE) return;
+        consecutiveFailures = 0;
+        executor = Executors.newSingleThreadScheduledExecutor();
+        executor.execute(this::pollTask);
+    }
     private synchronized void stopPolling() {
         mainHandler.removeCallbacksAndMessages(null);
         if (currentFuture != null) { currentFuture.cancel(true); currentFuture = null; }
         if (executor != null) { if (!executor.isShutdown()) executor.shutdownNow(); executor = null; }
     }
     private void pollTask() {
+        if (getVisibility() != VISIBLE) { stopPolling(); return; }
         boolean success = false;
         double temp = lastValidTemp, rh = lastValidRh;
         HttpURLConnection sConn = null;

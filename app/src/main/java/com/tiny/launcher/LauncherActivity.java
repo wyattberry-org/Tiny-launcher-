@@ -284,10 +284,42 @@ public class LauncherActivity extends Activity {
     }
 
     // --- Side Drawer Switcher (Zero Redrawing / Zero Flickering) ---
+    private void resetToHomeScreenAndFocusFirstTile() {
+        if (isSideDrawerOpen) {
+            isInSubmenu = false;
+            drawerBackAction = null;
+            toggleSideDrawer(false);
+        }
+        if (horizontalAppScrollView != null) {
+            horizontalAppScrollView.setDescendantFocusability(android.view.ViewGroup.FOCUS_AFTER_DESCENDANTS);
+            horizontalAppScrollView.scrollTo(0, 0);
+        }
+        if (horizontalAppContainer != null && horizontalAppContainer.getChildCount() > 0) {
+            lastFocusedAppIdx = 0;
+            android.view.View firstTile = horizontalAppContainer.getChildAt(0);
+            if (firstTile != null) {
+                firstTile.post(() -> firstTile.requestFocus());
+            }
+        }
+    }
+
+    @Override
+    protected void onNewIntent(android.content.Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        if (android.content.Intent.ACTION_MAIN.equals(intent.getAction()) && intent.hasCategory(android.content.Intent.CATEGORY_HOME)) {
+            resetToHomeScreenAndFocusFirstTile();
+        }
+    }
+
     @Override
     public boolean dispatchKeyEvent(android.view.KeyEvent event) {
         if (event.getAction() == android.view.KeyEvent.ACTION_DOWN) {
             int keyCode = event.getKeyCode();
+            if (keyCode == android.view.KeyEvent.KEYCODE_HOME) {
+                resetToHomeScreenAndFocusFirstTile();
+                return true;
+            }
             if (keyCode == android.view.KeyEvent.KEYCODE_DPAD_RIGHT && !isSideDrawerOpen) {
                 View cur = getCurrentFocus();
                 if (cur != null && horizontalAppContainer != null) {

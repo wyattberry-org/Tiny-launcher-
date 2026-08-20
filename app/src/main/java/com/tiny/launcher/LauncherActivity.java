@@ -701,8 +701,7 @@ public class LauncherActivity extends Activity {
         activeTilePopupWindow = popup;
 
         addPopupMenuItem(menuView, "►", "Open App", () -> {
-            Intent i = getPackageManager().getLaunchIntentForPackage(pkg);
-            if (i != null) startActivity(i);
+            launchAppByPackage(pkg);
         }, popup);
 
         addPopupMenuItem(menuView, "⧉", "Unhide App", () -> {
@@ -1846,6 +1845,19 @@ public class LauncherActivity extends Activity {
         } catch (Exception e) { return Color.parseColor("#007AFF"); }
     }
 
+    private void launchAppByPackage(String packageName) {
+        if (packageName == null) return;
+        Intent intent = getPackageManager().getLeanbackLaunchIntentForPackage(packageName);
+        if (intent == null) intent = getPackageManager().getLaunchIntentForPackage(packageName);
+        if (intent == null && packageName.toLowerCase().contains("settings")) {
+            intent = new Intent(Settings.ACTION_SETTINGS);
+        }
+        if (intent != null) {
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            try { startActivity(intent); } catch (Exception ignored) {}
+        }
+    }
+
     private void renderAppBanners() {
         horizontalAppContainer.removeAllViews();
         horizontalAppContainer.setClipChildren(false);
@@ -1925,8 +1937,7 @@ public class LauncherActivity extends Activity {
                     android.widget.Toast.makeText(this, "Tile position saved", android.widget.Toast.LENGTH_SHORT).show();
                     return;
                 }
-                Intent launchIntent = getPackageManager().getLaunchIntentForPackage(app.packageName());
-                if (launchIntent != null) { launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); startActivity(launchIntent); }
+                launchAppByPackage(app.packageName());
             });
                         bannerCard.setOnKeyListener((v, keyCode, event) -> {
                 if (event.getAction() == android.view.KeyEvent.ACTION_DOWN) {

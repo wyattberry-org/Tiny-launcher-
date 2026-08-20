@@ -571,7 +571,7 @@ public class LauncherActivity extends Activity {
 
     private void addTileBackgroundColorMenuItem(LinearLayout container) {
         String cur = prefs.getString("TileBackgroundColor", "Off");
-        View row = addDrawerStatusItem(container, "🎨", "Tile background colour", cur, null);
+        View row = addDrawerStatusItem(container, "◩", "Tile background colour", cur, null);
         if (row != null) {
             row.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
             int id = View.generateViewId(); row.setId(id); row.setNextFocusLeftId(id); row.setNextFocusRightId(id);

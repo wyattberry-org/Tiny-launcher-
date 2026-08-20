@@ -67,6 +67,7 @@ import java.util.Map;
 import java.util.Set;
 
 public class LauncherActivity extends Activity {
+    private boolean isUiHidden = false;
     private boolean isFirstResume = true;
     public static final String KEY_SHOW_WEATHER_WIDGET = "show_weather_widget";
     public static final String KEY_WEATHER_LOCATION = "weather_location";
@@ -326,6 +327,14 @@ public class LauncherActivity extends Activity {
 
     @Override
     public boolean dispatchKeyEvent(android.view.KeyEvent event) {
+        if (isUiHidden) {
+            if (event.getAction() == android.view.KeyEvent.ACTION_DOWN) {
+                resetIdleTimer();
+                resetToHomeScreenAndFocusFirstTile();
+            }
+            return true;
+        }
+        resetIdleTimer();
         if (event.getAction() == android.view.KeyEvent.ACTION_DOWN) {
             int keyCode = event.getKeyCode();
             if (keyCode == android.view.KeyEvent.KEYCODE_HOME) {
@@ -1588,6 +1597,7 @@ public class LauncherActivity extends Activity {
 
     private void setupIdleAutoTimer() {
         idleRunnable = () -> {
+            isUiHidden = true;
             if (isSideDrawerOpen) toggleSideDrawer(false);
             if (horizontalAppScrollView != null) horizontalAppScrollView.animate().alpha(0.0f).setDuration(600).start();
             if (topWidgetRow != null) topWidgetRow.animate().alpha(0.0f).setDuration(600).start();
@@ -1596,6 +1606,7 @@ public class LauncherActivity extends Activity {
     }
 
     private void resetIdleTimer() {
+        isUiHidden = false;
         if (horizontalAppScrollView != null && horizontalAppScrollView.getAlpha() < 1.0f) {
             horizontalAppScrollView.animate().alpha(1.0f).setDuration(200).start();
             if (horizontalAppContainer != null && horizontalAppContainer.getChildCount() > 0) {

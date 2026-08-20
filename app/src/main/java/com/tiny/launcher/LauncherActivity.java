@@ -67,6 +67,8 @@ import java.util.Map;
 import java.util.Set;
 
 public class LauncherActivity extends Activity {
+    private SimpleDateFormat cachedClockFormat = null;
+    private String cachedClockPattern = "";
     private boolean isUiHidden = false;
     private boolean isFirstResume = true;
     public static final String KEY_SHOW_WEATHER_WIDGET = "show_weather_widget";
@@ -1476,10 +1478,10 @@ public class LauncherActivity extends Activity {
         if (bitmap == null) return;
         new Thread(() -> {
             int width = bitmap.getWidth(), height = bitmap.getHeight();
-            int maxSatPixel = Color.parseColor("#007AFF"); float maxSat = -1f;
+            int maxSatPixel = Color.parseColor("#007AFF"); float maxSat = -1f; float[] hsv = new float[3];
             for (int x = 0; x < width; x += Math.max(1, width / 20)) {
                 for (int y = 0; y < height; y += Math.max(1, height / 20)) {
-                    int pixel = bitmap.getPixel(x, y); float[] hsv = new float[3];
+                    int pixel = bitmap.getPixel(x, y);
                     Color.colorToHSV(pixel, hsv);
                     if (hsv[1] > maxSat && hsv[2] > 0.3f && hsv[2] < 0.9f) { maxSat = hsv[1]; maxSatPixel = pixel; }
                 }
@@ -1578,12 +1580,6 @@ public class LauncherActivity extends Activity {
                     wallpaperSwitcher.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
                     wallpaperSwitcher.setImageDrawable(new BitmapDrawable(getResources(), bitmap));
                     extractAccentColorFromBitmap(bitmap);
-                    final Bitmap bmpCopy = bitmap;
-                    new Thread(() -> {
-                        try (java.io.FileOutputStream out = openFileOutput("last_wallpaper.jpg", MODE_PRIVATE)) {
-                            bmpCopy.compress(Bitmap.CompressFormat.JPEG, 85, out);
-                        } catch (Exception ignored) {}
-                    }).start();
                     if (curF != null) curF.post(() -> curF.requestFocus());
                 }
                 prefs.edit().putInt("LastWallpaperIndex", currentWallpaperIndex).apply();
@@ -1634,8 +1630,11 @@ public class LauncherActivity extends Activity {
                 clockTextView.setText("");
             } else {
                 String pattern = mode.equals("Time Only") ? "HH:mm" : "EEEE, d MMM  HH:mm";
-                SimpleDateFormat sdf = new SimpleDateFormat(pattern, Locale.getDefault());
-                clockTextView.setText(sdf.format(new Date()));
+                if (cachedClockFormat == null || !pattern.equals(cachedClockPattern)) {
+                    cachedClockPattern = pattern;
+                    cachedClockFormat = new SimpleDateFormat(pattern, Locale.getDefault());
+                }
+                clockTextView.setText(cachedClockFormat.format(new Date()));
             }
             clockHandler.postDelayed(clockRunnable, 1000);
         };
@@ -2082,6 +2081,21 @@ public class LauncherActivity extends Activity {
 
     private int dpToPx(int dp) {
         return Math.round(dp * getResources().getDisplayMetrics().density);
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        startLiveClock();
+        if (!wallpaperFiles.isEmpty()) startWallpaperRotation();
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        clockHandler.removeCallbacks(clockRunnable);
+        wallpaperHandler.removeCallbacks(wallpaperRunnable);
+        idleHandler.removeCallbacks(idleRunnable);
     }
 
     @Override

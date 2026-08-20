@@ -1886,6 +1886,10 @@ public class LauncherActivity extends Activity {
 
         row.setOnKeyListener((v, k, e) -> {
             if (k == android.view.KeyEvent.KEYCODE_HOME) {
+                if (activeTilePopupWindow != null) {
+                    try { activeTilePopupWindow.dismiss(); } catch (Exception ignored) {}
+                    activeTilePopupWindow = null;
+                }
                 if (popup != null && popup.isShowing()) popup.dismiss();
                 resetToHomeScreenAndFocusFirstTile();
                 return true;
@@ -1924,6 +1928,7 @@ public class LauncherActivity extends Activity {
                 menuView, ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, true);
         popup.setElevation(0);
         popup.setOutsideTouchable(true);
+        activeTilePopupWindow = popup;
 
         addPopupMenuItem(menuView, "Ø", "Hide App", () -> {
             Set<String> hidden = new HashSet<>(prefs.getStringSet("HiddenApps", new HashSet<>()));

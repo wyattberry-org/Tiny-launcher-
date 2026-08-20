@@ -67,6 +67,7 @@ import java.util.Map;
 import java.util.Set;
 
 public class LauncherActivity extends Activity {
+    private boolean isFirstResume = true;
     public static final String KEY_SHOW_WEATHER_WIDGET = "show_weather_widget";
     public static final String KEY_WEATHER_LOCATION = "weather_location";
     public static final String KEY_WEATHER_SHELLY_API = "weather_shelly_api";
@@ -302,7 +303,7 @@ public class LauncherActivity extends Activity {
             horizontalAppScrollView.scrollTo(0, 0);
         }
         if (horizontalAppContainer != null && horizontalAppContainer.getChildCount() > 0) {
-            horizontalAppContainer.post(() -> {
+            horizontalAppContainer.postDelayed(() -> {
                 android.view.View item = horizontalAppContainer.getChildAt(0);
                 if (item instanceof android.view.ViewGroup && ((android.view.ViewGroup) item).getChildCount() > 0) {
                     android.view.View banner = ((android.view.ViewGroup) item).getChildAt(0);
@@ -310,7 +311,7 @@ public class LauncherActivity extends Activity {
                 } else if (item != null) {
                     item.requestFocus();
                 }
-            });
+            }, 100);
         }
     }
 
@@ -1516,7 +1517,7 @@ public class LauncherActivity extends Activity {
     protected void onResume() {
         applyTileRowPosition();
         super.onResume();
-        if (prefs.getBoolean("ChangeEachRestart", false) && !wallpaperFiles.isEmpty()) {
+        if (isFirstResume && prefs.getBoolean("ChangeEachRestart", false) && !wallpaperFiles.isEmpty()) {
             int last = prefs.getInt("LastWallpaperIndex", 0);
             currentWallpaperIndex = (last + 10) % wallpaperFiles.size();
             prefs.edit().putInt("LastWallpaperIndex", currentWallpaperIndex).apply();
@@ -1530,6 +1531,7 @@ public class LauncherActivity extends Activity {
                 if (curF != null) curF.post(() -> curF.requestFocus());
             }
         }
+        isFirstResume = false;
     }
 
     private void startWallpaperRotation() {
@@ -1882,6 +1884,14 @@ public class LauncherActivity extends Activity {
             v.setBackground(focusShape);
         });
 
+        row.setOnKeyListener((v, k, e) -> {
+            if (k == android.view.KeyEvent.KEYCODE_HOME) {
+                if (popup != null && popup.isShowing()) popup.dismiss();
+                resetToHomeScreenAndFocusFirstTile();
+                return true;
+            }
+            return false;
+        });
         row.setOnClickListener(v -> {
             popup.dismiss();
             onClick.run();

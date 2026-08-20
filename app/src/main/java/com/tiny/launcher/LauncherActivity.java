@@ -284,7 +284,14 @@ public class LauncherActivity extends Activity {
     }
 
     // --- Side Drawer Switcher (Zero Redrawing / Zero Flickering) ---
+    private android.widget.PopupWindow activeTilePopupWindow = null;
+
     private void resetToHomeScreenAndFocusFirstTile() {
+        if (activeTilePopupWindow != null) {
+            try { if (activeTilePopupWindow.isShowing()) activeTilePopupWindow.dismiss(); } catch (Exception ignored) {}
+            activeTilePopupWindow = null;
+        }
+        lastFocusedAppIdx = 0;
         if (isSideDrawerOpen) {
             isInSubmenu = false;
             drawerBackAction = null;
@@ -295,11 +302,15 @@ public class LauncherActivity extends Activity {
             horizontalAppScrollView.scrollTo(0, 0);
         }
         if (horizontalAppContainer != null && horizontalAppContainer.getChildCount() > 0) {
-            lastFocusedAppIdx = 0;
-            android.view.View firstTile = horizontalAppContainer.getChildAt(0);
-            if (firstTile != null) {
-                firstTile.post(() -> firstTile.requestFocus());
-            }
+            horizontalAppContainer.post(() -> {
+                android.view.View item = horizontalAppContainer.getChildAt(0);
+                if (item instanceof android.view.ViewGroup && ((android.view.ViewGroup) item).getChildCount() > 0) {
+                    android.view.View banner = ((android.view.ViewGroup) item).getChildAt(0);
+                    banner.requestFocus();
+                } else if (item != null) {
+                    item.requestFocus();
+                }
+            });
         }
     }
 
@@ -628,6 +639,7 @@ public class LauncherActivity extends Activity {
                 menuView, dpToPx(180), ViewGroup.LayoutParams.WRAP_CONTENT, true);
         popup.setElevation(0);
         popup.setOutsideTouchable(true);
+        activeTilePopupWindow = popup;
 
         addPopupMenuItem(menuView, "►", "Open App", () -> {
             Intent i = getPackageManager().getLaunchIntentForPackage(pkg);

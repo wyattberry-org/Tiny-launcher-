@@ -63,7 +63,6 @@ import java.util.Map;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Set;
 
 public class LauncherActivity extends Activity {
@@ -277,7 +276,7 @@ public class LauncherActivity extends Activity {
         applyWeatherWidgetPosition();
         
         setContentView(rootOverlayFrame);
-        if (weatherWidget != null) weatherWidget.bringToFront(); applyWeatherWidgetPosition();
+        if (weatherWidget != null) weatherWidget.bringToFront();
 
         loadWallpapers();
         loadInstalledApps();
@@ -671,6 +670,7 @@ public class LauncherActivity extends Activity {
 
     private void openManageAppsSubmenu() {
         isInSubmenu = true;
+        drawerBackAction = () -> buildMainMenuInDrawer();
         sideDrawerContainer.removeAllViews();
 
         TextView titleView = new TextView(this);
@@ -723,6 +723,7 @@ public class LauncherActivity extends Activity {
 
     private void openButtonShortcutsSubmenu() {
         isInSubmenu = true;
+        drawerBackAction = () -> buildMainMenuInDrawer();
         shortcutPickerKey = null;
         sideDrawerContainer.removeAllViews();
 
@@ -771,6 +772,7 @@ public class LauncherActivity extends Activity {
 
     private void openAppPickerForShortcut(String key) {
         shortcutPickerKey = key;
+        drawerBackAction = () -> openButtonShortcutsSubmenu();
         sideDrawerContainer.removeAllViews();
 
         TextView titleView = new TextView(this);
@@ -1279,7 +1281,7 @@ public class LauncherActivity extends Activity {
                 String qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=" + java.net.URLEncoder.encode(webUrl, "UTF-8");
                 java.io.InputStream in = new java.net.URL(qrUrl).openStream();
                 Bitmap bmp = BitmapFactory.decodeStream(in);
-                runOnUiThread(() -> { qrImg.setImageBitmap(bmp); qrImg.setPadding(0, 20, 0, 0); });
+                runOnUiThread(() -> { if (!isFinishing() && !isDestroyed()) { qrImg.setImageBitmap(bmp); qrImg.setPadding(0, 20, 0, 0); } });
             } catch (Exception ignored) {}
         }).start();
         builder.setView(container).setNegativeButton("Close", (dialog, which) -> dialog.dismiss());
@@ -1318,6 +1320,7 @@ public class LauncherActivity extends Activity {
                             urls[i] = "https://api.open-meteo.com/v1/forecast?latitude=" + lat + "&longitude=" + lon + "&current=weather_code,temperature_2m,relative_humidity_2m,wind_speed_10m,wind_gusts_10m,is_day&wind_speed_unit=ms&timezone=auto";
                         }
                         runOnUiThread(() -> {
+                            if (isFinishing() || isDestroyed()) return;
                             AlertDialog.Builder d = new AlertDialog.Builder(LauncherActivity.this);
                             d.setTitle("Select Location").setItems(lbls, (dlg, w) -> {
                                 prefs.edit().putString(KEY_WEATHER_LOCATION, lbls[w]).putString(KEY_WEATHER_PROVIDER_API, urls[w]).apply();
@@ -1642,6 +1645,7 @@ public class LauncherActivity extends Activity {
     }
 
     private void startLiveClock() {
+        clockHandler.removeCallbacks(clockRunnable);
         clockRunnable = () -> {
             String mode = prefs.getString("ClockMode", "Full");
             if (mode.equals("Off")) {
@@ -1716,11 +1720,6 @@ public class LauncherActivity extends Activity {
 
                 if (itemA instanceof ViewGroup && ((ViewGroup) itemA).getChildCount() > 0) {
                     View card = ((ViewGroup) itemA).getChildAt(0);
-                    card.requestFocus();
-                }
-
-                if (itemA instanceof ViewGroup) {
-                    View card = ((ViewGroup) itemA).getChildAt(0);
                     if (card != null) card.requestFocus();
                 }
             })
@@ -1761,7 +1760,6 @@ public class LauncherActivity extends Activity {
         }
         for (int i = 0; i < appList.size(); i++) {
             final int position = i; AppModel app = appList.get(i);
-            int appAccentColor = extractDrawableAccentColor(app.icon());
             LinearLayout itemContainer = new LinearLayout(this);
             itemContainer.setOrientation(LinearLayout.VERTICAL);
             itemContainer.setGravity(Gravity.CENTER_HORIZONTAL);
@@ -1818,13 +1816,6 @@ public class LauncherActivity extends Activity {
 
             final int tilePos = position;
             final int appCount = appList.size();
-            bannerCard.setOnKeyListener((v, kCode, evt) -> {
-                if (evt.getAction() == KeyEvent.ACTION_DOWN) {
-                    if (kCode == KeyEvent.KEYCODE_DPAD_RIGHT && tilePos == appCount - 1) return true;
-                    if (kCode == KeyEvent.KEYCODE_DPAD_LEFT && tilePos == 0) return true;
-                }
-                return false;
-            });
 
             bannerCard.setOnClickListener(v -> {
                 if (isMoveMode) {
@@ -1842,7 +1833,11 @@ public class LauncherActivity extends Activity {
                 if (launchIntent != null) { launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); startActivity(launchIntent); }
             });
                         bannerCard.setOnKeyListener((v, keyCode, event) -> {
-                if (isMoveMode && event.getAction() == android.view.KeyEvent.ACTION_DOWN) {
+                if (event.getAction() == android.view.KeyEvent.ACTION_DOWN) {
+                    if (!isMoveMode) {
+                        if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT && tilePos == appCount - 1) return true;
+                        if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT && tilePos == 0) return true;
+                    } else {
                     if (keyCode == android.view.KeyEvent.KEYCODE_DPAD_RIGHT) {
                         if (!isAnimatingMove && moveSourcePosition < appList.size() - 1) {
                             glideMoveTile(moveSourcePosition, moveSourcePosition + 1);
@@ -1871,6 +1866,7 @@ public class LauncherActivity extends Activity {
                             android.widget.Toast.makeText(this, "Tile position saved", android.widget.Toast.LENGTH_SHORT).show();
                         }
                         return true;
+                        }
                     }
                 }
                 return false;
@@ -2123,6 +2119,7 @@ public class LauncherActivity extends Activity {
         wallpaperHandler.removeCallbacks(wallpaperRunnable);
         
         try { unregisterReceiver(packageReceiver); } catch (Exception ignored) {}
+        try { com.tiny.launcher.weather.WeatherConfigServer.stop(); } catch (Exception ignored) {}
     }
 
     private String replacingBannerPkg = null;
@@ -2217,23 +2214,10 @@ public class LauncherActivity extends Activity {
         }
     }
 
-        private void launchBannerPicker(String pkg) {
-        replacingBannerPkg = pkg;
-        try {
-            Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-            intent.setType("image/*");
-            startActivityForResult(intent, 1003);
-        } catch (Exception e) {
-            try {
-                Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-                intent.setType("image/*");
-                startActivityForResult(intent, 1003);
-            } catch (Exception ignored) {}
-        }
-    }
+    
 
         private void openSelectBannerSubmenu(String targetPkg) {
-        replacingBannerPkg = targetPkg; isInSubmenu = true; drawerBackAction = () -> toggleSideDrawer(false);
+        replacingBannerPkg = targetPkg; isInSubmenu = true; drawerBackAction = () -> buildMainMenuInDrawer();
         sideDrawerContentScrollView.removeAllViews();
         if (drawerTitleView != null) drawerTitleView.setText("Select Banner");
         LinearLayout container = new LinearLayout(this); container.setOrientation(LinearLayout.VERTICAL);
@@ -2253,29 +2237,7 @@ public class LauncherActivity extends Activity {
         sideDrawerContentScrollView.addView(container); toggleSideDrawer(true);
     }
 
-        private void showFileManagerPickerInPopup(String pkgName, LinearLayout menuView, android.widget.PopupWindow popup) {
-        replacingBannerPkg = pkgName; menuView.removeAllViews();
-        TextView titleView = new TextView(this); titleView.setText("Select File Explorer"); titleView.setTextColor(Color.WHITE);
-        titleView.setTextSize(14); titleView.setGravity(Gravity.CENTER); titleView.setPadding(0, dpToPx(4), 0, dpToPx(6));
-        menuView.addView(titleView);
-        View divider = new View(this); divider.setBackgroundColor(Color.parseColor("#33FFFFFF"));
-        divider.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(1)));
-        menuView.addView(divider);
-        String[][] explorers = {{"Cx File Explorer", "com.cxinventor.file.explorer"}, {"X-plore", "com.lonelycatgames.Xplore"}, {"Solid Explorer", "pl.solidexplorer2"}, {"FX File Explorer", "nextapp.fx"}, {"Total Commander", "com.ghisler.android.TotalCommander"}, {"System Files", "com.google.android.documentsui"}, {"Native Explorer", "com.android.documentsui"}};
-        boolean found = false; PackageManager pm = getPackageManager();
-        for (String[] exp : explorers) {
-            String name = exp[0]; String pkg = exp[1];
-            try {
-                pm.getPackageInfo(pkg, 0); found = true;
-                addPopupMenuItem(menuView, "⧉", name, () -> {
-                    try { Intent intent = new Intent(Intent.ACTION_GET_CONTENT); intent.setType("image/*"); intent.setPackage(pkg); startActivityForResult(intent, 1003); }
-                    catch (Exception e) { try { Intent fb = new Intent(Intent.ACTION_OPEN_DOCUMENT); fb.setType("image/*"); fb.setPackage(pkg); startActivityForResult(fb, 1003); } catch (Exception ignored) {} }
-                }, popup);
-            } catch (Exception ignored) {}
-        }
-        if (!found) { TextView info = new TextView(this); info.setText("No file explorer installed."); info.setTextColor(Color.LTGRAY); info.setTextSize(12); info.setPadding(dpToPx(8), dpToPx(8), dpToPx(8), dpToPx(8)); menuView.addView(info); }
-        menuView.post(() -> { for (int i = 0; i < menuView.getChildCount(); i++) { View c = menuView.getChildAt(i); if (c.isFocusable()) { c.requestFocus(); break; } } });
-    }
+    
 
                 private void addPopupMenuItemNoDismiss(LinearLayout container, String iconSymbol, String labelText, Runnable onClick) {
         LinearLayout row = new LinearLayout(this); row.setOrientation(LinearLayout.HORIZONTAL); row.setGravity(Gravity.CENTER_VERTICAL);
@@ -2321,7 +2283,7 @@ public class LauncherActivity extends Activity {
                     } catch (Exception ignored) {}
                     final int cur = i + 1; runOnUiThread(() -> pd.setMessage("Downloading: " + cur + " / " + tot));
                 }
-                runOnUiThread(() -> { pd.dismiss(); android.widget.Toast.makeText(LauncherActivity.this, "Import Complete! Saved to Pictures/banners", android.widget.Toast.LENGTH_LONG).show(); renderAppBanners(); });
+                runOnUiThread(() -> { if (!isFinishing() && !isDestroyed()) { pd.dismiss(); android.widget.Toast.makeText(LauncherActivity.this, "Import Complete! Saved to Pictures/banners", android.widget.Toast.LENGTH_LONG).show(); renderAppBanners(); } });
             } catch (Exception e) { runOnUiThread(() -> { pd.dismiss(); android.widget.Toast.makeText(LauncherActivity.this, "Import failed: " + e.getMessage(), android.widget.Toast.LENGTH_LONG).show(); }); }
         }).start();
     }

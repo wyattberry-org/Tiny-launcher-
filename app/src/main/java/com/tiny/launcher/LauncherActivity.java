@@ -1059,17 +1059,7 @@ public class LauncherActivity extends Activity {
         LinearLayout container = new LinearLayout(this);
         container.setOrientation(LinearLayout.VERTICAL);
 
-        TextView title = new TextView(this);
-        title.setText("About");
-        title.setTextColor(Color.WHITE);
-        title.setTextSize(18);
-        title.setPadding(dpToPx(12), 0, 0, dpToPx(16));
-        container.addView(title);
 
-        View divider = new View(this);
-        divider.setBackgroundColor(Color.parseColor("#33FFFFFF"));
-        divider.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(1)));
-        container.addView(divider);
 
         TextView infoText = new TextView(this);
         infoText.setText("Tiny Launcher v1.0\nPure Java 17 Android TV Launcher\nZero External Dependencies");

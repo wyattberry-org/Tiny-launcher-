@@ -1301,6 +1301,7 @@ public class LauncherActivity extends Activity {
                 String urlStr = "https://geocoding-api.open-meteo.com/v1/search?name=" + java.net.URLEncoder.encode(query, "UTF-8") + "&count=5";
                 java.net.HttpURLConnection conn = (java.net.HttpURLConnection) new java.net.URL(urlStr).openConnection();
                 conn.setRequestProperty("User-Agent", "Mozilla/5.0");
+                conn.setConnectTimeout(5000); conn.setReadTimeout(10000);
                 if (conn.getResponseCode() == 200) {
                     java.io.BufferedReader r = new java.io.BufferedReader(new java.io.InputStreamReader(conn.getInputStream()));
                     StringBuilder sb = new StringBuilder(); String line;
@@ -1838,7 +1839,7 @@ public class LauncherActivity extends Activity {
                     return;
                 }
                 Intent launchIntent = getPackageManager().getLaunchIntentForPackage(app.packageName());
-                if (launchIntent != null) startActivity(launchIntent);
+                if (launchIntent != null) { launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); startActivity(launchIntent); }
             });
                         bannerCard.setOnKeyListener((v, keyCode, event) -> {
                 if (isMoveMode && event.getAction() == android.view.KeyEvent.ACTION_DOWN) {
@@ -2000,7 +2001,6 @@ public class LauncherActivity extends Activity {
             startActivity(unIntent);
         }, popup);
 
-        boolean hasCustomBanner = getFileStreamPath("banner_" + app.packageName() + ".png").exists() || getFileStreamPath("banner_" + app.packageName() + ".jpg").exists();
         addPopupMenuItemNoDismiss(menuView, "⧉", "Replace Banner", () -> showFileManagerPickerInSameWindow(app, menuView, popup));
 
 
@@ -2204,6 +2204,7 @@ public class LauncherActivity extends Activity {
                 while ((len = in.read(buf)) > 0) out.write(buf, 0, len);
                 renderAppBanners();
             } catch (Exception ignored) {}
+            replacingBannerPkg = null;
         }
         if (requestCode == 1001 && resultCode == RESULT_OK && data != null && data.getData() != null) {
             try (java.io.InputStream in = getContentResolver().openInputStream(data.getData());
@@ -2314,11 +2315,9 @@ public class LauncherActivity extends Activity {
                 for (int i = 0; i < tot; i++) {
                     String itemPath = items.get(i); String fName = itemPath.substring(itemPath.lastIndexOf('/') + 1);
                     File outFile = new File(bDir, fName);
-                    try {
-                        java.io.InputStream in = new java.net.URL("https://raw.githubusercontent.com/wyattberry-org/launcher-banners/main/" + itemPath).openStream();
-                        java.io.FileOutputStream out = new java.io.FileOutputStream(outFile);
+                    try (java.io.InputStream in = new java.net.URL("https://raw.githubusercontent.com/wyattberry-org/launcher-banners/main/" + itemPath).openStream();
+                         java.io.FileOutputStream out = new java.io.FileOutputStream(outFile)) {
                         byte[] buf = new byte[8192]; int len; while ((len = in.read(buf)) > 0) out.write(buf, 0, len);
-                        out.close(); in.close();
                     } catch (Exception ignored) {}
                     final int cur = i + 1; runOnUiThread(() -> pd.setMessage("Downloading: " + cur + " / " + tot));
                 }

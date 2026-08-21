@@ -629,20 +629,30 @@ public class LauncherActivity extends Activity {
         }
     }
 
-    private void openTileSettingsSubmenu() {
-        isInSubmenu = true; drawerBackAction = () -> buildMainMenuInDrawer();
-        sideDrawerContentScrollView.removeAllViews();
-        if (drawerTitleView != null) drawerTitleView.setText("Tile menu");
+    private LinearLayout createSubmenuContainer(String title) { return createSubmenuContainer(title, this::buildMainMenuInDrawer); }
+    private LinearLayout createSubmenuContainer(String title, Runnable backAction) {
+        isInSubmenu = true; drawerBackAction = backAction != null ? backAction : this::buildMainMenuInDrawer;
+        if (sideDrawerContentScrollView != null) sideDrawerContentScrollView.removeAllViews();
+        if (drawerTitleView != null) drawerTitleView.setText(title);
         LinearLayout container = new LinearLayout(this); container.setOrientation(LinearLayout.VERTICAL);
+        if (sideDrawerContentScrollView != null) sideDrawerContentScrollView.addView(container);
+        return container;
+    }
+    private void finalizeSubmenuFocus(LinearLayout c) {
+        if (c != null) c.post(() -> { if (c.getChildCount() > 0) c.getChildAt(0).requestFocus(); });
+    }
+
+    private void openTileSettingsSubmenu() {
+        LinearLayout container = createSubmenuContainer("Tile menu");
         addTileMenuRow(container, "◠", "Tiles corner radius", "TileCornerRadius", 30, 0, 90, 5, "°", this::applyTileStyles);
         addTileMenuRow(container, "◫", "Tile size", "TileSize", 160, 100, 200, 10, "dp", this::applyTileStyles);
         addTileMenuRow(container, "↕", "Row position", "TileRowPosition", 0, -50, 50, 10, "dp", this::applyTileRowPosition);
         addTileMenuRow(container, "Aa", "Text size", "TileTextSize", 14, 10, 20, 1, "sp", this::applyTileStyles);
         addTileMenuRow(container, "⇕", "Text position", "TileTextPosition", 0, -150, 0, 2, "dp", this::applyTileStyles);
         addTileBackgroundColorMenuItem(container);
-        sideDrawerContentScrollView.addView(container);
-        container.post(() -> { if (container.getChildCount() > 0) container.getChildAt(0).requestFocus(); });
+        finalizeSubmenuFocus(container);
     }
+
     private void addTileMenuRow(LinearLayout c, String sym, String title, String key, int def, int min, int max, int step, String unit, Runnable onChg) {
         int val = prefs.getInt(key, def); boolean isS = key.equals("TileRowPosition") || key.equals("TileTextPosition");
         View row = addDrawerStatusItem(c, sym, title, (isS && val > 0 ? "+" : "") + val + unit, null); if (row == null) return;
@@ -1006,47 +1016,18 @@ public class LauncherActivity extends Activity {
     }
 
     private void openSetWallpaperSubmenu() {
-        isInSubmenu = true;
-        drawerBackAction = () -> openWallpaperSubmenu();
-        sideDrawerContentScrollView.removeAllViews();
-        if (drawerTitleView != null) drawerTitleView.setText("Set wallpaper");
-        LinearLayout container = new LinearLayout(this); container.setOrientation(LinearLayout.VERTICAL);
-
-        String[][] explorers = {
-            {"Cx File Explorer", "com.cxinventor.file.explorer"},
-            {"X-plore", "com.lonelycatgames.Xplore"},
-            {"Solid Explorer", "pl.solidexplorer2"},
-            {"FX File Explorer", "nextapp.fx"},
-            {"Total Commander", "com.ghisler.android.TotalCommander"},
-            {"System Files", "com.google.android.documentsui"},
-            {"Native Explorer", "com.android.documentsui"}
-        };
-
-        boolean found = false;
-        android.content.pm.PackageManager pm = getPackageManager();
-        for (String[] exp : explorers) {
-            String name = exp[0]; String pkg = exp[1];
+        LinearLayout container = createSubmenuContainer("Set wallpaper", this::openWallpaperSubmenu);
+        boolean found = false; PackageManager pm = getPackageManager();
+        for (String[] exp : EXPLORER_APPS) {
+            String name = exp[0], pkg = exp[1];
             try {
-                pm.getPackageInfo(pkg, 0);
-                found = true;
+                pm.getPackageInfo(pkg, 0); found = true;
                 addDrawerMenuItem(container, "⧉", Color.parseColor("#5A5E6B"), name, () -> {
-                    try {
-                        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-                        intent.setType("image/*");
-                        intent.setPackage(pkg);
-                        startActivityForResult(intent, 1001);
-                    } catch (Exception e) {
-                        try {
-                            Intent fb = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-                            fb.setType("image/*");
-                            fb.setPackage(pkg);
-                            startActivityForResult(fb, 1001);
-                        } catch (Exception ignored) {}
-                    }
+                    try { Intent it = new Intent(Intent.ACTION_GET_CONTENT); it.setType("image/*"); it.setPackage(pkg); startActivityForResult(it, 1001); }
+                    catch (Exception e) { try { Intent fb = new Intent(Intent.ACTION_OPEN_DOCUMENT); fb.setType("image/*"); fb.setPackage(pkg); startActivityForResult(fb, 1001); } catch (Exception ignored) {} }
                 });
             } catch (Exception ignored) {}
         }
-
         if (!found) {
             TextView info = new TextView(this);
             info.setText("No file explorer installed.\n" + "Please install Cx File Explorer or X-plore.");
@@ -1404,27 +1385,6 @@ public class LauncherActivity extends Activity {
     }
 
     
-
-    private void addWeatherPositionRow(LinearLayout c, String sym, String title, String key, int def, int min, int max, int step, Runnable onChg) {
-        int val = prefs.getInt(key, def);
-        View row = addDrawerStatusItem(c, sym, title, (val > 0 ? "+" : "") + val + "dp", null);
-        if (row == null) return;
-        row.setLayoutParams(new LinearLayout.LayoutParams(-1, -2));
-        int id = View.generateViewId(); row.setId(id); row.setNextFocusLeftId(id); row.setNextFocusRightId(id);
-        row.setOnKeyListener((v, kCode, evt) -> {
-            if (evt.getAction() != KeyEvent.ACTION_DOWN) return false;
-            if (kCode == KeyEvent.KEYCODE_DPAD_RIGHT || kCode == KeyEvent.KEYCODE_DPAD_LEFT) {
-                int cVal = prefs.getInt(key, def);
-                int nVal = (kCode == KeyEvent.KEYCODE_DPAD_RIGHT) ? Math.min(max, cVal + step) : Math.max(min, cVal - step);
-                prefs.edit().putInt(key, nVal).apply();
-                TextView tv = row.findViewById(1001);
-                if (tv != null) tv.setText((nVal > 0 ? "+" : "") + nVal + "dp");
-                if (onChg != null) onChg.run();
-                return true;
-            }
-            return false;
-        });
-    }
 
     private void applyClockPosition() {
         if (clockTextView == null) return;
@@ -2337,7 +2297,7 @@ public class LauncherActivity extends Activity {
     private void showProjectivyBannerImportDialog() {
         new android.app.AlertDialog.Builder(this)
             .setTitle("Import Banners")
-            .setMessage("Love would you like to import 857 banners (~10mb) from Projectivy icon pack ?")
+            .setMessage("Would you like to import 857 banners (~10mb) from Projectivy icon pack?")
             .setNegativeButton("No", (dialog, which) -> dialog.dismiss())
             .setPositiveButton("Yes", (dialog, which) -> startProjectivyBannerDownload())
             .show();
@@ -2436,4 +2396,6 @@ public class LauncherActivity extends Activity {
             else loadWallpapers();
         }
     }
-}
+}addTileMenuRow(container, "↕︎", "Widget position vertical", "WeatherWidgetPosY", 0, -15, 450, 5, "dp", this::applyWeatherWidgetPosition);
+        addTileMenuRow(container, "↔︎", "Widget position horizontal", "WeatherWidgetPosX", 0, -35, 620, 5, "dp", this::applyWeatherWidgetPosition);
+        

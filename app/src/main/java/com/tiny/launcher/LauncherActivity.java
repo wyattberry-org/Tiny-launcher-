@@ -1329,7 +1329,7 @@ public class LauncherActivity extends Activity {
                 Bitmap bmp = BitmapFactory.decodeStream(in);
                 runOnUiThread(() -> { if (!isFinishing() && !isDestroyed()) { qrImg.setImageBitmap(bmp); qrImg.setPadding(0, 20, 0, 0); } });
             } catch (Exception ignored) {}
-        }).start();
+        });
         builder.setView(container).setNegativeButton("Close", (dialog, which) -> dialog.dismiss());
         AlertDialog dlg = builder.create();
         dlg.setOnDismissListener(d -> com.tiny.launcher.weather.WeatherConfigServer.stop());
@@ -1377,8 +1377,8 @@ public class LauncherActivity extends Activity {
                     }
                 }
                 runOnUiThread(() -> Toast.makeText(LauncherActivity.this, "No locations found for " + query, Toast.LENGTH_SHORT).show());
-            } catch (Exception e) { runOnUiThread(() -> Toast.makeText(LauncherActivity.this, "Search failed: " + e.getMessage(), Toast.LENGTH_SHORT).show()); }
-        }).start();
+            } catch (Exception e) { runOnUiThread(() -> { if (!isFinishing() && !isDestroyed()) Toast.makeText(LauncherActivity.this, "Search failed: " + e.getMessage(), Toast.LENGTH_SHORT).show(); }); }
+        });
     }
 
     

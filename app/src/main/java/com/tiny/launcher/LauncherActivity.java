@@ -363,6 +363,10 @@ public class LauncherActivity extends Activity {
         resetIdleTimer();
         if (event.getAction() == android.view.KeyEvent.ACTION_DOWN) {
             int keyCode = event.getKeyCode();
+            if (keyCode == KeyEvent.KEYCODE_PROG_RED) { launchColorShortcut("RedShortcut"); return true; }
+            if (keyCode == KeyEvent.KEYCODE_PROG_GREEN) { launchColorShortcut("GreenShortcut"); return true; }
+            if (keyCode == KeyEvent.KEYCODE_PROG_YELLOW) { launchColorShortcut("YellowShortcut"); return true; }
+            if (keyCode == KeyEvent.KEYCODE_PROG_BLUE) { launchColorShortcut("BlueShortcut"); return true; }
             if (keyCode == android.view.KeyEvent.KEYCODE_HOME) {
                 resetToHomeScreenAndFocusFirstTile();
                 return true;
@@ -1521,22 +1525,24 @@ public class LauncherActivity extends Activity {
     private void extractAccentColorFromBitmap(Bitmap bitmap) {
         if (bitmap == null) return;
         bgExecutor.execute(() -> {
-            int width = bitmap.getWidth(), height = bitmap.getHeight();
-            int maxSatPixel = Color.parseColor("#007AFF"); float maxSat = -1f; float[] hsv = new float[3];
-            for (int x = 0; x < width; x += Math.max(1, width / 20)) {
-                for (int y = 0; y < height; y += Math.max(1, height / 20)) {
-                    int pixel = bitmap.getPixel(x, y);
-                    Color.colorToHSV(pixel, hsv);
-                    if (hsv[1] > maxSat && hsv[2] > 0.3f && hsv[2] < 0.9f) { maxSat = hsv[1]; maxSatPixel = pixel; }
+            try {
+                Bitmap thumb = Bitmap.createScaledBitmap(bitmap, 40, 24, false);
+                int[] pixels = new int[40 * 24];
+                thumb.getPixels(pixels, 0, 40, 0, 0, 40, 24);
+                thumb.recycle();
+                int maxSatPixel = Color.parseColor("#007AFF"); float maxSat = -1f; float[] hsv = new float[3];
+                for (int p : pixels) {
+                    Color.colorToHSV(p, hsv);
+                    if (hsv[1] > maxSat && hsv[2] > 0.3f && hsv[2] < 0.9f) { maxSat = hsv[1]; maxSatPixel = p; }
                 }
-            }
-            int finalColor = maxSatPixel;
-            runOnUiThread(() -> {
-                if (isFinishing() || isDestroyed()) return;
-                int oldColor = getTileBackgroundColor();
-                currentAccentColor = finalColor;
-                animateTileAccentSweep(oldColor);
-            });
+                final int finalColor = maxSatPixel;
+                runOnUiThread(() -> {
+                    if (isFinishing() || isDestroyed()) return;
+                    int oldColor = getTileBackgroundColor();
+                    currentAccentColor = finalColor;
+                    animateTileAccentSweep(oldColor);
+                });
+            } catch (Exception ignored) {}
         });
     }
 
@@ -2152,6 +2158,13 @@ public class LauncherActivity extends Activity {
             discoveredApps.put(pkg, new AppModel(name, icon, pkg, false));
         }
 
+        String customOrder = prefs.getString("CustomAppOrder", "");
+        if (!customOrder.isEmpty()) {
+            for (String pkg : customOrder.split(",")) {
+                AppModel model = discoveredApps.remove(pkg);
+                if (model != null) appList.add(model);
+            }
+        }
         appList.addAll(discoveredApps.values());
         
         renderAppBanners();

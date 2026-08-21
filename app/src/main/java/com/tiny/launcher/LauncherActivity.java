@@ -1822,6 +1822,11 @@ public class LauncherActivity extends Activity {
         } catch (Exception e) { return Color.parseColor("#007AFF"); }
     }
 
+    private void launchColorShortcut(String key) {
+        String pkg = prefs.getString(key, null);
+        if (pkg != null && !pkg.isEmpty()) launchAppByPackage(pkg);
+    }
+
     private void launchAppByPackage(String packageName) {
         if (packageName == null) return;
         Intent intent = getPackageManager().getLeanbackLaunchIntentForPackage(packageName);

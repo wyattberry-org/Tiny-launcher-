@@ -11,7 +11,7 @@ This launcher was tested on a **Xiaomi Mi Box S (Gen 3)** connected to a **Samsu
 ---
 
 ## ⚡ Key Stats
-* **APK Size:** Only **~0.6 MB**
+* **APK Size:** Only **~0.28 MB**
 * **CPU:** **0.0%** at idle
 * **RAM:** **~50 MB** when wallpaper resolution is set to 2K (saving ~100 MB over standard 4K setups)
 

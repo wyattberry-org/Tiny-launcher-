@@ -1322,7 +1322,7 @@ public class LauncherActivity extends Activity {
         msg.setText("1. Connect iPhone to same Wi-Fi\n2. Open Safari and go to:\n\n" + webUrl + "\n\nServer active while popup is open.");
         msg.setTextColor(Color.WHITE); msg.setTextSize(15); container.addView(msg);
         ImageView qrImg = new ImageView(this); container.addView(qrImg);
-        new Thread(() -> {
+        bgExecutor.execute(() -> {
             try {
                 String qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=" + java.net.URLEncoder.encode(webUrl, "UTF-8");
                 java.io.InputStream in = new java.net.URL(qrUrl).openStream();
@@ -1344,7 +1344,7 @@ public class LauncherActivity extends Activity {
 
         private void searchAndEnrollLocation(String query) {
         if (query.isEmpty()) return;
-        new Thread(() -> {
+        bgExecutor.execute(() -> {
             try {
                 String urlStr = "https://geocoding-api.open-meteo.com/v1/search?name=" + java.net.URLEncoder.encode(query, "UTF-8") + "&count=5";
                 java.net.HttpURLConnection conn = (java.net.HttpURLConnection) new java.net.URL(urlStr).openConnection();
@@ -1527,7 +1527,7 @@ public class LauncherActivity extends Activity {
 
     private void extractAccentColorFromBitmap(Bitmap bitmap) {
         if (bitmap == null) return;
-        new Thread(() -> {
+        bgExecutor.execute(() -> {
             int width = bitmap.getWidth(), height = bitmap.getHeight();
             int maxSatPixel = Color.parseColor("#007AFF"); float maxSat = -1f; float[] hsv = new float[3];
             for (int x = 0; x < width; x += Math.max(1, width / 20)) {
@@ -1539,11 +1539,12 @@ public class LauncherActivity extends Activity {
             }
             int finalColor = maxSatPixel;
             runOnUiThread(() -> {
+                if (isFinishing() || isDestroyed()) return;
                 int oldColor = getTileBackgroundColor();
                 currentAccentColor = finalColor;
                 animateTileAccentSweep(oldColor);
             });
-        }).start();
+        });
     }
 
     private Bitmap decodeSampledBitmap(String path, int reqW, int reqH) {
@@ -2322,9 +2323,10 @@ public class LauncherActivity extends Activity {
     }
 
     private void startProjectivyBannerDownload() {
+        if (isFinishing() || isDestroyed()) return;
         android.app.ProgressDialog pd = new android.app.ProgressDialog(this);
         pd.setTitle("Importing Banners"); pd.setMessage("Connecting to GitHub..."); pd.setCancelable(false); pd.show();
-        new Thread(() -> {
+        bgExecutor.execute(() -> {
             try {
                 File bDir = new File(android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_PICTURES), "banners");
                 if (!bDir.exists()) bDir.mkdirs();

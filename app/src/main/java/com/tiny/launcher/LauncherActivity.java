@@ -1029,17 +1029,14 @@ public class LauncherActivity extends Activity {
             } catch (Exception ignored) {}
         }
         if (!found) {
-            TextView info = new TextView(this);
-            info.setText("No file explorer installed.\n" + "Please install Cx File Explorer or X-plore.");
-            info.setTextColor(Color.LTGRAY); info.setTextSize(14);
-            info.setPadding(dpToPx(12), dpToPx(12), dpToPx(12), dpToPx(12));
+            TextView info = new TextView(this); info.setText("No file explorer installed.\nPlease install Cx File Explorer or X-plore.");
+            info.setTextColor(Color.LTGRAY); info.setTextSize(14); info.setPadding(dpToPx(12), dpToPx(12), dpToPx(12), dpToPx(12));
             container.addView(info);
         }
-
-        sideDrawerContentScrollView.addView(container);
+        finalizeSubmenuFocus(container);
     }
 
-                    private int countWallpapersInFolder(File dir) {
+    private int countWallpapersInFolder(File dir) {
         if (dir == null || !dir.exists() || !dir.isDirectory()) return 0;
         File[] files = dir.listFiles((d, name) -> {
             String n = name.toLowerCase();
@@ -1385,6 +1382,27 @@ public class LauncherActivity extends Activity {
     }
 
     
+
+    private void addWeatherPositionRow(LinearLayout c, String sym, String title, String key, int def, int min, int max, int step, Runnable onChg) {
+        int val = prefs.getInt(key, def);
+        View row = addDrawerStatusItem(c, sym, title, (val > 0 ? "+" : "") + val + "dp", null);
+        if (row == null) return;
+        row.setLayoutParams(new LinearLayout.LayoutParams(-1, -2));
+        int id = View.generateViewId(); row.setId(id); row.setNextFocusLeftId(id); row.setNextFocusRightId(id);
+        row.setOnKeyListener((v, kCode, evt) -> {
+            if (evt.getAction() != KeyEvent.ACTION_DOWN) return false;
+            if (kCode == KeyEvent.KEYCODE_DPAD_RIGHT || kCode == KeyEvent.KEYCODE_DPAD_LEFT) {
+                int cVal = prefs.getInt(key, def);
+                int nVal = (kCode == KeyEvent.KEYCODE_DPAD_RIGHT) ? Math.min(max, cVal + step) : Math.max(min, cVal - step);
+                prefs.edit().putInt(key, nVal).apply();
+                TextView tv = row.findViewById(1001);
+                if (tv != null) tv.setText((nVal > 0 ? "+" : "") + nVal + "dp");
+                if (onChg != null) onChg.run();
+                return true;
+            }
+            return false;
+        });
+    }
 
     private void applyClockPosition() {
         if (clockTextView == null) return;
@@ -2396,6 +2414,4 @@ public class LauncherActivity extends Activity {
             else loadWallpapers();
         }
     }
-}addTileMenuRow(container, "↕︎", "Widget position vertical", "WeatherWidgetPosY", 0, -15, 450, 5, "dp", this::applyWeatherWidgetPosition);
-        addTileMenuRow(container, "↔︎", "Widget position horizontal", "WeatherWidgetPosX", 0, -35, 620, 5, "dp", this::applyWeatherWidgetPosition);
-        
+}

@@ -1,1 +1,0 @@
-cat /dev/clipboard > test.py && python3 test.py

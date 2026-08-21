@@ -1924,8 +1924,10 @@ public class LauncherActivity extends Activity {
                         bannerCard.setOnKeyListener((v, keyCode, event) -> {
                 if (event.getAction() == android.view.KeyEvent.ACTION_DOWN) {
                     if (!isMoveMode) {
-                        if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT && tilePos == appCount - 1) return true;
-                        if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT && tilePos == 0) return true;
+                        int curIdx = horizontalAppContainer != null ? horizontalAppContainer.indexOfChild(itemContainer) : -1;
+                        int total = horizontalAppContainer != null ? horizontalAppContainer.getChildCount() : 0;
+                        if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT && curIdx >= total - 1 && curIdx != -1) return true;
+                        if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT && curIdx <= 0 && curIdx != -1) return true;
                     } else {
                     if (keyCode == android.view.KeyEvent.KEYCODE_DPAD_RIGHT) {
                         if (!isAnimatingMove && moveSourcePosition < appList.size() - 1) {

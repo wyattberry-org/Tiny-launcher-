@@ -37,7 +37,7 @@ This launcher was tested on a **Xiaomi Mi Box S (Gen 3)** connected to a **Samsu
 * Adjust the size, horizontal position, vertical position, and display mode (Full, Time Only, or Off).
 
 ### 🖼️ Wallpaper & Slideshow Engine
-* **Resolution Control:** Choose between **4K ARGB8888** or **2K RGB565** to keep memory usage under ~50 MB.
+* **Resolution Control:** Choose between **4K ARGB8888** or **2K ARGB8888** to keep memory usage under ~50 MB.
 * **Fast-Forward at Boot:** Enable "Change each restart" to fast-forward 10 wallpapers every boot so you always get fresh art on screen.
 
 ### 🎨 Clean UI

@@ -2,7 +2,7 @@
 
 I built this launcher entirely on an **iPhone 13 Pro Max using the iSH terminal and GitHub**.
 
-I originally made it just for myself because I couldn't find a lightweight launcher that had a proper, customizable weather widget that could work with custom APIs. I figured I'd share it here in case anyone else wants to try it out.
+I originally made it just for myself because I couldn't find a lightweight launcher that had a proper, customizable weather widget that could work with custom APIs. I am sharing it here on GitHub for anyone who wants to try it out.
 
 This launcher was tested on a **Xiaomi Mi Box S (Gen 3)** connected to a **Samsung 55" 4K UHD TV** (with an iPhone for web setup), but it should work on any Android TV device.
 
@@ -28,6 +28,10 @@ This launcher was tested on a **Xiaomi Mi Box S (Gen 3)** connected to a **Samsu
 * **Multiple Weather Sources:** Works with town/city name search, free weather providers (Open-Meteo), or your own **Shelly Cloud API** if you use external smart home sensors.
 * **iPhone Web Setup (Zero Remote Typing):** Scan the on-screen QR code with your iPhone to open Safari and paste your API keys directly into the TV.
 * **Customizable Placement:** Resize and reposition the weather widget anywhere on your screen.
+### 🛡️ Parental Control
+* **Simple D-Pad Passcodes:** Set quick arrow-key passcode combinations (e.g. `► ► ◄`, `▲ ▲ ◄`) directly with your remote control.
+* **Child-Proof Settings:** Keeps little ones from opening settings or messing with your launcher setup. Tested and verified against my 2, 4, and 6-year-olds.
+
 ### ⏱️ Clock & Date Customization
 * Adjust the size, horizontal position, vertical position, and display mode (Full, Time Only, or Off).
 

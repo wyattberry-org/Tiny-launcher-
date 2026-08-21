@@ -2348,9 +2348,9 @@ public class LauncherActivity extends Activity {
                     } catch (Exception ignored) {}
                     final int cur = i + 1; runOnUiThread(() -> pd.setMessage("Downloading: " + cur + " / " + tot));
                 }
-                runOnUiThread(() -> { if (!isFinishing() && !isDestroyed()) { pd.dismiss(); android.widget.Toast.makeText(LauncherActivity.this, "Import Complete! Saved to Pictures/banners", android.widget.Toast.LENGTH_LONG).show(); renderAppBanners(); } });
-            } catch (Exception e) { runOnUiThread(() -> { pd.dismiss(); android.widget.Toast.makeText(LauncherActivity.this, "Import failed: " + e.getMessage(), android.widget.Toast.LENGTH_LONG).show(); }); }
-        }).start();
+                runOnUiThread(() -> { if (!isFinishing() && !isDestroyed()) { pd.dismiss(); Toast.makeText(LauncherActivity.this, "Import Complete! Saved to Pictures/banners", Toast.LENGTH_LONG).show(); renderAppBanners(); } });
+            } catch (Exception e) { runOnUiThread(() -> { if (!isFinishing() && !isDestroyed()) { pd.dismiss(); Toast.makeText(LauncherActivity.this, "Import failed: " + e.getMessage(), Toast.LENGTH_LONG).show(); } }); }
+        });
     }
 
     private void showFileManagerPickerInSameWindow(AppModel app, LinearLayout menuView, android.widget.PopupWindow popup) {

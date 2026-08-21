@@ -194,9 +194,29 @@ public class LauncherActivity extends Activity {
 
         // Settings Gear Icon (Right)
         settingsGear = new ImageView(this);
-        settingsGear.setImageResource(android.R.drawable.ic_menu_preferences);
+        settingsGear.setImageResource(R.drawable.ic_settings_gear);
         settingsGear.setFocusable(true);
-        settingsGear.setPadding(15, 15, 15, 15);
+        settingsGear.setFocusableInTouchMode(true);
+        int pad = dpToPx(8);
+        settingsGear.setPadding(pad, pad, pad, pad);
+        settingsGear.setLayoutParams(new LinearLayout.LayoutParams(dpToPx(38), dpToPx(38)));
+
+        GradientDrawable unfocusedBadge = new GradientDrawable();
+        unfocusedBadge.setShape(GradientDrawable.OVAL);
+        unfocusedBadge.setColor(Color.parseColor("#26FFFFFF"));
+
+        GradientDrawable focusedBadge = new GradientDrawable();
+        focusedBadge.setShape(GradientDrawable.OVAL);
+        focusedBadge.setColor(Color.parseColor("#55FFFFFF"));
+        focusedBadge.setStroke(dpToPx(1), Color.parseColor("#00E5FF"));
+
+        settingsGear.setBackground(unfocusedBadge);
+
+        settingsGear.setOnFocusChangeListener((v, hasFocus) -> {
+            v.animate().scaleX(hasFocus ? 1.25f : 1.0f).scaleY(hasFocus ? 1.25f : 1.0f).setDuration(150).start();
+            v.setBackground(hasFocus ? focusedBadge : unfocusedBadge);
+        });
+
         settingsGear.setOnClickListener(v -> {
             if (prefs.getBoolean("ParentalControlEnabled", false)) {
                 verifyParentalPasscode(() -> toggleSideDrawer(true));
@@ -213,7 +233,6 @@ public class LauncherActivity extends Activity {
             return true;
         });
 
-        
         topWidgetRow.addView(clockTextView);
         applyClockPosition();
         topWidgetRow.addView(settingsGear);

@@ -410,25 +410,26 @@ public class LauncherActivity extends Activity {
     }
 
     private void toggleSideDrawer(boolean open) {
-    isSideDrawerOpen = open;
-    if (horizontalAppScrollView != null) {
-        horizontalAppScrollView.setDescendantFocusability(
-            open ? ViewGroup.FOCUS_BLOCK_DESCENDANTS : ViewGroup.FOCUS_AFTER_DESCENDANTS);
-    }
+        isSideDrawerOpen = open;
+        if (horizontalAppScrollView != null) {
+            horizontalAppScrollView.setDescendantFocusability(open ? ViewGroup.FOCUS_BLOCK_DESCENDANTS : ViewGroup.FOCUS_AFTER_DESCENDANTS);
+        }
+        if (topWidgetRow != null) {
+            topWidgetRow.setDescendantFocusability(open ? ViewGroup.FOCUS_BLOCK_DESCENDANTS : ViewGroup.FOCUS_AFTER_DESCENDANTS);
+        }
+        if (settingsGear != null) {
+            settingsGear.setFocusable(!open);
+            settingsGear.setFocusableInTouchMode(!open);
+        }
         if (open) {
-            if (!isInSubmenu) {
-                lastMainMenuIdx = 0;
-                buildMainMenuInDrawer();
-            }
+            if (!isInSubmenu) { lastMainMenuIdx = 0; buildMainMenuInDrawer(); }
             sideDrawerContainer.setVisibility(View.VISIBLE);
             sideDrawerContainer.animate().translationX(0f).setDuration(250).start();
         } else {
             lastFocusedAppIdx = 0;
             if (horizontalAppContainer != null && horizontalAppContainer.getChildCount() > 0) {
                 View firstTile = horizontalAppContainer.getChildAt(0);
-                if (firstTile != null) {
-                    firstTile.post(() -> firstTile.requestFocus());
-                }
+                if (firstTile != null) firstTile.post(() -> firstTile.requestFocus());
             }
             sideDrawerContainer.animate().translationX(dpToPx(360)).setDuration(200)
                     .withEndAction(() -> sideDrawerContainer.setVisibility(View.GONE)).start();
@@ -735,42 +736,16 @@ public class LauncherActivity extends Activity {
     }
 
     private void openManageAppsSubmenu() {
-        isInSubmenu = true;
-        drawerBackAction = () -> buildMainMenuInDrawer();
-        sideDrawerContainer.removeAllViews();
-
-        TextView titleView = new TextView(this);
-        titleView.setText("Manage apps");
-        titleView.setTextColor(Color.WHITE);
-        titleView.setTextSize(18);
-        titleView.setPadding(dpToPx(12), 0, 0, dpToPx(16));
-        sideDrawerContainer.addView(titleView);
-
-        View divider = new View(this);
-        divider.setBackgroundColor(Color.parseColor("#33FFFFFF"));
-        divider.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(1)));
-        sideDrawerContainer.addView(divider);
-
-        View topSpacer = new View(this);
-        topSpacer.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(8)));
-        sideDrawerContainer.addView(topSpacer);
-
-        sideDrawerContentScrollView = new ScrollView(this);
-        sideDrawerContentScrollView.setVerticalScrollBarEnabled(false);
-        sideDrawerContentScrollView.setLayoutParams(new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1.0f));
-
-        LinearLayout container = new LinearLayout(this);
-        container.setOrientation(LinearLayout.VERTICAL);
-
+        isInSubmenu = true; drawerBackAction = () -> buildMainMenuInDrawer();
+        sideDrawerContentScrollView.removeAllViews();
+        if (drawerTitleView != null) drawerTitleView.setText("Manage apps");
+        LinearLayout container = new LinearLayout(this); container.setOrientation(LinearLayout.VERTICAL);
         Set<String> hidden = prefs.getStringSet("HiddenApps", new HashSet<>());
-
         if (hidden.isEmpty()) {
-            TextView emptyText = new TextView(this);
-            emptyText.setText("No hidden apps.");
-            emptyText.setTextColor(Color.GRAY);
-            emptyText.setTextSize(14);
-            emptyText.setPadding(dpToPx(12), dpToPx(16), dpToPx(12), dpToPx(16));
+            TextView emptyText = new TextView(this); emptyText.setText("No hidden apps."); emptyText.setTextColor(Color.GRAY);
+            emptyText.setTextSize(14); emptyText.setPadding(dpToPx(12), dpToPx(16), dpToPx(12), dpToPx(16));
+            emptyText.setFocusable(true); emptyText.setFocusableInTouchMode(true);
+            int id = View.generateViewId(); emptyText.setId(id); emptyText.setNextFocusLeftId(id); emptyText.setNextFocusRightId(id);
             container.addView(emptyText);
         } else {
             PackageManager pm = getPackageManager();
@@ -782,9 +757,8 @@ public class LauncherActivity extends Activity {
                 } catch (Exception ignored) {}
             }
         }
-
         sideDrawerContentScrollView.addView(container);
-        sideDrawerContainer.addView(sideDrawerContentScrollView);
+        container.post(() -> { if (container.getChildCount() > 0) container.getChildAt(0).requestFocus(); });
     }
 
     private void openButtonShortcutsSubmenu() {
@@ -987,34 +961,10 @@ public class LauncherActivity extends Activity {
     }
 
     private void openParentalControlSubmenu() {
-        isInSubmenu = true;
-        sideDrawerContainer.removeAllViews();
-
-        TextView titleView = new TextView(this);
-        titleView.setText("Parental control");
-        titleView.setTextColor(Color.WHITE);
-        titleView.setTextSize(18);
-        titleView.setPadding(dpToPx(12), 0, 0, dpToPx(16));
-        sideDrawerContainer.addView(titleView);
-
-        View divider = new View(this);
-        divider.setBackgroundColor(Color.parseColor("#33FFFFFF"));
-        divider.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(1)));
-        sideDrawerContainer.addView(divider);
-
-        View topSpacer = new View(this);
-        topSpacer.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(8)));
-        sideDrawerContainer.addView(topSpacer);
-
-        sideDrawerContentScrollView = new ScrollView(this);
-        sideDrawerContentScrollView.setVerticalScrollBarEnabled(false);
-        sideDrawerContentScrollView.setLayoutParams(new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1.0f));
-
-        LinearLayout container = new LinearLayout(this);
-        container.setOrientation(LinearLayout.VERTICAL);
-
-        drawerBackAction = () -> buildMainMenuInDrawer();
+        isInSubmenu = true; drawerBackAction = () -> buildMainMenuInDrawer();
+        sideDrawerContentScrollView.removeAllViews();
+        if (drawerTitleView != null) drawerTitleView.setText("Parental control");
+        LinearLayout container = new LinearLayout(this); container.setOrientation(LinearLayout.VERTICAL);
         boolean enabled = prefs.getBoolean("ParentalControlEnabled", false);
         View row1 = addDrawerStatusItem(container, "⚿", "Parental control", enabled ? "ON" : "OFF", null);
         row1.setOnClickListener(null);
@@ -1023,12 +973,9 @@ public class LauncherActivity extends Activity {
             if (kCode == KeyEvent.KEYCODE_DPAD_RIGHT || kCode == KeyEvent.KEYCODE_DPAD_LEFT) {
                 boolean cur = prefs.getBoolean("ParentalControlEnabled", false);
                 boolean next = !cur; prefs.edit().putBoolean("ParentalControlEnabled", next).apply();
-                TextView tv = row1.findViewById(1001); if (tv != null) tv.setText(next ? "ON" : "OFF");
-                return true;
-            }
-            return false;
+                TextView tv = row1.findViewById(1001); if (tv != null) tv.setText(next ? "ON" : "OFF"); return true;
+            } return false;
         });
-
         int passIndex = prefs.getInt("PasscodeIndex", 1);
         View row2 = addDrawerStatusItem(container, "⚿", "Passcode", PASSCODE_PRESETS[passIndex], null);
         row2.setOnClickListener(null);
@@ -1038,17 +985,14 @@ public class LauncherActivity extends Activity {
                 int idx = prefs.getInt("PasscodeIndex", 1);
                 int nIdx = (kCode == KeyEvent.KEYCODE_DPAD_RIGHT) ? (idx + 1) % PASSCODE_PRESETS.length : (idx - 1 + PASSCODE_PRESETS.length) % PASSCODE_PRESETS.length;
                 prefs.edit().putInt("PasscodeIndex", nIdx).apply();
-                TextView tv = row2.findViewById(1001); if (tv != null) tv.setText(PASSCODE_PRESETS[nIdx]);
-                return true;
-            }
-            return false;
+                TextView tv = row2.findViewById(1001); if (tv != null) tv.setText(PASSCODE_PRESETS[nIdx]); return true;
+            } return false;
         });
-
         sideDrawerContentScrollView.addView(container);
-        sideDrawerContainer.addView(sideDrawerContentScrollView);
+        container.post(() -> { if (container.getChildCount() > 0) container.getChildAt(0).requestFocus(); });
     }
 
-        private void openSetWallpaperSubmenu() {
+    private void openSetWallpaperSubmenu() {
         isInSubmenu = true;
         drawerBackAction = () -> openWallpaperSubmenu();
         sideDrawerContentScrollView.removeAllViews();

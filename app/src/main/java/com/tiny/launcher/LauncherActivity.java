@@ -117,6 +117,8 @@ public class LauncherActivity extends Activity {
     private float displayDensity = 1.0f;
     private final List<File> wallpaperFiles = new ArrayList<>();
     private int currentWallpaperIndex = 0;
+    private long lastWallpaperChangeTime = 0L;
+    private boolean isWallpaperLoaded = false;
     private boolean isSideDrawerOpen = false;
     private boolean isInSubmenu = false;
     private int lastMainMenuIdx = 0;
@@ -1616,6 +1618,7 @@ public class LauncherActivity extends Activity {
 
     private void startWallpaperRotation() {
         wallpaperHandler.removeCallbacks(wallpaperRunnable);
+        long interval = prefs.getLong("SlideshowInterval", 30000L);
 
         wallpaperRunnable = new Runnable() {
             @Override public void run() {
@@ -1626,31 +1629,53 @@ public class LauncherActivity extends Activity {
                         return;
                     }
                 }
-                if (!hasEvaluatedRestartWallpaper && prefs.getBoolean("ChangeEachRestart", false)) {
-                    hasEvaluatedRestartWallpaper = true;
-                    int last = prefs.getInt("LastWallpaperIndex", 0);
-                    currentWallpaperIndex = (last + 1) % wallpaperFiles.size();
-                } else {
-                    currentWallpaperIndex = currentWallpaperIndex % wallpaperFiles.size();
-                }
-                currentWallpaperIndex = currentWallpaperIndex % wallpaperFiles.size();
-                File file = wallpaperFiles.get(currentWallpaperIndex);
-                int[] targetRes = getWallpaperTargetResolution();
+                advanceWallpaper();
+                long curInt = prefs.getLong("SlideshowInterval", 30000L);
+                if (curInt > 0) wallpaperHandler.postDelayed(this, curInt);
+            }
+        };
+
+        if (!isWallpaperLoaded) {
+            wallpaperHandler.post(wallpaperRunnable);
+        } else if (interval > 0) {
+            long elapsed = System.currentTimeMillis() - lastWallpaperChangeTime;
+            long remaining = Math.max(1000L, interval - elapsed);
+            wallpaperHandler.postDelayed(wallpaperRunnable, remaining);
+        }
+    }
+
+    private void advanceWallpaper() {
+        if (wallpaperFiles.isEmpty()) return;
+        if (!hasEvaluatedRestartWallpaper && prefs.getBoolean("ChangeEachRestart", false)) {
+            hasEvaluatedRestartWallpaper = true;
+            int last = prefs.getInt("LastWallpaperIndex", 0);
+            currentWallpaperIndex = (last + 1) % wallpaperFiles.size();
+        } else {
+            currentWallpaperIndex = currentWallpaperIndex % wallpaperFiles.size();
+        }
+        final int targetIndex = currentWallpaperIndex;
+        File file = wallpaperFiles.get(targetIndex);
+        int[] targetRes = getWallpaperTargetResolution();
+
+        bgExecutor.execute(() -> {
             Bitmap bitmap = decodeSampledBitmap(file.getAbsolutePath(), targetRes[0], targetRes[1]);
-                if (bitmap != null) {
-                    View curF = getCurrentFocus(); wallpaperSwitcher.setFocusable(false);
+            if (bitmap != null) {
+                runOnUiThread(() -> {
+                    if (isFinishing() || isDestroyed()) return;
+                    View curF = getCurrentFocus();
+                    wallpaperSwitcher.setFocusable(false);
                     wallpaperSwitcher.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
                     wallpaperSwitcher.setImageDrawable(new BitmapDrawable(getResources(), bitmap));
                     extractAccentColorFromBitmap(bitmap);
                     if (curF != null) curF.post(() -> curF.requestFocus());
-                }
-                prefs.edit().putInt("LastWallpaperIndex", currentWallpaperIndex).apply();
-                currentWallpaperIndex = (currentWallpaperIndex + 1) % wallpaperFiles.size();
-                long interval = prefs.getLong("SlideshowInterval", 30000L);
-                if (interval > 0) wallpaperHandler.postDelayed(this, interval);
+
+                    lastWallpaperChangeTime = System.currentTimeMillis();
+                    isWallpaperLoaded = true;
+                    prefs.edit().putInt("LastWallpaperIndex", targetIndex).apply();
+                });
             }
-        };
-        wallpaperHandler.post(wallpaperRunnable);
+        });
+        currentWallpaperIndex = (currentWallpaperIndex + 1) % wallpaperFiles.size();
     }
 
     private void setupIdleAutoTimer() {

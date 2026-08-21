@@ -2190,7 +2190,8 @@ public class LauncherActivity extends Activity {
         String resName = null;
         String p = pkg.toLowerCase();
 
-        if (p.contains("youtube.tv") || p.contains("smarttube")) resName = "ic_youtube_tv";
+        if (p.contains("tiny") || pkg.equals(getPackageName())) resName = "banner";
+        else if (p.contains("youtube.tv") || p.contains("smarttube")) resName = "ic_youtube_tv";
         else if (p.contains("youtube.kids")) resName = "ic_youtube_kids";
         else if (p.contains("youtube")) resName = "ic_youtube";
         else if (p.contains("kodi")) resName = "ic_kodi";

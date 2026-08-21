@@ -81,6 +81,16 @@ public class LauncherActivity extends Activity {
     // --- Pure Java 17 Record ---
     public record AppModel(String name, Drawable icon, String packageName, boolean isLeanback) {}
 
+    private static final String[][] EXPLORER_APPS = {
+        {"Cx File Explorer", "com.cxinventor.file.explorer"},
+        {"X-plore", "com.lonelycatgames.Xplore"},
+        {"Solid Explorer", "pl.solidexplorer2"},
+        {"FX File Explorer", "nextapp.fx"},
+        {"Total Commander", "com.ghisler.android.TotalCommander"},
+        {"System Files", "com.google.android.documentsui"},
+        {"Native Explorer", "com.android.documentsui"}
+    };
+
     // --- UI Controls ---
     private FrameLayout rootOverlayFrame;
     private ImageSwitcher wallpaperSwitcher;
@@ -112,6 +122,8 @@ public class LauncherActivity extends Activity {
     private Runnable clockRunnable, idleRunnable, wallpaperRunnable;
 
     // --- Wallpapers & State ---
+    private final java.util.concurrent.ExecutorService bgExecutor = java.util.concurrent.Executors.newSingleThreadExecutor();
+    private float displayDensity = 1.0f;
     private final List<File> wallpaperFiles = new ArrayList<>();
     private int currentWallpaperIndex = 0;
     private boolean isSideDrawerOpen = false;
@@ -122,7 +134,7 @@ public class LauncherActivity extends Activity {
         
     // --- Slideshow Interval Options (in Milliseconds) ---
     private final long[] SLIDESHOW_INTERVALS = {15000L, 30000L, 60000L, 300000L, 600000L, 1200000L, 1800000L, 0L};
-    private final long[] IDLE_TIMEOUT_MS = {120000L, 300000L, 60000L, 0L};
+    private final long[] IDLE_TIMEOUT_MS = {120000L, 300000L, 600000L, 0L};
     private final String[] IDLE_TIMEOUT_LABELS = {"2min", "5min", "10min", "off"};
     private final String[] SLIDESHOW_LABELS = {"15sec", "30sec", "1min", "5min", "10min", "20min", "30min", "off"};
 
@@ -138,6 +150,7 @@ public class LauncherActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         prefs = getSharedPreferences("BareLauncherPrefs", MODE_PRIVATE);
+        displayDensity = getResources().getDisplayMetrics().density;
 
         // --- 1. Root Overlay Frame ---
         rootOverlayFrame = new FrameLayout(this);
@@ -2163,7 +2176,7 @@ public class LauncherActivity extends Activity {
     }
 
     private int dpToPx(int dp) {
-        return Math.round(dp * getResources().getDisplayMetrics().density);
+        return Math.round(dp * displayDensity);
     }
 
     @Override
@@ -2190,6 +2203,7 @@ public class LauncherActivity extends Activity {
         
         try { unregisterReceiver(packageReceiver); } catch (Exception ignored) {}
         try { com.tiny.launcher.weather.WeatherConfigServer.stop(); } catch (Exception ignored) {}
+        try { bgExecutor.shutdown(); } catch (Exception ignored) {}
     }
 
     private String replacingBannerPkg = null;

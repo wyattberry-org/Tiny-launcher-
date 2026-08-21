@@ -22,12 +22,14 @@
         android:usesCleartextTraffic="true"
         android:allowBackup="true"
         android:icon="@drawable/ic_launcher"
+        android:banner="@drawable/banner"
         android:label="Tiny Launcher"
         android:supportsRtl="true"
         android:theme="@android:style/Theme.DeviceDefault.NoActionBar">
 
         <activity
             android:name=".LauncherActivity"
+            android:banner="@drawable/banner"
             android:exported="true"
             android:launchMode="singleTask"
             android:stateNotNeeded="true"

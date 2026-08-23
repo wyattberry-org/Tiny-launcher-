@@ -96,6 +96,8 @@ public class LauncherActivity extends Activity {
 
     // --- App & Data Models ---
     private final List<AppModel> appList = new ArrayList<>();
+    private final java.util.Map<String, Drawable> customBannerCache = new java.util.concurrent.ConcurrentHashMap<>();
+    private final java.util.Map<String, Drawable> appIconCache = new java.util.concurrent.ConcurrentHashMap<>();
     private SharedPreferences prefs;
     private boolean isMoveMode = false;
     private boolean isAnimatingMove = false;
@@ -135,6 +137,8 @@ public class LauncherActivity extends Activity {
     private final BroadcastReceiver packageReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
+            appIconCache.clear();
+            customBannerCache.clear();
             loadInstalledApps();
         }
     };
@@ -565,6 +569,22 @@ public class LauncherActivity extends Activity {
         }
     }
 
+    private android.graphics.drawable.StateListDrawable createTileSelector(int bgColor, int cornerRadius, int strokeWidth, int strokeColor) {
+        android.graphics.drawable.StateListDrawable sld = new android.graphics.drawable.StateListDrawable();
+        GradientDrawable focused = new GradientDrawable();
+        focused.setColor(bgColor);
+        focused.setCornerRadius(cornerRadius);
+        focused.setStroke(strokeWidth, strokeColor);
+
+        GradientDrawable normal = new GradientDrawable();
+        normal.setColor(bgColor);
+        normal.setCornerRadius(cornerRadius);
+
+        sld.addState(new int[]{android.R.attr.state_focused}, focused);
+        sld.addState(new int[]{}, normal);
+        return sld;
+    }
+
     private int getTileBackgroundColor() {
         String opt = prefs.getString("TileBackgroundColor", "Off");
         int manual = getManualTileColor(opt);
@@ -580,6 +600,8 @@ public class LauncherActivity extends Activity {
         int R = dpToPx((int) Math.round((H / 2.0f) * (D / 90.0f)));
         int txtS = prefs.getInt("TileTextSize", 14), txtP = prefs.getInt("TileTextPosition", 0);
         if (horizontalAppContainer == null) return;
+        int strokeW = Math.max(1, Math.round(getResources().getDisplayMetrics().density * 0.6f));
+        int bg = getTileBackgroundColor();
         for (int i = 0; i < horizontalAppContainer.getChildCount(); i++) {
             View c = horizontalAppContainer.getChildAt(i);
             if (c instanceof LinearLayout) {
@@ -587,9 +609,7 @@ public class LauncherActivity extends Activity {
                 if (ic.getChildCount() > 0 && ic.getChildAt(0) instanceof FrameLayout) {
                     FrameLayout bc = (FrameLayout) ic.getChildAt(0);
                     bc.setLayoutParams(new LinearLayout.LayoutParams(dpToPx(W), dpToPx(H)));
-                    GradientDrawable s = new GradientDrawable(); s.setColor(getTileBackgroundColor());
-                    s.setCornerRadius(R);
-                    bc.setBackground(s);
+                    bc.setBackground(createTileSelector(bg, R, strokeW, Color.parseColor("#00E5FF")));
                 }
                 if (ic.getChildCount() > 1 && ic.getChildAt(1) instanceof TextView) {
                     TextView tv = (TextView) ic.getChildAt(1);
@@ -1135,9 +1155,11 @@ public class LauncherActivity extends Activity {
         container.post(() -> infoText.requestFocus());
     }
 
+    private final String[] WALLPAPER_RESOLUTIONS = {"1080p RGB565", "1080p ARGB8888", "4k RGB565", "4k ARGB8888"};
+
     private int[] getWallpaperTargetResolution() {
-        String res = prefs.getString("WallpaperResolution", "4k ARGB8888");
-        if ("2k ARGB8888".equals(res)) return new int[]{1920, 1080};
+        String res = prefs.getString("WallpaperResolution", "1080p RGB565");
+        if (res.startsWith("1080p") || res.startsWith("2k")) return new int[]{1920, 1080};
         return new int[]{3840, 2160};
     }
 
@@ -1158,7 +1180,7 @@ public class LauncherActivity extends Activity {
     }
 
     private void addWallpaperResolutionMenuItem(LinearLayout container) {
-        String curRes = prefs.getString("WallpaperResolution", "4k ARGB8888");
+        String curRes = prefs.getString("WallpaperResolution", "1080p RGB565");
         View row = addDrawerStatusItem(container, "⧈", "Wallpaper resolution", curRes, null);
         if (row != null) {
             row.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
@@ -1167,8 +1189,13 @@ public class LauncherActivity extends Activity {
             row.setOnKeyListener((v, keyCode, event) -> {
                 if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
                 if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT || keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
-                    String cur = prefs.getString("WallpaperResolution", "4k ARGB8888");
-                    String next = "4k ARGB8888".equals(cur) ? "2k ARGB8888" : "4k ARGB8888";
+                    String cur = prefs.getString("WallpaperResolution", "1080p RGB565");
+                    int idx = 0;
+                    for (int i = 0; i < WALLPAPER_RESOLUTIONS.length; i++) {
+                        if (WALLPAPER_RESOLUTIONS[i].equalsIgnoreCase(cur) || (cur.startsWith("2k") && i == 0) || (cur.equals("4k ARGB8888") && i == 3)) { idx = i; break; }
+                    }
+                    int nextIdx = (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) ? (idx + 1) % WALLPAPER_RESOLUTIONS.length : (idx - 1 + WALLPAPER_RESOLUTIONS.length) % WALLPAPER_RESOLUTIONS.length;
+                    String next = WALLPAPER_RESOLUTIONS[nextIdx];
                     prefs.edit().putString("WallpaperResolution", next).apply();
                     TextView tv = row.findViewById(1001); if (tv != null) tv.setText(next);
                     refreshCurrentWallpaper();
@@ -1558,7 +1585,9 @@ public class LauncherActivity extends Activity {
             }
             opt.inSampleSize = Math.max(1, inSample);
             opt.inJustDecodeBounds = false;
-            opt.inPreferredConfig = Bitmap.Config.ARGB_8888;
+            opt.inDither = true;
+            String res = prefs.getString("WallpaperResolution", "1080p RGB565");
+            opt.inPreferredConfig = res.contains("ARGB8888") ? Bitmap.Config.ARGB_8888 : Bitmap.Config.RGB_565;
             return BitmapFactory.decodeFile(path, opt);
         } catch (Exception e) { return null; }
     }
@@ -1868,9 +1897,8 @@ public class LauncherActivity extends Activity {
             int tW = prefs.getInt("TileSize", 160), tH = tW * 9 / 16, tD = prefs.getInt("TileCornerRadius", 30);
             int tR = dpToPx((int) Math.round((tH / 2.0f) * (tD / 90.0f)));
             bannerCard.setLayoutParams(new android.widget.FrameLayout.LayoutParams(dpToPx(tW), dpToPx(tH)));
-            GradientDrawable baseShape = new GradientDrawable(); baseShape.setColor(getTileBackgroundColor());
-            baseShape.setCornerRadius(tR);
-            bannerCard.setBackground(baseShape);
+            int strokeW = Math.max(1, Math.round(getResources().getDisplayMetrics().density * 0.6f));
+            bannerCard.setBackground(createTileSelector(getTileBackgroundColor(), tR, strokeW, Color.parseColor("#00E5FF")));
             bannerCard.setClipToOutline(true);
 
             ImageView iconView = new ImageView(this);
@@ -1886,7 +1914,7 @@ public class LauncherActivity extends Activity {
             titleView.setTextSize(txtS); titleView.setTranslationY(dpToPx(txtP)); titleView.setGravity(Gravity.CENTER);
             titleView.setSingleLine(true); titleView.setEllipsize(android.text.TextUtils.TruncateAt.END);
             titleView.setPadding(0, dpToPx(28), 0, 0);
-            titleView.setVisibility(View.INVISIBLE);
+            titleView.setAlpha(0.0f);
 
             itemContainer.setClipChildren(false);
             itemContainer.setClipToPadding(false);
@@ -1895,13 +1923,8 @@ public class LauncherActivity extends Activity {
                 if (isAnimatingMove) return;
                 if (hasFocus) lastFocusedAppIdx = position;
                 resetIdleTimer();
-                titleView.setVisibility(hasFocus ? View.VISIBLE : View.INVISIBLE);
-                v.animate().scaleX(hasFocus ? 1.25f : 1.0f).scaleY(hasFocus ? 1.25f : 1.0f).setDuration(150).start();
-                itemContainer.setTranslationZ(hasFocus ? dpToPx(16) : 0f);
-                GradientDrawable shape = new GradientDrawable();
-                shape.setColor(getTileBackgroundColor()); shape.setCornerRadius(tR);
-                if (hasFocus) shape.setStroke(Math.max(1, Math.round(getResources().getDisplayMetrics().density * 0.6f)), Color.parseColor("#00E5FF"));
-                v.setBackground(shape);
+                titleView.animate().alpha(hasFocus ? 1.0f : 0.0f).setDuration(120).start();
+                v.animate().scaleX(hasFocus ? 1.25f : 1.0f).scaleY(hasFocus ? 1.25f : 1.0f).setDuration(120).start();
             });
 
             final int tilePos = position;
@@ -2135,46 +2158,52 @@ public class LauncherActivity extends Activity {
     }
 
     private void loadInstalledApps() {
-        appList.clear();
-        PackageManager pm = getPackageManager();
-        Set<String> hidden = prefs.getStringSet("HiddenApps", new HashSet<>());
+        bgExecutor.execute(() -> {
+            PackageManager pm = getPackageManager();
+            Set<String> hidden = prefs.getStringSet("HiddenApps", new HashSet<>());
+            Map<String, AppModel> discoveredApps = new LinkedHashMap<>();
 
-        Map<String, AppModel> discoveredApps = new LinkedHashMap<>();
+            Intent tvIntent = new Intent(Intent.ACTION_MAIN, null);
+            tvIntent.addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER);
+            List<ResolveInfo> tvActivities = pm.queryIntentActivities(tvIntent, 0);
 
-        Intent tvIntent = new Intent(Intent.ACTION_MAIN, null);
-        tvIntent.addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER);
-        List<ResolveInfo> tvActivities = pm.queryIntentActivities(tvIntent, 0);
-
-        for (ResolveInfo ri : tvActivities) {
-            String pkg = ri.activityInfo.packageName;
-            if (pkg.equals(getPackageName()) || hidden.contains(pkg)) continue;
-            String name = ri.loadLabel(pm).toString();
-            Drawable icon = ri.loadIcon(pm);
-            discoveredApps.put(pkg, new AppModel(name, icon, pkg, true));
-        }
-
-        Intent standardIntent = new Intent(Intent.ACTION_MAIN, null);
-        standardIntent.addCategory(Intent.CATEGORY_LAUNCHER);
-        List<ResolveInfo> standardActivities = pm.queryIntentActivities(standardIntent, 0);
-
-        for (ResolveInfo ri : standardActivities) {
-            String pkg = ri.activityInfo.packageName;
-            if (pkg.equals(getPackageName()) || hidden.contains(pkg) || discoveredApps.containsKey(pkg)) continue;
-            String name = ri.loadLabel(pm).toString();
-            Drawable icon = ri.loadIcon(pm);
-            discoveredApps.put(pkg, new AppModel(name, icon, pkg, false));
-        }
-
-        String customOrder = prefs.getString("CustomAppOrder", "");
-        if (!customOrder.isEmpty()) {
-            for (String pkg : customOrder.split(",")) {
-                AppModel model = discoveredApps.remove(pkg);
-                if (model != null) appList.add(model);
+            for (ResolveInfo ri : tvActivities) {
+                String pkg = ri.activityInfo.packageName;
+                if (pkg.equals(getPackageName()) || hidden.contains(pkg)) continue;
+                String name = ri.loadLabel(pm).toString();
+                Drawable icon = appIconCache.computeIfAbsent(pkg, k -> ri.loadIcon(pm));
+                discoveredApps.put(pkg, new AppModel(name, icon, pkg, true));
             }
-        }
-        appList.addAll(discoveredApps.values());
-        
-        renderAppBanners();
+
+            Intent standardIntent = new Intent(Intent.ACTION_MAIN, null);
+            standardIntent.addCategory(Intent.CATEGORY_LAUNCHER);
+            List<ResolveInfo> standardActivities = pm.queryIntentActivities(standardIntent, 0);
+
+            for (ResolveInfo ri : standardActivities) {
+                String pkg = ri.activityInfo.packageName;
+                if (pkg.equals(getPackageName()) || hidden.contains(pkg) || discoveredApps.containsKey(pkg)) continue;
+                String name = ri.loadLabel(pm).toString();
+                Drawable icon = appIconCache.computeIfAbsent(pkg, k -> ri.loadIcon(pm));
+                discoveredApps.put(pkg, new AppModel(name, icon, pkg, false));
+            }
+
+            List<AppModel> orderedList = new ArrayList<>();
+            String customOrder = prefs.getString("CustomAppOrder", "");
+            if (!customOrder.isEmpty()) {
+                for (String pkg : customOrder.split(",")) {
+                    AppModel model = discoveredApps.remove(pkg);
+                    if (model != null) orderedList.add(model);
+                }
+            }
+            orderedList.addAll(discoveredApps.values());
+
+            runOnUiThread(() -> {
+                if (isFinishing() || isDestroyed()) return;
+                appList.clear();
+                appList.addAll(orderedList);
+                renderAppBanners();
+            });
+        });
     }
 
     private void registerPackageReceiver() {
@@ -2225,61 +2254,50 @@ public class LauncherActivity extends Activity {
 
     private android.graphics.drawable.Drawable getCustomDrawableForPackage(String pkg, android.graphics.drawable.Drawable fallback) {
         if (pkg == null) return fallback;
-        java.io.File customBanner = getFileStreamPath("banner_" + pkg + ".png");
-        if (!customBanner.exists()) customBanner = getFileStreamPath("banner_" + pkg + ".jpg");
-        if (customBanner.exists()) {
-            android.graphics.drawable.Drawable d = android.graphics.drawable.Drawable.createFromPath(customBanner.getAbsolutePath());
-            if (d != null) return d;
-        }
-        if (pkg == null) return fallback;
-        String resName = null;
-        String p = pkg.toLowerCase();
+        Drawable cached = customBannerCache.get(pkg);
+        if (cached != null) return cached;
 
-        if (p.contains("tiny") || pkg.equals(getPackageName())) resName = "banner";
-        else if (p.contains("youtube.tv") || p.contains("smarttube")) resName = "ic_youtube_tv";
-        else if (p.contains("youtube.kids")) resName = "ic_youtube_kids";
-        else if (p.contains("youtube")) resName = "ic_youtube";
-        else if (p.contains("kodi")) resName = "ic_kodi";
-        else if (p.contains("stremio")) resName = "ic_stremio";
-        else if (p.contains("spotify")) resName = "ic_spotify";
-        else if (p.contains("tizentube")) resName = "ic_tizentube";
-        else if (p.contains("tivitime") || p.contains("tivi")) resName = "ic_tivitime";
-        else if (p.contains("streamflix")) resName = "ic_streamflix";
-        else if (p.contains("nova")) resName = "ic_nova_tv";
-        else if (p.contains("nuvio")) resName = "ic_nuvio";
-        else if (p.contains("weyd")) resName = "ic_weyd";
-        else if (p.contains("aptoide")) resName = "ic_aptoide_tv";
-        else if (p.contains("aurora")) resName = "ic_aurora_store";
-        else if (p.contains("play.store") || p.contains("vending")) resName = "ic_google_play_store";
-        else if (p.contains("cxinventor") || p.contains("cxfile")) resName = "ic_cx_file_explorer";
-        else if (p.contains("solidexplorer")) resName = "ic_solid_explorer";
-        else if (p.contains("estrongs") || p.contains("esfile")) resName = "ic_es_file_explorer";
-        else if (p.contains("xplore") || p.contains("lonelycat")) resName = "ic_xplore";
-        else if (p.contains("downloader")) resName = "ic_downloader";
-        else if (p.contains("buttonmapper")) resName = "ic_button_mapper";
-        else if (p.contains("projectivy")) resName = "ic_projectivy_launcher";
-        else if (p.contains("settings")) resName = "ic_settings_icon";
-        else if (p.contains("photos") || p.contains("gallery")) resName = "ic_google_photos";
-        else if (p.contains("synology")) resName = "ic_synology_photos";
-        else if (p.contains("immich")) resName = "ic_immich";
-        else if (p.contains("mxtech.videoplayer.pro")) resName = "ic_mx_player_pro";
-        else if (p.contains("mxtech.videoplayer")) resName = "ic_mx_player_tv";
-        else if (p.contains("nplayer")) resName = "ic_n_player";
-        else if (p.contains("nvplayer")) resName = "ic_nv_player";
-
-        if (resName != null) {
-            int resId = getResources().getIdentifier(resName, "drawable", getPackageName());
-            if (resId != 0) {
-                try {
-                    return getDrawable(resId);
-                } catch (Exception e) {
-                    // Fallback to default
-                }
-            }
+        File fPng = getFileStreamPath("banner_" + pkg + ".png");
+        if (fPng.exists()) {
+            Drawable d = Drawable.createFromPath(fPng.getAbsolutePath());
+            if (d != null) { customBannerCache.put(pkg, d); return d; }
         }
-        return fallback;
+        File fJpg = getFileStreamPath("banner_" + pkg + ".jpg");
+        if (fJpg.exists()) {
+            Drawable d = Drawable.createFromPath(fJpg.getAbsolutePath());
+            if (d != null) { customBannerCache.put(pkg, d); return d; }
+        }
+        File fExt = new File(new File(android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_PICTURES), "banners"), pkg + ".png");
+        if (fExt.exists()) {
+            Drawable d = Drawable.createFromPath(fExt.getAbsolutePath());
+            if (d != null) { customBannerCache.put(pkg, d); return d; }
+        }
+
+        Drawable builtin = getBuiltinDrawableForPackage(pkg);
+        Drawable res = (builtin != null) ? builtin : fallback;
+        if (res != null) customBannerCache.put(pkg, res);
+        return res;
     }
 
+    private Drawable getBuiltinDrawableForPackage(String pkg) {
+        String p = pkg.toLowerCase();
+        try {
+            if (p.contains("tiny") || pkg.equals(getPackageName())) return getDrawable(R.drawable.banner);
+            if (p.contains("youtube.tv") || p.contains("smarttube") || p.contains("youtube")) return getDrawable(R.drawable.ic_youtube_tv);
+            if (p.contains("tizentube")) return getDrawable(R.drawable.ic_tizentube);
+            if (p.contains("stremio")) return getDrawable(R.drawable.ic_stremio);
+            if (p.contains("streamflix")) return getDrawable(R.drawable.ic_streamflix);
+            if (p.contains("nuvio")) return getDrawable(R.drawable.ic_nuvio);
+            if (p.contains("play.store") || p.contains("vending")) return getDrawable(R.drawable.ic_google_play_store);
+            if (p.contains("cxinventor") || p.contains("cxfile")) return getDrawable(R.drawable.ic_cx_file_explorer);
+            if (p.contains("xplore") || p.contains("lonelycat")) return getDrawable(R.drawable.ic_xplore);
+            if (p.contains("downloader")) return getDrawable(R.drawable.ic_downloader);
+            if (p.contains("settings")) return getDrawable(R.drawable.ic_settings);
+            if (p.contains("photos") || p.contains("gallery")) return getDrawable(R.drawable.ic_google_photos);
+            if (p.contains("mxtech.videoplayer")) return getDrawable(R.drawable.ic_mx_player_pro);
+        } catch (Exception ignored) {}
+        return null;
+    }
 
     private void loadCustomWallpaper() {
         java.io.File file = getFileStreamPath("custom_wallpaper.jpg");
@@ -2300,6 +2318,7 @@ public class LauncherActivity extends Activity {
                 byte[] buf = new byte[8192];
                 int len;
                 while ((len = in.read(buf)) > 0) out.write(buf, 0, len);
+                customBannerCache.clear();
                 renderAppBanners();
             } catch (Exception ignored) {}
             replacingBannerPkg = null;
@@ -2385,7 +2404,7 @@ public class LauncherActivity extends Activity {
                     } catch (Exception ignored) {}
                     final int cur = i + 1; runOnUiThread(() -> pd.setMessage("Downloading: " + cur + " / " + tot));
                 }
-                runOnUiThread(() -> { if (!isFinishing() && !isDestroyed()) { pd.dismiss(); Toast.makeText(LauncherActivity.this, "Import Complete! Saved to Pictures/banners", Toast.LENGTH_LONG).show(); renderAppBanners(); } });
+                runOnUiThread(() -> { if (!isFinishing() && !isDestroyed()) { pd.dismiss(); Toast.makeText(LauncherActivity.this, "Import Complete! Saved to Pictures/banners", Toast.LENGTH_LONG).show(); customBannerCache.clear(); renderAppBanners(); } });
             } catch (Exception e) { runOnUiThread(() -> { if (!isFinishing() && !isDestroyed()) { pd.dismiss(); Toast.makeText(LauncherActivity.this, "Import failed: " + e.getMessage(), Toast.LENGTH_LONG).show(); } }); }
         });
     }
@@ -2400,6 +2419,7 @@ public class LauncherActivity extends Activity {
                 try { getFileStreamPath("banner_" + app.packageName() + ".jpg").delete(); } catch (Exception ignored) {}
                 try { new File(new File(android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_PICTURES), "banners"), app.packageName() + ".png").delete(); } catch (Exception ignored) {}
                 if (popup != null) popup.dismiss();
+                customBannerCache.clear();
                 renderAppBanners();
             }, popup);
         }

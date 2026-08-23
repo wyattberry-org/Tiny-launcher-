@@ -1524,7 +1524,10 @@ public class LauncherActivity extends Activity {
         if (!"Off".equals(prefs.getString("TileBackgroundColor", "Off"))) return;
         int targetColor = getTileBackgroundColor(), screenW = getResources().getDisplayMetrics().widthPixels;
         int tileH = prefs.getInt("TileSize", 160) * 9 / 16, tileDeg = prefs.getInt("TileCornerRadius", 30), radPx = dpToPx((int) Math.round((tileH / 2.0f) * (tileDeg / 90.0f)));
+        int strokeW = Math.max(1, Math.round(getResources().getDisplayMetrics().density * 0.6f));
+        int strokeColor = Color.parseColor("#00E5FF");
         android.animation.ArgbEvaluator eval = new android.animation.ArgbEvaluator();
+
         for (int i = 0; i < horizontalAppContainer.getChildCount(); i++) {
             View child = horizontalAppContainer.getChildAt(i);
             if (child instanceof LinearLayout) {
@@ -1532,16 +1535,12 @@ public class LauncherActivity extends Activity {
                 if (ic.getChildCount() > 0 && ic.getChildAt(0) instanceof FrameLayout) {
                     FrameLayout bc = (FrameLayout) ic.getChildAt(0);
                     int[] loc = new int[2]; bc.getLocationOnScreen(loc);
-                    float ratio = Math.max(0.0f, Math.min(1.0f, (float) loc[0] / screenW));
+                    float ratio = Math.max(0.0f, Math.min(1.0f, (float) loc[0] / Math.max(1, screenW)));
                     android.animation.ValueAnimator anim = android.animation.ValueAnimator.ofObject(eval, oldColor, targetColor);
                     anim.setDuration(600); anim.setStartDelay((long) (ratio * 1400));
-                    final int tileIdx = i;
                     anim.addUpdateListener(a -> {
-                        GradientDrawable shape = new GradientDrawable(); shape.setColor((int) a.getAnimatedValue()); shape.setCornerRadius(radPx);
-                        if (bc.hasFocus()) {
-                            shape.setStroke(Math.max(1, Math.round(getResources().getDisplayMetrics().density * 0.6f)), Color.parseColor("#00E5FF"));
-                        }
-                        bc.setBackground(shape);
+                        int col = (int) a.getAnimatedValue();
+                        bc.setBackground(createTileSelector(col, radPx, strokeW, strokeColor));
                     });
                     anim.start();
                 }
@@ -1630,6 +1629,14 @@ public class LauncherActivity extends Activity {
     protected void onResume() {
         applyTileRowPosition();
         super.onResume();
+        if (horizontalAppContainer != null && horizontalAppContainer.getChildCount() > 0) {
+            int target = Math.max(0, Math.min(lastFocusedAppIdx, horizontalAppContainer.getChildCount() - 1));
+            View item = horizontalAppContainer.getChildAt(target);
+            if (item instanceof LinearLayout && ((LinearLayout) item).getChildCount() > 0) {
+                View card = ((LinearLayout) item).getChildAt(0);
+                card.post(() -> card.requestFocus());
+            }
+        }
         if (isFirstResume && prefs.getBoolean("ChangeEachRestart", false) && !wallpaperFiles.isEmpty()) {
             int last = prefs.getInt("LastWallpaperIndex", 0);
             currentWallpaperIndex = (last + 10) % wallpaperFiles.size();

@@ -1142,7 +1142,7 @@ public class LauncherActivity extends Activity {
 
 
         TextView infoText = new TextView(this);
-        infoText.setText("Tiny Launcher v1.0\nPure Java 17 Android TV Launcher\nZero External Dependencies");
+        infoText.setText("Tiny Launcher v1.0.1\nPure Java 17 Android TV Launcher\nZero External Dependencies");
         infoText.setTextColor(Color.LTGRAY);
         infoText.setTextSize(14);
         infoText.setPadding(dpToPx(12), dpToPx(16), dpToPx(12), dpToPx(16));

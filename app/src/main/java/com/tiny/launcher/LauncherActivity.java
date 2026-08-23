@@ -1923,6 +1923,7 @@ public class LauncherActivity extends Activity {
                 if (isAnimatingMove) return;
                 if (hasFocus) lastFocusedAppIdx = position;
                 resetIdleTimer();
+                itemContainer.setTranslationZ(hasFocus ? 1.0f : 0.0f);
                 titleView.animate().alpha(hasFocus ? 1.0f : 0.0f).setDuration(120).start();
                 v.animate().scaleX(hasFocus ? 1.25f : 1.0f).scaleY(hasFocus ? 1.25f : 1.0f).setDuration(120).start();
             });

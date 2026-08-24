@@ -1322,9 +1322,10 @@ public class LauncherActivity extends Activity {
         if (!bgExecutor.isShutdown()) bgExecutor.execute(() -> {
             try {
                 String qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=" + java.net.URLEncoder.encode(webUrl, "UTF-8");
-                java.io.InputStream in = new java.net.URL(qrUrl).openStream();
-                Bitmap bmp = BitmapFactory.decodeStream(in);
+                try (java.io.InputStream in = new java.net.URL(qrUrl).openStream()) {
+                    Bitmap bmp = BitmapFactory.decodeStream(in);
                 runOnUiThread(() -> { if (!isFinishing() && !isDestroyed()) { qrImg.setImageBitmap(bmp); qrImg.setPadding(0, 20, 0, 0); } });
+                }
             } catch (Exception ignored) {}
         });
         builder.setView(container).setNegativeButton("Close", (dialog, which) -> dialog.dismiss());
@@ -1601,6 +1602,7 @@ public class LauncherActivity extends Activity {
             int last = prefs.getInt("LastWallpaperIndex", 0);
             currentWallpaperIndex = (last + 10) % wallpaperFiles.size();
             prefs.edit().putInt("LastWallpaperIndex", currentWallpaperIndex).apply();
+            hasEvaluatedRestartWallpaper = true;
             File file = wallpaperFiles.get(currentWallpaperIndex);
             int[] targetRes = getWallpaperTargetResolution();
             Bitmap bitmap = decodeSampledBitmap(file.getAbsolutePath(), targetRes[0], targetRes[1]);

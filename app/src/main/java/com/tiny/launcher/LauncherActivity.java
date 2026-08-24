@@ -113,7 +113,7 @@ public class LauncherActivity extends Activity {
     private Runnable clockRunnable, idleRunnable, wallpaperRunnable;
 
     // --- Wallpapers & State ---
-    private final java.util.concurrent.ExecutorService bgExecutor = java.util.concurrent.Executors.newFixedThreadPool(4);
+    private final java.util.concurrent.ExecutorService bgExecutor = java.util.concurrent.Executors.newSingleThreadExecutor();
     private float displayDensity = 1.0f;
     private final List<File> wallpaperFiles = new ArrayList<>();
     private int currentWallpaperIndex = 0;
@@ -1634,20 +1634,9 @@ public class LauncherActivity extends Activity {
     if (wallpaperSwitcher == null || newBmp == null) return;
     View curView = wallpaperSwitcher.getCurrentView();
     Drawable oldD = curView != null ? ((ImageView) curView).getDrawable() : null;
-    boolean isFirst = (oldD == null);
-    if (isFirst) {
-        wallpaperSwitcher.setInAnimation(null);
-        wallpaperSwitcher.setOutAnimation(null);
-    }
     wallpaperSwitcher.setFocusable(false);
     wallpaperSwitcher.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
     wallpaperSwitcher.setImageDrawable(new BitmapDrawable(getResources(), newBmp));
-    if (isFirst) {
-        wallpaperSwitcher.setInAnimation(android.view.animation.AnimationUtils.loadAnimation(this, android.R.anim.slide_in_left));
-        wallpaperSwitcher.setOutAnimation(android.view.animation.AnimationUtils.loadAnimation(this, android.R.anim.slide_out_right));
-        if (wallpaperSwitcher.getInAnimation() != null) wallpaperSwitcher.getInAnimation().setDuration(2000);
-        if (wallpaperSwitcher.getOutAnimation() != null) wallpaperSwitcher.getOutAnimation().setDuration(2000);
-    }
     if (oldD instanceof BitmapDrawable) {
         Bitmap oldB = ((BitmapDrawable) oldD).getBitmap();
         if (oldB != null && !oldB.isRecycled()) wallpaperHandler.postDelayed(() -> oldB.recycle(), 2500);
@@ -2180,7 +2169,15 @@ private boolean isWallpaperDecoding = false;
         tList.addAll(discoveredApps.values());
         runOnUiThread(() -> {
             if (isFinishing() || isDestroyed()) return;
-            appList.clear(); appList.addAll(tList); renderAppBanners();
+            boolean changed = appList.size() != tList.size();
+            if (!changed) {
+                for (int i = 0; i < appList.size(); i++) {
+                    if (!appList.get(i).packageName().equals(tList.get(i).packageName())) { changed = true; break; }
+                }
+            }
+            if (changed || horizontalAppContainer.getChildCount() == 0) {
+                appList.clear(); appList.addAll(tList); renderAppBanners();
+            }
         });
     });
     }

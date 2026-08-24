@@ -1646,7 +1646,9 @@ public class LauncherActivity extends Activity {
     if (wallpaperSwitcher == null || newBmp == null) return;
     View curView = wallpaperSwitcher.getCurrentView();
     Drawable oldD = curView != null ? ((ImageView) curView).getDrawable() : null;
-    setAndRecycleWallpaper(newBmp);
+    wallpaperSwitcher.setFocusable(false);
+    wallpaperSwitcher.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
+    wallpaperSwitcher.setImageDrawable(new BitmapDrawable(getResources(), newBmp));
     if (oldD instanceof BitmapDrawable) {
         Bitmap oldB = ((BitmapDrawable) oldD).getBitmap();
         if (oldB != null && !oldB.isRecycled()) wallpaperHandler.postDelayed(() -> oldB.recycle(), 2500);

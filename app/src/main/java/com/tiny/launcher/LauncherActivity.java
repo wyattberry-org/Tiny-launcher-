@@ -1317,7 +1317,7 @@ public class LauncherActivity extends Activity {
         msg.setText("1. Connect iPhone to same Wi-Fi\n2. Open Safari and go to:\n\n" + webUrl + "\n\nServer active while popup is open.");
         msg.setTextColor(Color.WHITE); msg.setTextSize(15); container.addView(msg);
         ImageView qrImg = new ImageView(this); container.addView(qrImg);
-        bgExecutor.execute(() -> {
+        if (!bgExecutor.isShutdown()) bgExecutor.execute(() -> {
             try {
                 String qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=" + java.net.URLEncoder.encode(webUrl, "UTF-8");
                 java.io.InputStream in = new java.net.URL(qrUrl).openStream();
@@ -1339,7 +1339,7 @@ public class LauncherActivity extends Activity {
 
         private void searchAndEnrollLocation(String query) {
         if (query.isEmpty()) return;
-        bgExecutor.execute(() -> {
+        if (!bgExecutor.isShutdown()) bgExecutor.execute(() -> {
             try {
                 String urlStr = "https://geocoding-api.open-meteo.com/v1/search?name=" + java.net.URLEncoder.encode(query, "UTF-8") + "&count=5";
                 java.net.HttpURLConnection conn = (java.net.HttpURLConnection) new java.net.URL(urlStr).openConnection();
@@ -1522,7 +1522,7 @@ public class LauncherActivity extends Activity {
 
     private void extractAccentColorFromBitmap(Bitmap bitmap) {
         if (bitmap == null) return;
-        bgExecutor.execute(() -> {
+        if (!bgExecutor.isShutdown()) bgExecutor.execute(() -> {
             try {
                 Bitmap thumb = Bitmap.createScaledBitmap(bitmap, 40, 24, false);
                 int[] pixels = new int[40 * 24];
@@ -1564,7 +1564,7 @@ public class LauncherActivity extends Activity {
     private void loadWallpapers() {
     try { getFileStreamPath("last_wallpaper.jpg").delete(); } catch (Exception ignored) {}
     if (android.os.Build.VERSION.SDK_INT >= 33 && checkSelfPermission("android.permission.READ_MEDIA_IMAGES") != android.content.pm.PackageManager.PERMISSION_GRANTED) return;
-    bgExecutor.execute(() -> {
+    if (!bgExecutor.isShutdown()) bgExecutor.execute(() -> {
         String fPath = prefs.getString("WallpaperFolder", "/sdcard/Pictures/Wallpapers");
         File dir = new File(fPath);
         if (!dir.exists() && fPath.contains("sdcard")) dir = new File(fPath.replace("/sdcard", "/storage/emulated/0"));
@@ -1666,7 +1666,7 @@ private void advanceWallpaper() {
         File file = wallpaperFiles.get(targetIndex);
         int[] targetRes = getWallpaperTargetResolution();
 
-        bgExecutor.execute(() -> {
+        if (!bgExecutor.isShutdown()) bgExecutor.execute(() -> {
             Bitmap bitmap = decodeSampledBitmap(file.getAbsolutePath(), targetRes[0], targetRes[1]);
             if (bitmap != null) {
                 runOnUiThread(() -> {
@@ -1799,29 +1799,7 @@ private void advanceWallpaper() {
             .start();
     }
 
-    private int extractDrawableAccentColor(android.graphics.drawable.Drawable drawable) {
-        if (drawable == null) return Color.parseColor("#007AFF");
-        try {
-            Bitmap b;
-            if (drawable instanceof android.graphics.drawable.BitmapDrawable) {
-                b = ((android.graphics.drawable.BitmapDrawable) drawable).getBitmap();
-            } else {
-                int w = Math.max(1, drawable.getIntrinsicWidth()), h = Math.max(1, drawable.getIntrinsicHeight());
-                b = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
-                Canvas c = new Canvas(b); drawable.setBounds(0, 0, w, h); drawable.draw(c);
-            }
-            if (b == null) return Color.parseColor("#007AFF");
-            int w = b.getWidth(), h = b.getHeight(), maxSatPixel = Color.parseColor("#007AFF"); float maxSat = -1f;
-            for (int x = 0; x < w; x += Math.max(1, w / 12)) {
-                for (int y = 0; y < h; y += Math.max(1, h / 12)) {
-                    int p = b.getPixel(x, y); if (Color.alpha(p) < 128) continue;
-                    float[] hsv = new float[3]; Color.colorToHSV(p, hsv);
-                    if (hsv[1] > maxSat && hsv[2] > 0.2f) { maxSat = hsv[1]; maxSatPixel = p; }
-                }
-            }
-            return maxSatPixel;
-        } catch (Exception e) { return Color.parseColor("#007AFF"); }
-    }
+    
 
     private void launchColorShortcut(String key) {
         String pkg = prefs.getString(key, null);
@@ -1879,7 +1857,7 @@ private void advanceWallpaper() {
             iconView.setPadding(dpToPx(8), dpToPx(6), dpToPx(8), dpToPx(6));
             iconView.setScaleType(ImageView.ScaleType.FIT_CENTER);
             iconView.setImageDrawable(app.icon());
-        bgExecutor.execute(() -> {
+        if (!bgExecutor.isShutdown()) bgExecutor.execute(() -> {
             android.graphics.drawable.Drawable custom = getCustomDrawableForPackage(app.packageName(), null);
             if (custom != null) {
                 runOnUiThread(() -> {
@@ -2144,7 +2122,7 @@ private void advanceWallpaper() {
     }
 
     private void loadInstalledApps() {
-        bgExecutor.execute(() -> {
+        if (!bgExecutor.isShutdown()) bgExecutor.execute(() -> {
         List<AppModel> tList = new ArrayList<>();
         PackageManager pm = getPackageManager();
         Set<String> hidden = prefs.getStringSet("HiddenApps", new HashSet<>());
@@ -2376,7 +2354,7 @@ private void advanceWallpaper() {
         if (isFinishing() || isDestroyed()) return;
         android.app.ProgressDialog pd = new android.app.ProgressDialog(this);
         pd.setTitle("Importing Banners"); pd.setMessage("Connecting to GitHub..."); pd.setCancelable(false); pd.show();
-        bgExecutor.execute(() -> {
+        if (!bgExecutor.isShutdown()) bgExecutor.execute(() -> {
             try {
                 File bDir = new File(android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_PICTURES), "banners");
                 if (!bDir.exists()) bDir.mkdirs();
@@ -2397,7 +2375,7 @@ private void advanceWallpaper() {
                          java.io.FileOutputStream out = new java.io.FileOutputStream(outFile)) {
                         byte[] buf = new byte[8192]; int len; while ((len = in.read(buf)) > 0) out.write(buf, 0, len);
                     } catch (Exception ignored) {}
-                    final int cur = i + 1; runOnUiThread(() -> pd.setMessage("Downloading: " + cur + " / " + tot));
+                    if (i % 10 == 0 || i == tot - 1) { final int cur = i + 1; runOnUiThread(() -> pd.setMessage(\"Downloading: \" + cur + \" / \" + tot)); }
                 }
                 runOnUiThread(() -> { if (!isFinishing() && !isDestroyed()) { pd.dismiss(); Toast.makeText(LauncherActivity.this, "Import Complete! Saved to Pictures/banners", Toast.LENGTH_LONG).show(); renderAppBanners(); } });
             } catch (Exception e) { runOnUiThread(() -> { if (!isFinishing() && !isDestroyed()) { pd.dismiss(); Toast.makeText(LauncherActivity.this, "Import failed: " + e.getMessage(), Toast.LENGTH_LONG).show(); } }); }

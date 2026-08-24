@@ -53,9 +53,9 @@ public class WeatherWidget extends LinearLayout {
         setPadding(dp(8), dp(8), dp(8), dp(8)); setFocusable(false); setClickable(false);
         LinearLayout.LayoutParams centerLp = new LinearLayout.LayoutParams(-2, -2);
         centerLp.gravity = Gravity.CENTER_VERTICAL;
-        LinearLayout col1 = new LinearLayout(context); col1.setOrientation(VERTICAL); col1.setGravity(Gravity.CENTER_HORIZONTAL);
+        LinearLayout col1 = new LinearLayout(context); col1.setOrientation(VERTICAL); col1.setGravity(Gravity.CENTER_HORIZONTAL); col1.setTranslationY(-dp(4));
         ivIcon = new ImageView(context); ivIcon.setLayoutParams(new LinearLayout.LayoutParams(dp(73), dp(73))); ivIcon.setScaleType(ImageView.ScaleType.FIT_CENTER);
-        tvCondition = new TextView(context); tvCondition.setTextColor(Color.WHITE); tvCondition.setTextSize(14); tvCondition.setGravity(Gravity.CENTER); tvCondition.setMaxLines(2); tvCondition.setSingleLine(false);
+        tvCondition = new TextView(context); tvCondition.setLayoutParams(new LinearLayout.LayoutParams(-2, -2)); tvCondition.setTextColor(Color.WHITE); tvCondition.setTextSize(14); tvCondition.setGravity(Gravity.CENTER); tvCondition.setMaxLines(2); tvCondition.setSingleLine(false);
         col1.addView(ivIcon); col1.addView(tvCondition); addView(col1, centerLp);
         addView(createDivider(context));
         LinearLayout col2 = new LinearLayout(context); col2.setOrientation(VERTICAL); col2.setGravity(Gravity.CENTER_HORIZONTAL);
@@ -167,7 +167,7 @@ public class WeatherWidget extends LinearLayout {
             } catch (Exception ignored) {} finally { if (conn != null) conn.disconnect(); }
         }
         int iconResId = WeatherMapper.getIconResource(cachedWeatherCode, cachedIsDay);
-        String condText = WeatherMapper.getConditionText(cachedWeatherCode, cachedIsDay);
+        String condText = WeatherMapper.getConditionText(cachedWeatherCode, cachedIsDay).replace(" ", "\n");
         final int fTemp = (int) Math.round(lastValidTemp), fRh = (int) Math.round(lastValidRh);
         final int fSpeed = (int) Math.round(cachedWindSpeed), fGusts = (int) Math.round(cachedWindGusts);
         final int fIcon = iconResId;

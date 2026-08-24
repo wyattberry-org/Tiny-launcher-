@@ -1596,20 +1596,7 @@ public class LauncherActivity extends Activity {
     protected void onResume() {
         applyTileRowPosition();
         super.onResume();
-        if (isFirstResume && prefs.getBoolean("ChangeEachRestart", false) && !wallpaperFiles.isEmpty()) {
-            int last = prefs.getInt("LastWallpaperIndex", 0);
-            currentWallpaperIndex = (last + 10) % wallpaperFiles.size();
-            prefs.edit().putInt("LastWallpaperIndex", currentWallpaperIndex).apply();
-            File file = wallpaperFiles.get(currentWallpaperIndex);
-            int[] targetRes = getWallpaperTargetResolution();
-            Bitmap bitmap = decodeSampledBitmap(file.getAbsolutePath(), targetRes[0], targetRes[1]);
-            if (bitmap != null && wallpaperSwitcher != null) {
-                View curF = getCurrentFocus(); setAndRecycleWallpaper(bitmap);
-                extractAccentColorFromBitmap(bitmap);
-
-                if (curF != null) curF.post(() -> curF.requestFocus());
-            }
-        }
+        // Wallpaper boot logic moved to advanceWallpaper() to prevent race conditions
         isFirstResume = false;
     }
 
@@ -1661,7 +1648,7 @@ private void advanceWallpaper() {
         if (!hasEvaluatedRestartWallpaper && prefs.getBoolean("ChangeEachRestart", false)) {
             hasEvaluatedRestartWallpaper = true;
             int last = prefs.getInt("LastWallpaperIndex", 0);
-            currentWallpaperIndex = (last + 1) % wallpaperFiles.size();
+            currentWallpaperIndex = (last + 10) % wallpaperFiles.size();
         } else {
             currentWallpaperIndex = currentWallpaperIndex % wallpaperFiles.size();
         }

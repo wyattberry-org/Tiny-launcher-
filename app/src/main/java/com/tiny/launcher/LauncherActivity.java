@@ -2295,7 +2295,7 @@ private boolean isWallpaperDecoding = false;
                 byte[] buf = new byte[8192];
                 int len;
                 while ((len = in.read(buf)) > 0) out.write(buf, 0, len);
-                renderAppBanners();
+                loadInstalledApps();
             } catch (Exception ignored) {}
             replacingBannerPkg = null;
         }
@@ -2381,7 +2381,7 @@ private boolean isWallpaperDecoding = false;
                     } catch (Exception ignored) {}
                     if (i % 10 == 0 || i == tot - 1) { final int cur = i + 1; runOnUiThread(() -> pd.setMessage("Downloading: " + cur + " / " + tot)); }
                 }
-                runOnUiThread(() -> { if (!isFinishing() && !isDestroyed()) { pd.dismiss(); Toast.makeText(LauncherActivity.this, "Import Complete! Saved to Pictures/banners", Toast.LENGTH_LONG).show(); renderAppBanners(); } });
+                runOnUiThread(() -> { if (!isFinishing() && !isDestroyed()) { pd.dismiss(); Toast.makeText(LauncherActivity.this, "Import Complete! Saved to Pictures/banners", Toast.LENGTH_LONG).show(); loadInstalledApps(); } });
             } catch (Exception e) { runOnUiThread(() -> { if (!isFinishing() && !isDestroyed()) { pd.dismiss(); Toast.makeText(LauncherActivity.this, "Import failed: " + e.getMessage(), Toast.LENGTH_LONG).show(); } }); }
         });
     }
@@ -2396,7 +2396,7 @@ private boolean isWallpaperDecoding = false;
                 try { getFileStreamPath("banner_" + app.packageName() + ".jpg").delete(); } catch (Exception ignored) {}
                 try { new File(new File(android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_PICTURES), "banners"), app.packageName() + ".png").delete(); } catch (Exception ignored) {}
                 if (popup != null) popup.dismiss();
-                renderAppBanners();
+                loadInstalledApps();
             }, popup);
         }
         addPopupMenuItem(menuView, "⬇", "Import", () -> { if (popup != null) popup.dismiss(); showProjectivyBannerImportDialog(); }, popup);

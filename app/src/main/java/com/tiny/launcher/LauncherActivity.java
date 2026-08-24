@@ -1563,41 +1563,54 @@ public class LauncherActivity extends Activity {
         } catch (Exception e) { return null; }
     }
 
-    private void loadWallpapers() {
-    try { getFileStreamPath("last_wallpaper.jpg").delete(); } catch (Exception ignored) {}
-    if (android.os.Build.VERSION.SDK_INT >= 33 && checkSelfPermission("android.permission.READ_MEDIA_IMAGES") != android.content.pm.PackageManager.PERMISSION_GRANTED) return;
-    if (!wallpaperExecutor.isShutdown()) wallpaperExecutor.execute(() -> {
-        String fPath = prefs.getString("WallpaperFolder", "/sdcard/Pictures/Wallpapers");
-        File dir = new File(fPath);
-        if (!dir.exists() && fPath.contains("sdcard")) dir = new File(fPath.replace("/sdcard", "/storage/emulated/0"));
+        private void loadWallpapers() {
+        try { getFileStreamPath("last_wallpaper.jpg").delete(); } catch (Exception ignored) {}
+        wallpaperFiles.clear();
+        if (android.os.Build.VERSION.SDK_INT >= 33 && checkSelfPermission("android.permission.READ_MEDIA_IMAGES") != android.content.pm.PackageManager.PERMISSION_GRANTED) return;
+        String folderPath = prefs.getString("WallpaperFolder", "/sdcard/Pictures/Wallpapers");
+        File dir = new File(folderPath);
+        if (!dir.exists() && folderPath.contains("sdcard")) dir = new File(folderPath.replace("/sdcard", "/storage/emulated/0"));
         if (!dir.exists()) dir = new File("/storage/emulated/0/Pictures/wallpapers");
         if (!dir.exists()) dir = new File("/storage/emulated/0/Pictures/Wallpapers");
         if (!dir.exists()) {
-            File pDir = new File("/storage/emulated/0/Pictures");
-            if (pDir.exists() && pDir.isDirectory()) {
-                File[] subs = pDir.listFiles(File::isDirectory);
-                if (subs != null) for (File s : subs) if (s.getName().equalsIgnoreCase("wallpapers")) { dir = s; break; }
+            File p = new File("/storage/emulated/0/Pictures");
+            if (p.exists() && p.isDirectory()) {
+                File[] subs = p.listFiles(File::isDirectory);
+                if (subs != null) { for (File s : subs) { if (s.getName().equalsIgnoreCase("wallpapers")) { dir = s; break; } } }
             }
         }
-        List<File> tFiles = new ArrayList<>();
         if (dir.exists() && dir.isDirectory()) {
-            File[] files = dir.listFiles((d, n) -> { String l = n.toLowerCase(); return l.endsWith(".jpg") || l.endsWith(".jpeg") || l.endsWith(".png") || l.endsWith(".webp"); });
-            if (files != null) Collections.addAll(tFiles, files);
+            File[] files = dir.listFiles((d, name) -> {
+                String n = name.toLowerCase();
+                return n.endsWith(".jpg") || n.endsWith(".jpeg") || n.endsWith(".png") || n.endsWith(".webp");
+            });
+            if (files != null) Collections.addAll(wallpaperFiles, files);
         }
-        runOnUiThread(() -> {
-            if (isFinishing() || isDestroyed()) return;
-            wallpaperFiles.clear(); wallpaperFiles.addAll(tFiles);
-            if (!wallpaperFiles.isEmpty()) startWallpaperRotation();
-            else wallpaperHandler.postDelayed(this::loadWallpapers, 200L);
-        });
-    });
-}
+        if (!wallpaperFiles.isEmpty()) {
+            startWallpaperRotation();
+        } else {
+            wallpaperHandler.postDelayed(this::loadWallpapers, 500L);
+        }
+    }
 
-                @Override
+    @Override
     protected void onResume() {
         applyTileRowPosition();
         super.onResume();
-        // Wallpaper boot logic moved to advanceWallpaper() to prevent race conditions
+        if (isFirstResume && prefs.getBoolean("ChangeEachRestart", false) && !wallpaperFiles.isEmpty()) {
+            int last = prefs.getInt("LastWallpaperIndex", 0);
+            currentWallpaperIndex = (last + 10) % wallpaperFiles.size();
+            prefs.edit().putInt("LastWallpaperIndex", currentWallpaperIndex).apply();
+            File file = wallpaperFiles.get(currentWallpaperIndex);
+            int[] targetRes = getWallpaperTargetResolution();
+            Bitmap bitmap = decodeSampledBitmap(file.getAbsolutePath(), targetRes[0], targetRes[1]);
+            if (bitmap != null && wallpaperSwitcher != null) {
+                View curF = getCurrentFocus();
+                setAndRecycleWallpaper(bitmap);
+                extractAccentColorFromBitmap(bitmap);
+                if (curF != null) curF.post(() -> curF.requestFocus());
+            }
+        }
         isFirstResume = false;
     }
 
@@ -2120,18 +2133,14 @@ private boolean isWallpaperDecoding = false;
         prefs.edit().putString("CustomAppOrder", sb.toString()).apply();
     }
 
-    private void loadInstalledApps() {
-        if (!bgExecutor.isShutdown()) bgExecutor.execute(() -> {
-        List<AppModel> tList = new ArrayList<>();
+        private void loadInstalledApps() {
+        appList.clear();
         PackageManager pm = getPackageManager();
         Set<String> hidden = prefs.getStringSet("HiddenApps", new HashSet<>());
-
         Map<String, AppModel> discoveredApps = new LinkedHashMap<>();
-
         Intent tvIntent = new Intent(Intent.ACTION_MAIN, null);
         tvIntent.addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER);
         List<ResolveInfo> tvActivities = pm.queryIntentActivities(tvIntent, 0);
-
         for (ResolveInfo ri : tvActivities) {
             String pkg = ri.activityInfo.packageName;
             if (pkg.equals(getPackageName()) || hidden.contains(pkg)) continue;
@@ -2140,11 +2149,9 @@ private boolean isWallpaperDecoding = false;
             Drawable custom = getCustomDrawableForPackage(pkg, icon);
             discoveredApps.put(pkg, new AppModel(name, custom, pkg, true));
         }
-
         Intent standardIntent = new Intent(Intent.ACTION_MAIN, null);
         standardIntent.addCategory(Intent.CATEGORY_LAUNCHER);
         List<ResolveInfo> standardActivities = pm.queryIntentActivities(standardIntent, 0);
-
         for (ResolveInfo ri : standardActivities) {
             String pkg = ri.activityInfo.packageName;
             if (pkg.equals(getPackageName()) || hidden.contains(pkg) || discoveredApps.containsKey(pkg)) continue;
@@ -2153,28 +2160,15 @@ private boolean isWallpaperDecoding = false;
             Drawable custom = getCustomDrawableForPackage(pkg, icon);
             discoveredApps.put(pkg, new AppModel(name, custom, pkg, false));
         }
-
         String customOrder = prefs.getString("CustomAppOrder", "");
         if (!customOrder.isEmpty()) {
             for (String pkg : customOrder.split(",")) {
                 AppModel model = discoveredApps.remove(pkg);
-                if (model != null) tList.add(model);
+                if (model != null) appList.add(model);
             }
         }
-        tList.addAll(discoveredApps.values());
-        runOnUiThread(() -> {
-            if (isFinishing() || isDestroyed()) return;
-            boolean changed = appList.size() != tList.size();
-            if (!changed) {
-                for (int i = 0; i < appList.size(); i++) {
-                    if (!appList.get(i).packageName().equals(tList.get(i).packageName())) { changed = true; break; }
-                }
-            }
-            if (changed || horizontalAppContainer.getChildCount() == 0) {
-                appList.clear(); appList.addAll(tList); renderAppBanners();
-            }
-        });
-    });
+        appList.addAll(discoveredApps.values());
+        renderAppBanners();
     }
 
     private void registerPackageReceiver() {

@@ -2375,7 +2375,7 @@ private void advanceWallpaper() {
                          java.io.FileOutputStream out = new java.io.FileOutputStream(outFile)) {
                         byte[] buf = new byte[8192]; int len; while ((len = in.read(buf)) > 0) out.write(buf, 0, len);
                     } catch (Exception ignored) {}
-                    if (i % 10 == 0 || i == tot - 1) { final int cur = i + 1; runOnUiThread(() -> pd.setMessage(\"Downloading: \" + cur + \" / \" + tot)); }
+                    if (i % 10 == 0 || i == tot - 1) { final int cur = i + 1; runOnUiThread(() -> pd.setMessage("Downloading: " + cur + " / " + tot)); }
                 }
                 runOnUiThread(() -> { if (!isFinishing() && !isDestroyed()) { pd.dismiss(); Toast.makeText(LauncherActivity.this, "Import Complete! Saved to Pictures/banners", Toast.LENGTH_LONG).show(); renderAppBanners(); } });
             } catch (Exception e) { runOnUiThread(() -> { if (!isFinishing() && !isDestroyed()) { pd.dismiss(); Toast.makeText(LauncherActivity.this, "Import failed: " + e.getMessage(), Toast.LENGTH_LONG).show(); } }); }

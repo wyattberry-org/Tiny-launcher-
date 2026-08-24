@@ -27,10 +27,13 @@ public class WeatherConfigServer {
         stop(); isRunning = true;
         new Thread(() -> {
             try {
-                serverSocket = new ServerSocket(8080);
+                serverSocket = new ServerSocket();
+                serverSocket.setReuseAddress(true);
+                serverSocket.bind(new InetSocketAddress(8080));
                 while (isRunning && !serverSocket.isClosed()) {
                     Socket socket = serverSocket.accept();
-                    handleClient(context, socket, listener);
+                    socket.setSoTimeout(3000);
+                    new Thread(() -> handleClient(context, socket, listener)).start();
                 }
             } catch (Exception ignored) {}
         }).start();
@@ -43,7 +46,7 @@ public class WeatherConfigServer {
     }
 
     private static void handleClient(Context context, Socket socket, OnSaveListener listener) {
-        try (BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream())); OutputStream out = socket.getOutputStream()) {
+        try (Socket s = socket; BufferedReader in = new BufferedReader(new InputStreamReader(s.getInputStream())); OutputStream out = s.getOutputStream()) {
             String line = in.readLine(); if (line == null) return;
             SharedPreferences prefs = context.getSharedPreferences("BareLauncherPrefs", Context.MODE_PRIVATE);
             if (line.contains("GET /save?")) {

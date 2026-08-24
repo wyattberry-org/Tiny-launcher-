@@ -1564,38 +1564,34 @@ public class LauncherActivity extends Activity {
     }
 
     private void loadWallpapers() {
-        try { getFileStreamPath("last_wallpaper.jpg").delete(); } catch (Exception ignored) {}
-        wallpaperFiles.clear();
-        if (android.os.Build.VERSION.SDK_INT >= 33) {
-            if (checkSelfPermission("android.permission.READ_MEDIA_IMAGES") != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-                return;
-            }
-        }
-        String folderPath = prefs.getString("WallpaperFolder", "/sdcard/Pictures/Wallpapers");
-        File dir = new File(folderPath);
-        if (!dir.exists() && folderPath.contains("sdcard")) dir = new File(folderPath.replace("/sdcard", "/storage/emulated/0"));
+    try { getFileStreamPath("last_wallpaper.jpg").delete(); } catch (Exception ignored) {}
+    if (android.os.Build.VERSION.SDK_INT >= 33 && checkSelfPermission("android.permission.READ_MEDIA_IMAGES") != android.content.pm.PackageManager.PERMISSION_GRANTED) return;
+    bgExecutor.execute(() -> {
+        String fPath = prefs.getString("WallpaperFolder", "/sdcard/Pictures/Wallpapers");
+        File dir = new File(fPath);
+        if (!dir.exists() && fPath.contains("sdcard")) dir = new File(fPath.replace("/sdcard", "/storage/emulated/0"));
         if (!dir.exists()) dir = new File("/storage/emulated/0/Pictures/wallpapers");
         if (!dir.exists()) dir = new File("/storage/emulated/0/Pictures/Wallpapers");
         if (!dir.exists()) {
-            File p = new File("/storage/emulated/0/Pictures");
-            if (p.exists() && p.isDirectory()) {
-                File[] subs = p.listFiles(File::isDirectory);
-                if (subs != null) { for (File s : subs) { if (s.getName().equalsIgnoreCase("wallpapers")) { dir = s; break; } } }
+            File pDir = new File("/storage/emulated/0/Pictures");
+            if (pDir.exists() && pDir.isDirectory()) {
+                File[] subs = pDir.listFiles(File::isDirectory);
+                if (subs != null) for (File s : subs) if (s.getName().equalsIgnoreCase("wallpapers")) { dir = s; break; }
             }
         }
+        List<File> tFiles = new ArrayList<>();
         if (dir.exists() && dir.isDirectory()) {
-            File[] files = dir.listFiles((d, name) -> {
-                String n = name.toLowerCase();
-                return n.endsWith(".jpg") || n.endsWith(".jpeg") || n.endsWith(".png") || n.endsWith(".webp");
-            });
-            if (files != null) Collections.addAll(wallpaperFiles, files);
+            File[] files = dir.listFiles((d, n) -> { String l = n.toLowerCase(); return l.endsWith(".jpg") || l.endsWith(".jpeg") || l.endsWith(".png") || l.endsWith(".webp"); });
+            if (files != null) Collections.addAll(tFiles, files);
         }
-        if (!wallpaperFiles.isEmpty()) {
-            startWallpaperRotation();
-        } else {
-            wallpaperHandler.postDelayed(this::loadWallpapers, 500L);
-        }
-    }
+        runOnUiThread(() -> {
+            if (isFinishing() || isDestroyed()) return;
+            wallpaperFiles.clear(); wallpaperFiles.addAll(tFiles);
+            if (!wallpaperFiles.isEmpty()) startWallpaperRotation();
+            else wallpaperHandler.postDelayed(this::loadWallpapers, 500L);
+        });
+    });
+}
 
                 @Override
     protected void onResume() {
@@ -1877,7 +1873,15 @@ public class LauncherActivity extends Activity {
             iconView.setLayoutParams(new android.widget.FrameLayout.LayoutParams(-1, -1));
             iconView.setPadding(dpToPx(8), dpToPx(6), dpToPx(8), dpToPx(6));
             iconView.setScaleType(ImageView.ScaleType.FIT_CENTER);
-            iconView.setImageDrawable(getCustomDrawableForPackage(app.packageName(), app.icon()));
+            iconView.setImageDrawable(app.icon());
+        bgExecutor.execute(() -> {
+            android.graphics.drawable.Drawable custom = getCustomDrawableForPackage(app.packageName(), null);
+            if (custom != null) {
+                runOnUiThread(() -> {
+                    if (!isFinishing() && !isDestroyed()) iconView.setImageDrawable(custom);
+                });
+            }
+        });
             bannerCard.addView(iconView);
 
             TextView titleView = new TextView(this);
@@ -2135,7 +2139,8 @@ public class LauncherActivity extends Activity {
     }
 
     private void loadInstalledApps() {
-        appList.clear();
+        bgExecutor.execute(() -> {
+        List<AppModel> tList = new ArrayList<>();
         PackageManager pm = getPackageManager();
         Set<String> hidden = prefs.getStringSet("HiddenApps", new HashSet<>());
 
@@ -2169,12 +2174,15 @@ public class LauncherActivity extends Activity {
         if (!customOrder.isEmpty()) {
             for (String pkg : customOrder.split(",")) {
                 AppModel model = discoveredApps.remove(pkg);
-                if (model != null) appList.add(model);
+                if (model != null) tList.add(model);
             }
         }
-        appList.addAll(discoveredApps.values());
-        
-        renderAppBanners();
+        tList.addAll(discoveredApps.values());
+        runOnUiThread(() -> {
+            if (isFinishing() || isDestroyed()) return;
+            appList.clear(); appList.addAll(tList); renderAppBanners();
+        });
+    });
     }
 
     private void registerPackageReceiver() {

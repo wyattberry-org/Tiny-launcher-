@@ -114,6 +114,7 @@ public class LauncherActivity extends Activity {
 
     // --- Wallpapers & State ---
     private final java.util.concurrent.ExecutorService bgExecutor = java.util.concurrent.Executors.newSingleThreadExecutor();
+    private final java.util.concurrent.ExecutorService wallpaperExecutor = java.util.concurrent.Executors.newSingleThreadExecutor();
     private float displayDensity = 1.0f;
     private final List<File> wallpaperFiles = new ArrayList<>();
     private int currentWallpaperIndex = 0;
@@ -150,7 +151,7 @@ public class LauncherActivity extends Activity {
         rootOverlayFrame = new FrameLayout(this);
         rootOverlayFrame.setClipChildren(false);
         rootOverlayFrame.setClipToPadding(false);
-        rootOverlayFrame.setBackgroundColor(Color.parseColor("#2B2200"));
+        rootOverlayFrame.setBackgroundColor(Color.parseColor("#000000"));
 
         // --- 2. Wallpaper ImageSwitcher ---
         wallpaperSwitcher = new ImageSwitcher(this);
@@ -1523,7 +1524,7 @@ public class LauncherActivity extends Activity {
 
     private void extractAccentColorFromBitmap(Bitmap bitmap) {
         if (bitmap == null) return;
-        if (!bgExecutor.isShutdown()) bgExecutor.execute(() -> {
+        if (!wallpaperExecutor.isShutdown()) wallpaperExecutor.execute(() -> {
             try {
                 Bitmap thumb = Bitmap.createScaledBitmap(bitmap, 40, 24, false);
                 int[] pixels = new int[40 * 24];
@@ -1565,7 +1566,7 @@ public class LauncherActivity extends Activity {
     private void loadWallpapers() {
     try { getFileStreamPath("last_wallpaper.jpg").delete(); } catch (Exception ignored) {}
     if (android.os.Build.VERSION.SDK_INT >= 33 && checkSelfPermission("android.permission.READ_MEDIA_IMAGES") != android.content.pm.PackageManager.PERMISSION_GRANTED) return;
-    if (!bgExecutor.isShutdown()) bgExecutor.execute(() -> {
+    if (!wallpaperExecutor.isShutdown()) wallpaperExecutor.execute(() -> {
         String fPath = prefs.getString("WallpaperFolder", "/sdcard/Pictures/Wallpapers");
         File dir = new File(fPath);
         if (!dir.exists() && fPath.contains("sdcard")) dir = new File(fPath.replace("/sdcard", "/storage/emulated/0"));
@@ -1587,7 +1588,7 @@ public class LauncherActivity extends Activity {
             if (isFinishing() || isDestroyed()) return;
             wallpaperFiles.clear(); wallpaperFiles.addAll(tFiles);
             if (!wallpaperFiles.isEmpty()) startWallpaperRotation();
-            else wallpaperHandler.postDelayed(this::loadWallpapers, 500L);
+            else wallpaperHandler.postDelayed(this::loadWallpapers, 200L);
         });
     });
 }
@@ -1658,7 +1659,7 @@ private boolean isWallpaperDecoding = false;
         File file = wallpaperFiles.get(targetIndex);
         int[] targetRes = getWallpaperTargetResolution();
 
-        if (!bgExecutor.isShutdown()) bgExecutor.execute(() -> {
+        if (!wallpaperExecutor.isShutdown()) wallpaperExecutor.execute(() -> {
             Bitmap bitmap = decodeSampledBitmap(file.getAbsolutePath(), targetRes[0], targetRes[1]);
             runOnUiThread(() -> isWallpaperDecoding = false);
             if (bitmap != null) {
@@ -2217,6 +2218,7 @@ private boolean isWallpaperDecoding = false;
         
         try { unregisterReceiver(packageReceiver); } catch (Exception ignored) {}
         try { com.tiny.launcher.weather.WeatherConfigServer.stop(); } catch (Exception ignored) {}
+        try { wallpaperExecutor.shutdownNow(); } catch (Exception ignored) {}
         try { bgExecutor.shutdownNow(); } catch (Exception ignored) {}
     }
 

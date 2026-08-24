@@ -1149,9 +1149,7 @@ public class LauncherActivity extends Activity {
             int[] r = getWallpaperTargetResolution();
             Bitmap b = decodeSampledBitmap(f.getAbsolutePath(), r[0], r[1]);
             if (b != null) {
-                wallpaperSwitcher.setFocusable(false);
-                wallpaperSwitcher.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
-                wallpaperSwitcher.setImageDrawable(new BitmapDrawable(getResources(), b));
+                setAndRecycleWallpaper(b);
                 extractAccentColorFromBitmap(b);
             }
         }
@@ -1605,9 +1603,7 @@ public class LauncherActivity extends Activity {
             int[] targetRes = getWallpaperTargetResolution();
             Bitmap bitmap = decodeSampledBitmap(file.getAbsolutePath(), targetRes[0], targetRes[1]);
             if (bitmap != null && wallpaperSwitcher != null) {
-                View curF = getCurrentFocus(); wallpaperSwitcher.setFocusable(false);
-                wallpaperSwitcher.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
-                wallpaperSwitcher.setImageDrawable(new BitmapDrawable(getResources(), bitmap));
+                View curF = getCurrentFocus(); setAndRecycleWallpaper(bitmap);
                 extractAccentColorFromBitmap(bitmap);
 
                 if (curF != null) curF.post(() -> curF.requestFocus());
@@ -1646,7 +1642,18 @@ public class LauncherActivity extends Activity {
         }
     }
 
-    private void advanceWallpaper() {
+    private void setAndRecycleWallpaper(Bitmap newBmp) {
+    if (wallpaperSwitcher == null || newBmp == null) return;
+    View curView = wallpaperSwitcher.getCurrentView();
+    Drawable oldD = curView != null ? ((ImageView) curView).getDrawable() : null;
+    setAndRecycleWallpaper(newBmp);
+    if (oldD instanceof BitmapDrawable) {
+        Bitmap oldB = ((BitmapDrawable) oldD).getBitmap();
+        if (oldB != null && !oldB.isRecycled()) wallpaperHandler.postDelayed(() -> oldB.recycle(), 2500);
+    }
+}
+
+private void advanceWallpaper() {
         if (wallpaperFiles.isEmpty()) return;
         if (!hasEvaluatedRestartWallpaper && prefs.getBoolean("ChangeEachRestart", false)) {
             hasEvaluatedRestartWallpaper = true;
@@ -1665,9 +1672,7 @@ public class LauncherActivity extends Activity {
                 runOnUiThread(() -> {
                     if (isFinishing() || isDestroyed()) return;
                     View curF = getCurrentFocus();
-                    wallpaperSwitcher.setFocusable(false);
-                    wallpaperSwitcher.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
-                    wallpaperSwitcher.setImageDrawable(new BitmapDrawable(getResources(), bitmap));
+                    setAndRecycleWallpaper(bitmap);
                     extractAccentColorFromBitmap(bitmap);
                     if (curF != null) curF.post(() -> curF.requestFocus());
 
@@ -2226,7 +2231,7 @@ public class LauncherActivity extends Activity {
         
         try { unregisterReceiver(packageReceiver); } catch (Exception ignored) {}
         try { com.tiny.launcher.weather.WeatherConfigServer.stop(); } catch (Exception ignored) {}
-        try { bgExecutor.shutdown(); } catch (Exception ignored) {}
+        try { bgExecutor.shutdownNow(); } catch (Exception ignored) {}
     }
 
     private String replacingBannerPkg = null;
@@ -2294,7 +2299,7 @@ public class LauncherActivity extends Activity {
         if (file.exists() && wallpaperSwitcher != null) {
             int[] targetRes = getWallpaperTargetResolution();
             Bitmap b = decodeSampledBitmap(file.getAbsolutePath(), targetRes[0], targetRes[1]);
-            if (b != null) wallpaperSwitcher.setImageDrawable(new BitmapDrawable(getResources(), b));
+            if (b != null) setAndRecycleWallpaper(b);
         }
     }
 
@@ -2385,6 +2390,7 @@ public class LauncherActivity extends Activity {
                 if (tree != null) { for (int i = 0; i < tree.length(); i++) { String p = tree.getJSONObject(i).optString("path", ""); if (p.startsWith("banners/") && p.toLowerCase().endsWith(".png")) items.add(p); } }
                 int tot = items.size();
                 for (int i = 0; i < tot; i++) {
+                    if (isFinishing() || isDestroyed()) break;
                     String itemPath = items.get(i); String fName = itemPath.substring(itemPath.lastIndexOf('/') + 1);
                     File outFile = new File(bDir, fName);
                     try (java.io.InputStream in = new java.net.URL("https://raw.githubusercontent.com/wyattberry-org/launcher-banners/main/" + itemPath).openStream();

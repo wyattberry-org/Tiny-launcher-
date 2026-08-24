@@ -142,6 +142,7 @@ public class LauncherActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        getWindow().setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING);
         prefs = getSharedPreferences("BareLauncherPrefs", MODE_PRIVATE);
         displayDensity = getResources().getDisplayMetrics().density;
 

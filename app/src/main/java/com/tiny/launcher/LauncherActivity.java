@@ -1850,14 +1850,6 @@ private boolean isWallpaperDecoding = false;
             iconView.setPadding(dpToPx(8), dpToPx(6), dpToPx(8), dpToPx(6));
             iconView.setScaleType(ImageView.ScaleType.FIT_CENTER);
             iconView.setImageDrawable(app.icon());
-        if (!bgExecutor.isShutdown()) bgExecutor.execute(() -> {
-            android.graphics.drawable.Drawable custom = getCustomDrawableForPackage(app.packageName(), null);
-            if (custom != null) {
-                runOnUiThread(() -> {
-                    if (!isFinishing() && !isDestroyed()) iconView.setImageDrawable(custom);
-                });
-            }
-        });
             bannerCard.addView(iconView);
 
             TextView titleView = new TextView(this);
@@ -2144,7 +2136,8 @@ private boolean isWallpaperDecoding = false;
             if (pkg.equals(getPackageName()) || hidden.contains(pkg)) continue;
             String name = ri.loadLabel(pm).toString();
             Drawable icon = ri.loadIcon(pm);
-            discoveredApps.put(pkg, new AppModel(name, icon, pkg, true));
+            Drawable custom = getCustomDrawableForPackage(pkg, icon);
+            discoveredApps.put(pkg, new AppModel(name, custom, pkg, true));
         }
 
         Intent standardIntent = new Intent(Intent.ACTION_MAIN, null);
@@ -2156,7 +2149,8 @@ private boolean isWallpaperDecoding = false;
             if (pkg.equals(getPackageName()) || hidden.contains(pkg) || discoveredApps.containsKey(pkg)) continue;
             String name = ri.loadLabel(pm).toString();
             Drawable icon = ri.loadIcon(pm);
-            discoveredApps.put(pkg, new AppModel(name, icon, pkg, false));
+            Drawable custom = getCustomDrawableForPackage(pkg, icon);
+            discoveredApps.put(pkg, new AppModel(name, custom, pkg, false));
         }
 
         String customOrder = prefs.getString("CustomAppOrder", "");

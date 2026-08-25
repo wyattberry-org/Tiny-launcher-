@@ -434,6 +434,7 @@ public class LauncherActivity extends Activity {
             settingsGear.setFocusableInTouchMode(!open);
         }
         if (open) {
+            sideDrawerContainer.bringToFront();
             if (!isInSubmenu) { lastMainMenuIdx = 0; buildMainMenuInDrawer(); }
             sideDrawerContainer.setVisibility(View.VISIBLE);
             sideDrawerContainer.animate().translationX(0f).setDuration(250).start();
@@ -878,7 +879,8 @@ public class LauncherActivity extends Activity {
     }
 
     private void verifyParentalPasscode(Runnable onSuccess) {
-        int index = prefs.getInt("PasscodeIndex", 1);
+        int rawIdx = prefs.getInt("PasscodeIndex", 1);
+        int index = Math.max(0, Math.min(rawIdx, PASSCODE_PRESETS.length - 1));
         String requiredCode = PASSCODE_PRESETS[index];
 
         LinearLayout menuView = new LinearLayout(this);
@@ -998,7 +1000,8 @@ public class LauncherActivity extends Activity {
                 TextView tv = row1.findViewById(1001); if (tv != null) tv.setText(next ? "ON" : "OFF"); return true;
             } return false;
         });
-        int passIndex = prefs.getInt("PasscodeIndex", 1);
+        int rawPass = prefs.getInt("PasscodeIndex", 1);
+        int passIndex = Math.max(0, Math.min(rawPass, PASSCODE_PRESETS.length - 1));
         View row2 = addDrawerStatusItem(container, "⚿", "Passcode", PASSCODE_PRESETS[passIndex], null);
         row2.setOnClickListener(null);
         row2.setOnKeyListener((v, kCode, evt) -> {
@@ -1647,17 +1650,11 @@ public class LauncherActivity extends Activity {
     }
 
     private void setAndRecycleWallpaper(Bitmap newBmp) {
-    if (wallpaperSwitcher == null || newBmp == null) return;
-    View curView = wallpaperSwitcher.getCurrentView();
-    Drawable oldD = curView != null ? ((ImageView) curView).getDrawable() : null;
-    wallpaperSwitcher.setFocusable(false);
-    wallpaperSwitcher.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
-    wallpaperSwitcher.setImageDrawable(new BitmapDrawable(getResources(), newBmp));
-    if (oldD instanceof BitmapDrawable) {
-        Bitmap oldB = ((BitmapDrawable) oldD).getBitmap();
-        if (oldB != null && !oldB.isRecycled()) wallpaperHandler.postDelayed(() -> oldB.recycle(), 2500);
+        if (wallpaperSwitcher == null || newBmp == null) return;
+        wallpaperSwitcher.setFocusable(false);
+        wallpaperSwitcher.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
+        wallpaperSwitcher.setImageDrawable(new BitmapDrawable(getResources(), newBmp));
     }
-}
 
 private boolean isWallpaperDecoding = false;
     private void advanceWallpaper() {
@@ -2194,6 +2191,7 @@ private boolean isWallpaperDecoding = false;
     protected void onStart() {
         super.onStart();
         startLiveClock();
+        resetIdleTimer();
         if (!wallpaperFiles.isEmpty()) startWallpaperRotation();
     }
 
@@ -2208,7 +2206,11 @@ private boolean isWallpaperDecoding = false;
     @Override
     protected void onDestroy() {
         super.onDestroy();
-                clockHandler.removeCallbacks(clockRunnable);
+        if (activeTilePopupWindow != null) {
+            try { if (activeTilePopupWindow.isShowing()) activeTilePopupWindow.dismiss(); } catch (Exception ignored) {}
+            activeTilePopupWindow = null;
+        }
+        clockHandler.removeCallbacks(clockRunnable);
         idleHandler.removeCallbacks(idleRunnable);
         wallpaperHandler.removeCallbacks(wallpaperRunnable);
         
@@ -2228,7 +2230,6 @@ private boolean isWallpaperDecoding = false;
             android.graphics.drawable.Drawable d = android.graphics.drawable.Drawable.createFromPath(customBanner.getAbsolutePath());
             if (d != null) return d;
         }
-        if (pkg == null) return fallback;
         String resName = null;
         String p = pkg.toLowerCase();
 
@@ -2402,9 +2403,8 @@ private boolean isWallpaperDecoding = false;
             }, popup);
         }
         addPopupMenuItem(menuView, "⬇", "Import", () -> { if (popup != null) popup.dismiss(); showProjectivyBannerImportDialog(); }, popup);
-        String[][] explorers = {{"Cx File", "com.cxinventor.file.explorer"}, {"X-plore", "com.lonelycatgames.Xplore"}, {"Solid File", "pl.solidexplorer2"}, {"FX File", "nextapp.fx"}, {"Total Commander", "com.ghisler.android.TotalCommander"}, {"System Files", "com.google.android.documentsui"}, {"Native File", "com.android.documentsui"}};
         boolean found = false; PackageManager pm = getPackageManager();
-        for (String[] exp : explorers) {
+        for (String[] exp : EXPLORER_APPS) {
             String name = exp[0]; String pkg = exp[1];
             try {
                 pm.getPackageInfo(pkg, 0); found = true;

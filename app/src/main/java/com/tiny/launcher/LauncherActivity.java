@@ -1694,6 +1694,10 @@ private boolean isWallpaperDecoding = false;
     private void setupIdleAutoTimer() {
         idleRunnable = () -> {
             isUiHidden = true;
+            if (activeTilePopupWindow != null) {
+                try { if (activeTilePopupWindow.isShowing()) activeTilePopupWindow.dismiss(); } catch (Exception ignored) {}
+                activeTilePopupWindow = null;
+            }
             if (isSideDrawerOpen) toggleSideDrawer(false);
             if (horizontalAppScrollView != null) horizontalAppScrollView.animate().alpha(0.0f).setDuration(600).start();
             if (topWidgetRow != null) topWidgetRow.animate().alpha(0.0f).setDuration(600).start();

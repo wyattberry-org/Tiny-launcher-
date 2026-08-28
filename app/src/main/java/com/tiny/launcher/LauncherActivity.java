@@ -173,7 +173,7 @@ public class LauncherActivity extends Activity {
         // --- 3. Main Content Overlay ---
         LinearLayout mainOverlayLayout = new LinearLayout(this);
         mainOverlayLayout.setOrientation(LinearLayout.VERTICAL);
-        mainOverlayLayout.setPadding(50, 30, 50, 0);
+        mainOverlayLayout.setPadding(0, 0, 0, 0);
         mainOverlayLayout.setClipChildren(false);
         mainOverlayLayout.setClipToPadding(false);
         mainOverlayLayout.setLayoutParams(new FrameLayout.LayoutParams(
@@ -183,7 +183,7 @@ public class LauncherActivity extends Activity {
         topWidgetRow = new LinearLayout(this);
         topWidgetRow.setOrientation(LinearLayout.HORIZONTAL);
         topWidgetRow.setGravity(Gravity.CENTER_VERTICAL);
-        topWidgetRow.setPadding(0, 0, 0, 20);
+        topWidgetRow.setPadding(50, 30, 50, 20);
         topWidgetRow.setClipChildren(false);
         topWidgetRow.setClipToPadding(false);
 
@@ -257,7 +257,7 @@ public class LauncherActivity extends Activity {
         horizontalAppScrollView = new HorizontalScrollView(this);
         horizontalAppScrollView.setHorizontalScrollBarEnabled(false);
         horizontalAppScrollView.setClipToPadding(false);
-        horizontalAppScrollView.setPadding(0, dpToPx(16), 0, dpToPx(4));
+        horizontalAppScrollView.setPadding(50, dpToPx(16), 50, dpToPx(4));
 
         horizontalAppContainer = new LinearLayout(this);
         horizontalAppContainer.setOrientation(LinearLayout.HORIZONTAL);

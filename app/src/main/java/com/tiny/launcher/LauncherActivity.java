@@ -868,9 +868,34 @@ public class LauncherActivity extends Activity {
         });
 
         PackageManager pm = getPackageManager();
-        for (AppModel app : appList) {
-            Drawable icon; try { icon = pm.getApplicationIcon(app.packageName()); } catch (Exception e) { icon = app.icon(); } addDrawerAppItem(container, icon, app.name(), (v) -> {
-                prefs.edit().putString(key, app.packageName()).apply();
+        Map<String, ResolveInfo> appMap = new LinkedHashMap<>();
+
+        Intent tvIntent = new Intent(Intent.ACTION_MAIN, null);
+        tvIntent.addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER);
+        for (ResolveInfo ri : pm.queryIntentActivities(tvIntent, 0)) {
+            if (!ri.activityInfo.packageName.equals(getPackageName())) {
+                appMap.put(ri.activityInfo.packageName, ri);
+            }
+        }
+
+        Intent stdIntent = new Intent(Intent.ACTION_MAIN, null);
+        stdIntent.addCategory(Intent.CATEGORY_LAUNCHER);
+        for (ResolveInfo ri : pm.queryIntentActivities(stdIntent, 0)) {
+            if (!ri.activityInfo.packageName.equals(getPackageName()) && !appMap.containsKey(ri.activityInfo.packageName)) {
+                appMap.put(ri.activityInfo.packageName, ri);
+            }
+        }
+
+        List<ResolveInfo> allApps = new ArrayList<>(appMap.values());
+        allApps.sort((a, b) -> a.loadLabel(pm).toString().compareToIgnoreCase(b.loadLabel(pm).toString()));
+
+        for (ResolveInfo ri : allApps) {
+            String pkg = ri.activityInfo.packageName;
+            String name = ri.loadLabel(pm).toString();
+            Drawable icon;
+            try { icon = pm.getApplicationIcon(pkg); } catch (Exception e) { icon = ri.loadIcon(pm); }
+            addDrawerAppItem(container, icon, name, (v) -> {
+                prefs.edit().putString(key, pkg).apply();
                 openButtonShortcutsSubmenu();
             });
         }

@@ -867,8 +867,9 @@ public class LauncherActivity extends Activity {
             openButtonShortcutsSubmenu();
         });
 
+        PackageManager pm = getPackageManager();
         for (AppModel app : appList) {
-            addDrawerAppItem(container, app.icon(), app.name(), (v) -> {
+            Drawable icon; try { icon = pm.getApplicationIcon(app.packageName()); } catch (Exception e) { icon = app.icon(); } addDrawerAppItem(container, icon, app.name(), (v) -> {
                 prefs.edit().putString(key, app.packageName()).apply();
                 openButtonShortcutsSubmenu();
             });

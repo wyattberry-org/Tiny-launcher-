@@ -332,15 +332,13 @@ public class LauncherActivity extends Activity {
             horizontalAppScrollView.scrollTo(0, 0);
         }
         if (horizontalAppContainer != null && horizontalAppContainer.getChildCount() > 0) {
-            horizontalAppContainer.postDelayed(() -> {
-                android.view.View item = horizontalAppContainer.getChildAt(0);
-                if (item instanceof android.view.ViewGroup && ((android.view.ViewGroup) item).getChildCount() > 0) {
-                    android.view.View banner = ((android.view.ViewGroup) item).getChildAt(0);
-                    banner.requestFocus();
-                } else if (item != null) {
-                    item.requestFocus();
-                }
-            }, 100);
+            android.view.View item = horizontalAppContainer.getChildAt(0);
+            if (item instanceof android.view.ViewGroup && ((android.view.ViewGroup) item).getChildCount() > 0) {
+                android.view.View banner = ((android.view.ViewGroup) item).getChildAt(0);
+                banner.requestFocus();
+            } else if (item != null) {
+                item.requestFocus();
+            }
         }
     }
 

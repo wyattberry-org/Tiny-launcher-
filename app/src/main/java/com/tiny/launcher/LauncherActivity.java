@@ -165,9 +165,6 @@ public class LauncherActivity extends Activity {
             return iv;
         });
 
-        wallpaperSwitcher.setInAnimation(AnimationUtils.loadAnimation(this, android.R.anim.slide_in_left));
-        wallpaperSwitcher.setOutAnimation(AnimationUtils.loadAnimation(this, android.R.anim.slide_out_right));
-        if (wallpaperSwitcher.getInAnimation() != null) wallpaperSwitcher.getInAnimation().setDuration(2000); if (wallpaperSwitcher.getOutAnimation() != null) wallpaperSwitcher.getOutAnimation().setDuration(2000);
         rootOverlayFrame.addView(wallpaperSwitcher);
 
         // --- 3. Main Content Overlay ---
@@ -1617,7 +1614,7 @@ public class LauncherActivity extends Activity {
         if (!wallpaperFiles.isEmpty()) {
             startWallpaperRotation();
         } else {
-            wallpaperHandler.postDelayed(this::loadWallpapers, 500L);
+            wallpaperHandler.postDelayed(this::loadWallpapers, 100L);
         }
     }
 
@@ -1625,21 +1622,6 @@ public class LauncherActivity extends Activity {
     protected void onResume() {
         applyTileRowPosition();
         super.onResume();
-        if (isFirstResume && prefs.getBoolean("ChangeEachRestart", false) && !wallpaperFiles.isEmpty()) {
-            int last = prefs.getInt("LastWallpaperIndex", 0);
-            currentWallpaperIndex = (last + 10) % wallpaperFiles.size();
-            prefs.edit().putInt("LastWallpaperIndex", currentWallpaperIndex).apply();
-            hasEvaluatedRestartWallpaper = true;
-            File file = wallpaperFiles.get(currentWallpaperIndex);
-            int[] targetRes = getWallpaperTargetResolution();
-            Bitmap bitmap = decodeSampledBitmap(file.getAbsolutePath(), targetRes[0], targetRes[1]);
-            if (bitmap != null && wallpaperSwitcher != null) {
-                View curF = getCurrentFocus();
-                setAndRecycleWallpaper(bitmap);
-                extractAccentColorFromBitmap(bitmap);
-                if (curF != null) curF.post(() -> curF.requestFocus());
-            }
-        }
         isFirstResume = false;
     }
 
@@ -1670,6 +1652,17 @@ public class LauncherActivity extends Activity {
             long elapsed = System.currentTimeMillis() - lastWallpaperChangeTime;
             long remaining = Math.max(1000L, interval - elapsed);
             wallpaperHandler.postDelayed(wallpaperRunnable, remaining);
+        }
+    }
+
+        private void enableWallpaperTransitions() {
+        if (wallpaperSwitcher != null && wallpaperSwitcher.getInAnimation() == null) {
+            android.view.animation.Animation in = android.view.animation.AnimationUtils.loadAnimation(this, android.R.anim.slide_in_left);
+            android.view.animation.Animation out = android.view.animation.AnimationUtils.loadAnimation(this, android.R.anim.slide_out_right);
+            if (in != null) in.setDuration(1000);
+            if (out != null) out.setDuration(1000);
+            wallpaperSwitcher.setInAnimation(in);
+            wallpaperSwitcher.setOutAnimation(out);
         }
     }
 
@@ -1707,7 +1700,10 @@ private boolean isWallpaperDecoding = false;
                     if (curF != null) curF.post(() -> curF.requestFocus());
 
                     lastWallpaperChangeTime = System.currentTimeMillis();
-                    isWallpaperLoaded = true;
+                    if (!isWallpaperLoaded) {
+                        isWallpaperLoaded = true;
+                        enableWallpaperTransitions();
+                    }
                     prefs.edit().putInt("LastWallpaperIndex", targetIndex).apply();
                 });
             }

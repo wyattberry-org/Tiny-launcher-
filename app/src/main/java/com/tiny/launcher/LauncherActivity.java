@@ -1701,6 +1701,7 @@ private boolean isWallpaperDecoding = false;
             if (isSideDrawerOpen) toggleSideDrawer(false);
             if (horizontalAppScrollView != null) horizontalAppScrollView.animate().alpha(0.0f).setDuration(600).start();
             if (topWidgetRow != null) topWidgetRow.animate().alpha(0.0f).setDuration(600).start();
+            if (weatherWidget != null) weatherWidget.animate().alpha(0.0f).setDuration(600).start();
         };
         resetIdleTimer();
     }
@@ -1716,6 +1717,9 @@ private boolean isWallpaperDecoding = false;
                     firstTile.post(() -> firstTile.requestFocus());
                 }
             }
+        }
+        if (weatherWidget != null && weatherWidget.getAlpha() < 1.0f) {
+            weatherWidget.animate().alpha(1.0f).setDuration(200).start();
         }
         if (topWidgetRow != null && topWidgetRow.getAlpha() < 1.0f) {
             topWidgetRow.animate().alpha(1.0f).setDuration(200).start();

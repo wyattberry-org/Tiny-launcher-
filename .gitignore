@@ -1,0 +1,12 @@
+*.pyc
+__pycache__/
+*.apk
+.gradle/
+build/
+app/build/
+local.properties
+.DS_Store
+patch_*.py
+inspect_*.py
+fix_*.py
+find_*.py

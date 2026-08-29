@@ -220,6 +220,7 @@ public class LauncherActivity extends Activity {
         settingsGear.setImageResource(R.drawable.ic_settings_gear);
         settingsGear.setFocusable(true);
         settingsGear.setFocusableInTouchMode(true);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) settingsGear.setFocusedByDefault(false);
         int pad = dpToPx(8);
         settingsGear.setPadding(pad, pad, pad, pad);
         settingsGear.setLayoutParams(new LinearLayout.LayoutParams(dpToPx(38), dpToPx(38)));
@@ -363,6 +364,14 @@ public class LauncherActivity extends Activity {
         super.onNewIntent(intent);
         setIntent(intent);
         if (android.content.Intent.ACTION_MAIN.equals(intent.getAction()) && intent.hasCategory(android.content.Intent.CATEGORY_HOME)) {
+            resetToHomeScreenAndFocusFirstTile();
+        }
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (hasFocus && !isSideDrawerOpen && (getCurrentFocus() == null || getCurrentFocus() == settingsGear)) {
             resetToHomeScreenAndFocusFirstTile();
         }
     }
@@ -1919,6 +1928,7 @@ public class LauncherActivity extends Activity {
 
             android.widget.FrameLayout bannerCard = new android.widget.FrameLayout(this);
             bannerCard.setFocusable(true); bannerCard.setFocusableInTouchMode(true);
+            if (position == 0 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) bannerCard.setFocusedByDefault(true);
             int cardId = View.generateViewId(); bannerCard.setId(cardId);
             if (settingsGear != null) {
                 if (settingsGear.getId() == View.NO_ID) settingsGear.setId(View.generateViewId());

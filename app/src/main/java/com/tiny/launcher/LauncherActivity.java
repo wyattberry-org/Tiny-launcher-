@@ -320,6 +320,7 @@ public class LauncherActivity extends Activity {
         setContentView(rootOverlayFrame);
         if (weatherWidget != null) weatherWidget.bringToFront();
 
+        loadInstantBootFrame();
         loadWallpapers();
         loadInstalledApps();
         registerPackageReceiver();
@@ -1617,7 +1618,28 @@ public class LauncherActivity extends Activity {
         } catch (Exception e) { return null; }
     }
 
-                    private void loadWallpapers() { loadWallpapers(false); }
+                        private void saveBitmapToPrivateFrame(File src) {
+        if (src == null || !src.exists()) return;
+        try (java.io.InputStream in = new java.io.FileInputStream(src);
+             java.io.OutputStream out = openFileOutput("last_frame.jpg", MODE_PRIVATE)) {
+            byte[] buf = new byte[8192]; int len;
+            while ((len = in.read(buf)) > 0) out.write(buf, 0, len);
+        } catch (Exception ignored) {}
+    }
+
+    private void loadInstantBootFrame() {
+        File frame = getFileStreamPath("last_frame.jpg");
+        if (frame.exists() && frame.length() > 0 && !isWallpaperLoaded) {
+            int[] res = getWallpaperTargetResolution();
+            Bitmap b = decodeSampledBitmap(frame.getAbsolutePath(), res[0], res[1]);
+            if (b != null) {
+                setAndRecycleWallpaper(b);
+                extractAccentColorFromBitmap(b);
+                isWallpaperLoaded = true;
+            }
+        }
+    }
+    private void loadWallpapers() { loadWallpapers(false); }
 
     private void loadWallpapers(boolean forceDisplayFirst) {
         wallpaperFiles.clear();
@@ -1651,38 +1673,18 @@ public class LauncherActivity extends Activity {
         if (wallpaperFiles.isEmpty()) return;
         int last = prefs.getInt("LastWallpaperIndex", 0);
         boolean changeOnRestart = prefs.getBoolean("ChangeEachRestart", false);
-        int target = changeOnRestart ? (last + 10) % wallpaperFiles.size() : last % wallpaperFiles.size();
-        loadWallpaperAtIndex(target);
-    }
-
-    private void startWallpaperRotation() {
-        wallpaperHandler.removeCallbacks(wallpaperRunnable);
-        long interval = prefs.getLong("SlideshowInterval", 30000L);
-        wallpaperRunnable = new Runnable() {
-            @Override public void run() {
-                if (wallpaperFiles.isEmpty()) { loadWallpapers(); return; }
-                advanceWallpaper();
-                long curInt = prefs.getLong("SlideshowInterval", 30000L);
-                if (curInt > 0) wallpaperHandler.postDelayed(this, curInt);
+        if (changeOnRestart) {
+            int target = (last + 10) % wallpaperFiles.size();
+            loadWallpaperAtIndex(target);
+        } else {
+            int target = last % wallpaperFiles.size();
+            currentWallpaperIndex = target;
+            if (!isWallpaperLoaded) { loadWallpaperAtIndex(target); }
+            else {
+                enableWallpaperTransitions();
+                startWallpaperRotation();
             }
-        };
-        if (interval > 0) wallpaperHandler.postDelayed(wallpaperRunnable, interval);
-    }
-
-    private void enableWallpaperTransitions() {
-        if (wallpaperSwitcher != null && wallpaperSwitcher.getInAnimation() == null) {
-            android.view.animation.Animation in = android.view.animation.AnimationUtils.loadAnimation(this, android.R.anim.slide_in_left);
-            android.view.animation.Animation out = android.view.animation.AnimationUtils.loadAnimation(this, android.R.anim.slide_out_right);
-            if (in != null) in.setDuration(1000); if (out != null) out.setDuration(1000);
-            wallpaperSwitcher.setInAnimation(in); wallpaperSwitcher.setOutAnimation(out);
         }
-    }
-
-    private void setAndRecycleWallpaper(Bitmap newBmp) {
-        if (wallpaperSwitcher == null || newBmp == null) return;
-        wallpaperSwitcher.setFocusable(false);
-        wallpaperSwitcher.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
-        wallpaperSwitcher.setImageDrawable(new BitmapDrawable(getResources(), newBmp));
     }
 
     private void loadWallpaperAtIndex(int targetIndex) {
@@ -1713,6 +1715,7 @@ public class LauncherActivity extends Activity {
                         }
                     }
                 });
+                saveBitmapToPrivateFrame(file);
             });
         } else { isWallpaperDecoding = false; }
     }

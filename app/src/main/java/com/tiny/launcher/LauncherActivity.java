@@ -1913,7 +1913,12 @@ private boolean isWallpaperDecoding = false;
 
             bannerCard.setOnFocusChangeListener((v, hasFocus) -> {
                 if (isAnimatingMove) return;
-                if (hasFocus) lastFocusedAppIdx = position;
+                if (hasFocus) {
+                    lastFocusedAppIdx = position;
+                    if (position == 0 && horizontalAppScrollView != null && horizontalAppScrollView.getScrollX() > 0) {
+                        horizontalAppScrollView.post(() -> horizontalAppScrollView.smoothScrollTo(0, 0));
+                    }
+                }
                 resetIdleTimer();
                 titleView.setVisibility(hasFocus ? View.VISIBLE : View.INVISIBLE);
                 v.animate().scaleX(hasFocus ? 1.25f : 1.0f).scaleY(hasFocus ? 1.25f : 1.0f).setDuration(150).start();

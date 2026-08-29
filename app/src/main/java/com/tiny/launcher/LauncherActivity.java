@@ -1397,14 +1397,13 @@ public class LauncherActivity extends Activity {
         private void searchAndEnrollLocation(String query) {
         if (query.isEmpty()) return;
         if (!bgExecutor.isShutdown()) bgExecutor.execute(() -> {
+            java.net.HttpURLConnection conn = null;
             try {
                 String urlStr = "https://geocoding-api.open-meteo.com/v1/search?name=" + java.net.URLEncoder.encode(query, "UTF-8") + "&count=5";
-                java.net.HttpURLConnection conn = null;
-                try {
-                    conn = (java.net.HttpURLConnection) new java.net.URL(urlStr).openConnection();
-                    conn.setRequestProperty("User-Agent", "Mozilla/5.0");
-                    conn.setConnectTimeout(5000); conn.setReadTimeout(10000);
-                    if (conn.getResponseCode() == 200) {
+                conn = (java.net.HttpURLConnection) new java.net.URL(urlStr).openConnection();
+                conn.setRequestProperty("User-Agent", "Mozilla/5.0");
+                conn.setConnectTimeout(5000); conn.setReadTimeout(10000);
+                if (conn.getResponseCode() == 200) {
                     java.io.BufferedReader r = new java.io.BufferedReader(new java.io.InputStreamReader(conn.getInputStream()));
                     StringBuilder sb = new StringBuilder(); String line;
                     while ((line = r.readLine()) != null) sb.append(line); r.close();
@@ -1431,11 +1430,13 @@ public class LauncherActivity extends Activity {
                     }
                 }
                 runOnUiThread(() -> Toast.makeText(LauncherActivity.this, "No locations found for " + query, Toast.LENGTH_SHORT).show());
-            } catch (Exception e) { runOnUiThread(() -> { if (!isFinishing() && !isDestroyed()) Toast.makeText(LauncherActivity.this, "Search failed: " + e.getMessage(), Toast.LENGTH_SHORT).show(); }); } finally { if (conn != null) conn.disconnect(); }
+            } catch (Exception e) {
+                runOnUiThread(() -> { if (!isFinishing() && !isDestroyed()) Toast.makeText(LauncherActivity.this, "Search failed: " + e.getMessage(), Toast.LENGTH_SHORT).show(); });
+            } finally {
+                if (conn != null) conn.disconnect();
+            }
         });
     }
-
-    
 
     private void addWeatherPositionRow(LinearLayout c, String sym, String title, String key, int def, int min, int max, int step, Runnable onChg) {
         int val = prefs.getInt(key, def);

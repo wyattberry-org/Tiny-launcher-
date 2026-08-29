@@ -1677,38 +1677,45 @@ private boolean isWallpaperDecoding = false;
     private void advanceWallpaper() {
         if (wallpaperFiles.isEmpty() || isWallpaperDecoding) return;
         isWallpaperDecoding = true;
-        if (!hasEvaluatedRestartWallpaper && prefs.getBoolean("ChangeEachRestart", false)) {
+        if (!hasEvaluatedRestartWallpaper) {
             hasEvaluatedRestartWallpaper = true;
             int last = prefs.getInt("LastWallpaperIndex", 0);
-            currentWallpaperIndex = (last + 10) % wallpaperFiles.size();
+            if (prefs.getBoolean("ChangeEachRestart", false)) {
+                currentWallpaperIndex = (last + 10) % wallpaperFiles.size();
+            } else {
+                currentWallpaperIndex = last % wallpaperFiles.size();
+            }
         } else {
-            currentWallpaperIndex = currentWallpaperIndex % wallpaperFiles.size();
+            currentWallpaperIndex = (currentWallpaperIndex + 1) % wallpaperFiles.size();
         }
         final int targetIndex = currentWallpaperIndex;
         File file = wallpaperFiles.get(targetIndex);
         int[] targetRes = getWallpaperTargetResolution();
 
-        if (!wallpaperExecutor.isShutdown()) wallpaperExecutor.execute(() -> {
-            Bitmap bitmap = decodeSampledBitmap(file.getAbsolutePath(), targetRes[0], targetRes[1]);
-            runOnUiThread(() -> isWallpaperDecoding = false);
-            if (bitmap != null) {
+        if (!wallpaperExecutor.isShutdown()) {
+            wallpaperExecutor.execute(() -> {
+                Bitmap bitmap = decodeSampledBitmap(file.getAbsolutePath(), targetRes[0], targetRes[1]);
                 runOnUiThread(() -> {
+                    isWallpaperDecoding = false;
                     if (isFinishing() || isDestroyed()) return;
-                    View curF = getCurrentFocus();
-                    setAndRecycleWallpaper(bitmap);
-                    extractAccentColorFromBitmap(bitmap);
-                    if (curF != null) curF.post(() -> curF.requestFocus());
+                    if (bitmap != null) {
+                        View curF = getCurrentFocus();
+                        setAndRecycleWallpaper(bitmap);
+                        extractAccentColorFromBitmap(bitmap);
+                        if (curF != null) curF.post(() -> curF.requestFocus());
 
-                    lastWallpaperChangeTime = System.currentTimeMillis();
-                    if (!isWallpaperLoaded) {
-                        isWallpaperLoaded = true;
-                        enableWallpaperTransitions();
+                        lastWallpaperChangeTime = System.currentTimeMillis();
+                        if (!isWallpaperLoaded) {
+                            isWallpaperLoaded = true;
+                            enableWallpaperTransitions();
+                        }
+                        prefs.edit().putInt("LastWallpaperIndex", targetIndex).apply();
                     }
-                    prefs.edit().putInt("LastWallpaperIndex", targetIndex).apply();
                 });
-            }
-        });
-        currentWallpaperIndex = (currentWallpaperIndex + 1) % wallpaperFiles.size();
+            });
+        } else {
+            isWallpaperDecoding = false;
+        }
     }
 
     private void setupIdleAutoTimer() {

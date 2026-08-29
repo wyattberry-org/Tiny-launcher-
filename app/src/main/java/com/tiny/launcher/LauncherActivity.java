@@ -1616,6 +1616,8 @@ public class LauncherActivity extends Activity {
                             extractAccentColorFromBitmap(bitmap);
                             if (curF != null) curF.post(() -> curF.requestFocus());
                             isWallpaperLoaded = true;
+                            hasEvaluatedRestartWallpaper = true;
+                            currentWallpaperIndex = prefs.getInt("BootCacheIndex", currentWallpaperIndex);
                             lastWallpaperChangeTime = System.currentTimeMillis();
                             enableWallpaperTransitions();
                         });
@@ -1751,6 +1753,7 @@ private boolean isWallpaperDecoding = false;
                         prefs.edit().putInt("LastWallpaperIndex", targetIndex).apply();
                         if (!wallpaperFiles.isEmpty()) {
                             int nextIdx = prefs.getBoolean("ChangeEachRestart", false) ? (targetIndex + 10) % wallpaperFiles.size() : targetIndex;
+                            prefs.edit().putInt("BootCacheIndex", nextIdx).apply();
                             copyFileToBootCache(wallpaperFiles.get(nextIdx));
                         }
                     }

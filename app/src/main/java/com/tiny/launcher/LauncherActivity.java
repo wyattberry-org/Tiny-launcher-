@@ -133,6 +133,22 @@ public class LauncherActivity extends Activity {
     private final String[] SLIDESHOW_LABELS = {"15sec", "30sec", "1min", "5min", "10min", "20min", "30min", "off"};
 
     // Receiver to auto-refresh app grid on install/uninstall
+    
+    private final BroadcastReceiver screenReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (Intent.ACTION_SCREEN_ON.equals(intent.getAction())) {
+                resetIdleTimer();
+                if (prefs.getBoolean("ChangeEachRestart", false) && !wallpaperFiles.isEmpty()) {
+                    int last = prefs.getInt("LastWallpaperIndex", currentWallpaperIndex);
+                    int target = (last + 10) % wallpaperFiles.size();
+                    loadWallpaperAtIndex(target);
+                    startWallpaperRotation();
+                }
+            }
+        }
+    };
+
     private final BroadcastReceiver packageReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -1616,8 +1632,6 @@ public class LauncherActivity extends Activity {
                             extractAccentColorFromBitmap(bitmap);
                             if (curF != null) curF.post(() -> curF.requestFocus());
                             isWallpaperLoaded = true;
-                            hasEvaluatedRestartWallpaper = true;
-                            currentWallpaperIndex = prefs.getInt("BootCacheIndex", currentWallpaperIndex);
                             lastWallpaperChangeTime = System.currentTimeMillis();
                             enableWallpaperTransitions();
                         });
@@ -1628,7 +1642,6 @@ public class LauncherActivity extends Activity {
     }
 
     private void loadWallpapers() {
-        // Internal cache preserved
         wallpaperFiles.clear();
         if (android.os.Build.VERSION.SDK_INT >= 33 && checkSelfPermission("android.permission.READ_MEDIA_IMAGES") != android.content.pm.PackageManager.PERMISSION_GRANTED) return;
         String folderPath = prefs.getString("WallpaperFolder", "/sdcard/Pictures/Wallpapers");
@@ -1651,59 +1664,53 @@ public class LauncherActivity extends Activity {
             if (files != null) Collections.addAll(wallpaperFiles, files);
         }
         if (!wallpaperFiles.isEmpty()) {
-            startWallpaperRotation();
+            if (!hasEvaluatedRestart) { hasEvaluatedRestart = true; onScreenWakeOrRestart(); }
+            else { startWallpaperRotation(); }
+        } else { wallpaperHandler.postDelayed(this::loadWallpapers, 100L); }
+    }
+
+    private void onScreenWakeOrRestart() {
+        if (wallpaperFiles.isEmpty()) return;
+        int last = prefs.getInt("LastWallpaperIndex", 0);
+        boolean changeOnRestart = prefs.getBoolean("ChangeEachRestart", false);
+        if (changeOnRestart) {
+            int target = (last + 10) % wallpaperFiles.size();
+            loadWallpaperAtIndex(target);
         } else {
-            wallpaperHandler.postDelayed(this::loadWallpapers, 100L);
+            int target = last % wallpaperFiles.size();
+            currentWallpaperIndex = target;
+            if (!isWallpaperLoaded) loadWallpaperAtIndex(target);
         }
+        startWallpaperRotation();
     }
-
-    @Override
-    protected void onResume() {
-        applyTileRowPosition();
-        super.onResume();
-        isFirstResume = false;
-    }
-
-    private boolean hasEvaluatedRestartWallpaper = false;
 
     private void startWallpaperRotation() {
         wallpaperHandler.removeCallbacks(wallpaperRunnable);
         long interval = prefs.getLong("SlideshowInterval", 30000L);
-
         wallpaperRunnable = new Runnable() {
             @Override public void run() {
                 if (wallpaperFiles.isEmpty()) {
                     loadWallpapers();
-                    if (wallpaperFiles.isEmpty()) {
-                        wallpaperHandler.postDelayed(this, 500L);
-                        return;
-                    }
+                    if (wallpaperFiles.isEmpty()) { wallpaperHandler.postDelayed(this, 500L); return; }
                 }
                 advanceWallpaper();
                 long curInt = prefs.getLong("SlideshowInterval", 30000L);
                 if (curInt > 0) wallpaperHandler.postDelayed(this, curInt);
             }
         };
-
-        if (!isWallpaperLoaded) {
-            if (!isWallpaperDecoding) {
-                wallpaperHandler.post(wallpaperRunnable);
-            }
-        } else if (interval > 0) {
+        if (interval > 0) {
             long elapsed = System.currentTimeMillis() - lastWallpaperChangeTime;
             long remaining = Math.max(1000L, interval - elapsed);
             wallpaperHandler.postDelayed(wallpaperRunnable, remaining);
         }
     }
 
-        private void enableWallpaperTransitions() {
+    private void enableWallpaperTransitions() {
         if (wallpaperSwitcher != null && wallpaperSwitcher.getInAnimation() == null) {
             android.view.animation.Animation in = android.view.animation.AnimationUtils.loadAnimation(this, android.R.anim.slide_in_left);
             android.view.animation.Animation out = android.view.animation.AnimationUtils.loadAnimation(this, android.R.anim.slide_out_right);
-            if (in != null) in.setDuration(1000);
-            if (out != null) out.setDuration(1000);
-            wallpaperSwitcher.setInAnimation(in);
-            wallpaperSwitcher.setOutAnimation(out);
+            if (in != null) in.setDuration(1000); if (out != null) out.setDuration(1000);
+            wallpaperSwitcher.setInAnimation(in); wallpaperSwitcher.setOutAnimation(out);
         }
     }
 
@@ -1714,25 +1721,14 @@ public class LauncherActivity extends Activity {
         wallpaperSwitcher.setImageDrawable(new BitmapDrawable(getResources(), newBmp));
     }
 
-private boolean isWallpaperDecoding = false;
-    private void advanceWallpaper() {
+    private void loadWallpaperAtIndex(int targetIndex) {
         if (wallpaperFiles.isEmpty() || isWallpaperDecoding) return;
+        if (targetIndex < 0 || targetIndex >= wallpaperFiles.size()) targetIndex = 0;
+        currentWallpaperIndex = targetIndex;
         isWallpaperDecoding = true;
-        if (!hasEvaluatedRestartWallpaper) {
-            hasEvaluatedRestartWallpaper = true;
-            int last = prefs.getInt("LastWallpaperIndex", 0);
-            if (prefs.getBoolean("ChangeEachRestart", false)) {
-                currentWallpaperIndex = (last + 10) % wallpaperFiles.size();
-            } else {
-                currentWallpaperIndex = last % wallpaperFiles.size();
-            }
-        } else {
-            currentWallpaperIndex = (currentWallpaperIndex + 1) % wallpaperFiles.size();
-        }
-        final int targetIndex = currentWallpaperIndex;
-        File file = wallpaperFiles.get(targetIndex);
+        final int finalIndex = targetIndex;
+        File file = wallpaperFiles.get(finalIndex);
         int[] targetRes = getWallpaperTargetResolution();
-
         if (!wallpaperExecutor.isShutdown()) {
             wallpaperExecutor.execute(() -> {
                 Bitmap bitmap = decodeSampledBitmap(file.getAbsolutePath(), targetRes[0], targetRes[1]);
@@ -1744,24 +1740,20 @@ private boolean isWallpaperDecoding = false;
                         setAndRecycleWallpaper(bitmap);
                         extractAccentColorFromBitmap(bitmap);
                         if (curF != null) curF.post(() -> curF.requestFocus());
-
                         lastWallpaperChangeTime = System.currentTimeMillis();
-                        if (!isWallpaperLoaded) {
-                            isWallpaperLoaded = true;
-                            enableWallpaperTransitions();
-                        }
-                        prefs.edit().putInt("LastWallpaperIndex", targetIndex).apply();
-                        if (!wallpaperFiles.isEmpty()) {
-                            int nextIdx = prefs.getBoolean("ChangeEachRestart", false) ? (targetIndex + 10) % wallpaperFiles.size() : targetIndex;
-                            prefs.edit().putInt("BootCacheIndex", nextIdx).apply();
-                            copyFileToBootCache(wallpaperFiles.get(nextIdx));
-                        }
+                        if (!isWallpaperLoaded) { isWallpaperLoaded = true; enableWallpaperTransitions(); }
+                        prefs.edit().putInt("LastWallpaperIndex", finalIndex).apply();
+                        copyFileToBootCache(file);
                     }
                 });
             });
-        } else {
-            isWallpaperDecoding = false;
-        }
+        } else { isWallpaperDecoding = false; }
+    }
+
+    private void advanceWallpaper() {
+        if (wallpaperFiles.isEmpty()) return;
+        int nextIndex = (currentWallpaperIndex + 1) % wallpaperFiles.size();
+        loadWallpaperAtIndex(nextIndex);
     }
 
     private void setupIdleAutoTimer() {
@@ -2266,6 +2258,7 @@ private boolean isWallpaperDecoding = false;
             registerReceiver(packageReceiver, filter, Context.RECEIVER_EXPORTED);
         } else {
             registerReceiver(packageReceiver, filter);
+        registerReceiver(screenReceiver, new IntentFilter(Intent.ACTION_SCREEN_ON));
         }
     }
 
@@ -2301,6 +2294,7 @@ private boolean isWallpaperDecoding = false;
         wallpaperHandler.removeCallbacks(wallpaperRunnable);
         
         try { unregisterReceiver(packageReceiver); } catch (Exception ignored) {}
+        try { unregisterReceiver(screenReceiver); } catch (Exception ignored) {}
         try { com.tiny.launcher.weather.WeatherConfigServer.stop(); } catch (Exception ignored) {}
         try { wallpaperExecutor.shutdownNow(); } catch (Exception ignored) {}
         try { bgExecutor.shutdownNow(); } catch (Exception ignored) {}

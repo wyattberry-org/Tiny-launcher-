@@ -155,7 +155,8 @@ public class WeatherWidget extends LinearLayout {
                         cachedIsDay = current.optInt("is_day", 1) == 1;
                         cachedWindSpeed = current.optDouble("wind_speed_10m", current.optDouble("windspeed", cachedWindSpeed));
                         cachedWindGusts = current.optDouble("wind_gusts_10m", current.optDouble("windgusts", cachedWindGusts));
-                        if (!success) {
+                        boolean hasShelly = !getShellyUrl().isEmpty();
+                        if (!hasShelly) {
                             if (current.has("temperature_2m")) { lastValidTemp = current.optDouble("temperature_2m", lastValidTemp); hasValidData = true; }
                             else if (current.has("temperature")) { lastValidTemp = current.optDouble("temperature", lastValidTemp); hasValidData = true; }
                             if (current.has("relative_humidity_2m")) { lastValidRh = current.optDouble("relative_humidity_2m", lastValidRh); hasValidData = true; }

@@ -2274,7 +2274,6 @@ public class LauncherActivity extends Activity {
         super.onStart();
         startLiveClock();
         resetIdleTimer();
-        if (weatherWidget != null) weatherWidget.forceRefresh();
         if (!wallpaperFiles.isEmpty()) startWallpaperRotation();
     }
 

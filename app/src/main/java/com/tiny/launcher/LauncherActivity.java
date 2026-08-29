@@ -321,7 +321,6 @@ public class LauncherActivity extends Activity {
         setContentView(rootOverlayFrame);
         if (weatherWidget != null) weatherWidget.bringToFront();
 
-        loadCachedBootWallpaper();
         loadWallpapers();
         loadInstalledApps();
         registerPackageReceiver();
@@ -1616,43 +1615,7 @@ public class LauncherActivity extends Activity {
         } catch (Exception e) { return null; }
     }
 
-            private void copyFileToBootCache(File src) {
-        if (src == null || !src.exists()) return;
-        try (java.io.InputStream in = new java.io.FileInputStream(src);
-             java.io.OutputStream out = openFileOutput("boot_cache.jpg", MODE_PRIVATE)) {
-            byte[] buf = new byte[8192];
-            int len;
-            while ((len = in.read(buf)) > 0) {
-                out.write(buf, 0, len);
-            }
-        } catch (Exception ignored) {}
-    }
-
-    private void loadCachedBootWallpaper() {
-        File cache = getFileStreamPath("boot_cache.jpg");
-        if (cache.exists() && cache.length() > 0 && !isWallpaperLoaded) {
-            if (!wallpaperExecutor.isShutdown()) {
-                wallpaperExecutor.execute(() -> {
-                    int[] targetRes = getWallpaperTargetResolution();
-                    Bitmap bitmap = decodeSampledBitmap(cache.getAbsolutePath(), targetRes[0], targetRes[1]);
-                    if (bitmap != null) {
-                        runOnUiThread(() -> {
-                            if (isFinishing() || isDestroyed() || isWallpaperLoaded) return;
-                            View curF = getCurrentFocus();
-                            setAndRecycleWallpaper(bitmap);
-                            extractAccentColorFromBitmap(bitmap);
-                            if (curF != null) curF.post(() -> curF.requestFocus());
-                            isWallpaperLoaded = true;
-                            lastWallpaperChangeTime = System.currentTimeMillis();
-                            enableWallpaperTransitions();
-                        });
-                    }
-                });
-            }
-        }
-    }
-
-    private void loadWallpapers() {
+                private void loadWallpapers() {
         wallpaperFiles.clear();
         if (android.os.Build.VERSION.SDK_INT >= 33 && checkSelfPermission("android.permission.READ_MEDIA_IMAGES") != android.content.pm.PackageManager.PERMISSION_GRANTED) return;
         String folderPath = prefs.getString("WallpaperFolder", "/sdcard/Pictures/Wallpapers");
@@ -1676,23 +1639,15 @@ public class LauncherActivity extends Activity {
         }
         if (!wallpaperFiles.isEmpty()) {
             if (!hasEvaluatedRestart) { hasEvaluatedRestart = true; onScreenWakeOrRestart(); }
-            else { startWallpaperRotation(); }
-        } else { wallpaperHandler.postDelayed(this::loadWallpapers, 100L); }
+        } else { wallpaperHandler.postDelayed(this::loadWallpapers, 200L); }
     }
 
     private void onScreenWakeOrRestart() {
         if (wallpaperFiles.isEmpty()) return;
         int last = prefs.getInt("LastWallpaperIndex", 0);
         boolean changeOnRestart = prefs.getBoolean("ChangeEachRestart", false);
-        if (changeOnRestart) {
-            int target = (last + 10) % wallpaperFiles.size();
-            loadWallpaperAtIndex(target);
-        } else {
-            int target = last % wallpaperFiles.size();
-            currentWallpaperIndex = target;
-            if (!isWallpaperLoaded) loadWallpaperAtIndex(target);
-        }
-        startWallpaperRotation();
+        int target = changeOnRestart ? (last + 10) % wallpaperFiles.size() : last % wallpaperFiles.size();
+        loadWallpaperAtIndex(target);
     }
 
     private void startWallpaperRotation() {
@@ -1700,20 +1655,13 @@ public class LauncherActivity extends Activity {
         long interval = prefs.getLong("SlideshowInterval", 30000L);
         wallpaperRunnable = new Runnable() {
             @Override public void run() {
-                if (wallpaperFiles.isEmpty()) {
-                    loadWallpapers();
-                    if (wallpaperFiles.isEmpty()) { wallpaperHandler.postDelayed(this, 500L); return; }
-                }
+                if (wallpaperFiles.isEmpty()) { loadWallpapers(); return; }
                 advanceWallpaper();
                 long curInt = prefs.getLong("SlideshowInterval", 30000L);
                 if (curInt > 0) wallpaperHandler.postDelayed(this, curInt);
             }
         };
-        if (interval > 0) {
-            long elapsed = System.currentTimeMillis() - lastWallpaperChangeTime;
-            long remaining = Math.max(1000L, interval - elapsed);
-            wallpaperHandler.postDelayed(wallpaperRunnable, remaining);
-        }
+        if (interval > 0) wallpaperHandler.postDelayed(wallpaperRunnable, interval);
     }
 
     private void enableWallpaperTransitions() {
@@ -1752,9 +1700,12 @@ public class LauncherActivity extends Activity {
                         extractAccentColorFromBitmap(bitmap);
                         if (curF != null) curF.post(() -> curF.requestFocus());
                         lastWallpaperChangeTime = System.currentTimeMillis();
-                        if (!isWallpaperLoaded) { isWallpaperLoaded = true; enableWallpaperTransitions(); }
                         prefs.edit().putInt("LastWallpaperIndex", finalIndex).apply();
-                        copyFileToBootCache(file);
+                        if (!isWallpaperLoaded) {
+                            isWallpaperLoaded = true;
+                            enableWallpaperTransitions();
+                            startWallpaperRotation();
+                        }
                     }
                 });
             });

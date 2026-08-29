@@ -141,6 +141,7 @@ public class LauncherActivity extends Activity {
         public void onReceive(Context context, Intent intent) {
             if (Intent.ACTION_SCREEN_ON.equals(intent.getAction())) {
                 resetIdleTimer();
+                if (weatherWidget != null) weatherWidget.forceRefresh();
                 if (prefs.getBoolean("ChangeEachRestart", false) && !wallpaperFiles.isEmpty()) {
                     int last = prefs.getInt("LastWallpaperIndex", currentWallpaperIndex);
                     int target = (last + 10) % wallpaperFiles.size();
@@ -2272,6 +2273,7 @@ public class LauncherActivity extends Activity {
         super.onStart();
         startLiveClock();
         resetIdleTimer();
+        if (weatherWidget != null) weatherWidget.forceRefresh();
         if (!wallpaperFiles.isEmpty()) startWallpaperRotation();
     }
 

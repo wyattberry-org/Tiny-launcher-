@@ -145,7 +145,6 @@ public class LauncherActivity extends Activity {
                     int last = prefs.getInt("LastWallpaperIndex", currentWallpaperIndex);
                     int target = (last + 10) % wallpaperFiles.size();
                     loadWallpaperAtIndex(target);
-                    startWallpaperRotation();
                 }
             }
         }
@@ -1155,7 +1154,10 @@ public class LauncherActivity extends Activity {
             addDrawerFolderItem(container, label, c, () -> {
                 try { getFileStreamPath("custom_wallpaper.jpg").delete(); } catch (Exception ignored) {}
                 prefs.edit().putString("WallpaperFolder", target).apply();
-                loadWallpapers(); startWallpaperRotation(); openWallpaperSubmenu();
+                currentWallpaperIndex = 0;
+                prefs.edit().putInt("LastWallpaperIndex", 0).apply();
+                loadWallpapers(true);
+                openWallpaperSubmenu();
             });
         }
 
@@ -1615,7 +1617,9 @@ public class LauncherActivity extends Activity {
         } catch (Exception e) { return null; }
     }
 
-                private void loadWallpapers() {
+                    private void loadWallpapers() { loadWallpapers(false); }
+
+    private void loadWallpapers(boolean forceDisplayFirst) {
         wallpaperFiles.clear();
         if (android.os.Build.VERSION.SDK_INT >= 33 && checkSelfPermission("android.permission.READ_MEDIA_IMAGES") != android.content.pm.PackageManager.PERMISSION_GRANTED) return;
         String folderPath = prefs.getString("WallpaperFolder", "/sdcard/Pictures/Wallpapers");
@@ -1638,7 +1642,8 @@ public class LauncherActivity extends Activity {
             if (files != null) Collections.addAll(wallpaperFiles, files);
         }
         if (!wallpaperFiles.isEmpty()) {
-            if (!hasEvaluatedRestart) { hasEvaluatedRestart = true; onScreenWakeOrRestart(); }
+            if (forceDisplayFirst) { loadWallpaperAtIndex(0); }
+            else if (!hasEvaluatedRestart) { hasEvaluatedRestart = true; onScreenWakeOrRestart(); }
         } else { wallpaperHandler.postDelayed(this::loadWallpapers, 200L); }
     }
 

@@ -13,7 +13,6 @@ import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
@@ -1400,10 +1399,12 @@ public class LauncherActivity extends Activity {
         if (!bgExecutor.isShutdown()) bgExecutor.execute(() -> {
             try {
                 String urlStr = "https://geocoding-api.open-meteo.com/v1/search?name=" + java.net.URLEncoder.encode(query, "UTF-8") + "&count=5";
-                java.net.HttpURLConnection conn = (java.net.HttpURLConnection) new java.net.URL(urlStr).openConnection();
-                conn.setRequestProperty("User-Agent", "Mozilla/5.0");
-                conn.setConnectTimeout(5000); conn.setReadTimeout(10000);
-                if (conn.getResponseCode() == 200) {
+                java.net.HttpURLConnection conn = null;
+                try {
+                    conn = (java.net.HttpURLConnection) new java.net.URL(urlStr).openConnection();
+                    conn.setRequestProperty("User-Agent", "Mozilla/5.0");
+                    conn.setConnectTimeout(5000); conn.setReadTimeout(10000);
+                    if (conn.getResponseCode() == 200) {
                     java.io.BufferedReader r = new java.io.BufferedReader(new java.io.InputStreamReader(conn.getInputStream()));
                     StringBuilder sb = new StringBuilder(); String line;
                     while ((line = r.readLine()) != null) sb.append(line); r.close();
@@ -1430,7 +1431,7 @@ public class LauncherActivity extends Activity {
                     }
                 }
                 runOnUiThread(() -> Toast.makeText(LauncherActivity.this, "No locations found for " + query, Toast.LENGTH_SHORT).show());
-            } catch (Exception e) { runOnUiThread(() -> { if (!isFinishing() && !isDestroyed()) Toast.makeText(LauncherActivity.this, "Search failed: " + e.getMessage(), Toast.LENGTH_SHORT).show(); }); }
+            } catch (Exception e) { runOnUiThread(() -> { if (!isFinishing() && !isDestroyed()) Toast.makeText(LauncherActivity.this, "Search failed: " + e.getMessage(), Toast.LENGTH_SHORT).show(); }); } finally { if (conn != null) conn.disconnect(); }
         });
     }
 
@@ -1551,31 +1552,29 @@ public class LauncherActivity extends Activity {
     private void animateTileAccentSweep(int oldColor) {
         if (horizontalAppContainer == null) return;
         if (!"Off".equals(prefs.getString("TileBackgroundColor", "Off"))) return;
-        int targetColor = getTileBackgroundColor(), screenW = getResources().getDisplayMetrics().widthPixels;
-        int tileH = prefs.getInt("TileSize", 160) * 9 / 16, tileDeg = prefs.getInt("TileCornerRadius", 30), radPx = dpToPx((int) Math.round((tileH / 2.0f) * (tileDeg / 90.0f)));
+        int targetColor = getTileBackgroundColor();
+        int tileH = prefs.getInt("TileSize", 160) * 9 / 16, tileDeg = prefs.getInt("TileCornerRadius", 30);
+        int radPx = dpToPx((int) Math.round((tileH / 2.0f) * (tileDeg / 90.0f)));
         android.animation.ArgbEvaluator eval = new android.animation.ArgbEvaluator();
-        for (int i = 0; i < horizontalAppContainer.getChildCount(); i++) {
-            View child = horizontalAppContainer.getChildAt(i);
-            if (child instanceof LinearLayout) {
-                LinearLayout ic = (LinearLayout) child;
-                if (ic.getChildCount() > 0 && ic.getChildAt(0) instanceof FrameLayout) {
-                    FrameLayout bc = (FrameLayout) ic.getChildAt(0);
-                    int[] loc = new int[2]; bc.getLocationOnScreen(loc);
-                    float ratio = Math.max(0.0f, Math.min(1.0f, (float) loc[0] / screenW));
-                    android.animation.ValueAnimator anim = android.animation.ValueAnimator.ofObject(eval, oldColor, targetColor);
-                    anim.setDuration(600); anim.setStartDelay((long) (ratio * 1400));
-                    final int tileIdx = i;
-                    anim.addUpdateListener(a -> {
-                        GradientDrawable shape = new GradientDrawable(); shape.setColor((int) a.getAnimatedValue()); shape.setCornerRadius(radPx);
-                        if (bc.hasFocus()) {
-                            shape.setStroke(Math.max(1, Math.round(getResources().getDisplayMetrics().density * 0.6f)), Color.parseColor("#00E5FF"));
-                        }
+        android.animation.ValueAnimator anim = android.animation.ValueAnimator.ofObject(eval, oldColor, targetColor);
+        anim.setDuration(500);
+        anim.addUpdateListener(a -> {
+            int col = (int) a.getAnimatedValue();
+            for (int i = 0; i < horizontalAppContainer.getChildCount(); i++) {
+                View child = horizontalAppContainer.getChildAt(i);
+                if (child instanceof LinearLayout) {
+                    LinearLayout ic = (LinearLayout) child;
+                    if (ic.getChildCount() > 0 && ic.getChildAt(0) instanceof FrameLayout) {
+                        FrameLayout bc = (FrameLayout) ic.getChildAt(0);
+                        GradientDrawable shape = new GradientDrawable();
+                        shape.setColor(col); shape.setCornerRadius(radPx);
+                        if (bc.hasFocus()) shape.setStroke(Math.max(1, Math.round(displayDensity * 0.6f)), Color.parseColor("#00E5FF"));
                         bc.setBackground(shape);
-                    });
-                    anim.start();
+                    }
                 }
             }
-        }
+        });
+        anim.start();
     }
 
     private void extractAccentColorFromBitmap(Bitmap bitmap) {
@@ -2258,9 +2257,10 @@ public class LauncherActivity extends Activity {
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(packageReceiver, filter, Context.RECEIVER_EXPORTED);
+            registerReceiver(screenReceiver, new IntentFilter(Intent.ACTION_SCREEN_ON), Context.RECEIVER_NOT_EXPORTED);
         } else {
             registerReceiver(packageReceiver, filter);
-        registerReceiver(screenReceiver, new IntentFilter(Intent.ACTION_SCREEN_ON));
+            registerReceiver(screenReceiver, new IntentFilter(Intent.ACTION_SCREEN_ON));
         }
     }
 
@@ -2292,9 +2292,9 @@ public class LauncherActivity extends Activity {
             try { if (activeTilePopupWindow.isShowing()) activeTilePopupWindow.dismiss(); } catch (Exception ignored) {}
             activeTilePopupWindow = null;
         }
-        clockHandler.removeCallbacks(clockRunnable);
-        idleHandler.removeCallbacks(idleRunnable);
-        wallpaperHandler.removeCallbacks(wallpaperRunnable);
+        clockHandler.removeCallbacksAndMessages(null);
+        idleHandler.removeCallbacksAndMessages(null);
+        wallpaperHandler.removeCallbacksAndMessages(null);
         
         try { unregisterReceiver(packageReceiver); } catch (Exception ignored) {}
         try { unregisterReceiver(screenReceiver); } catch (Exception ignored) {}
@@ -2398,26 +2398,7 @@ public class LauncherActivity extends Activity {
 
     
 
-        private void openSelectBannerSubmenu(String targetPkg) {
-        replacingBannerPkg = targetPkg; isInSubmenu = true; drawerBackAction = () -> buildMainMenuInDrawer();
-        sideDrawerContentScrollView.removeAllViews();
-        if (drawerTitleView != null) drawerTitleView.setText("Select Banner");
-        LinearLayout container = new LinearLayout(this); container.setOrientation(LinearLayout.VERTICAL);
-        String[][] explorers = {{"Cx File Explorer", "com.cxinventor.file.explorer"}, {"X-plore", "com.lonelycatgames.Xplore"}, {"Solid Explorer", "pl.solidexplorer2"}, {"FX File Explorer", "nextapp.fx"}, {"Total Commander", "com.ghisler.android.TotalCommander"}, {"System Files", "com.google.android.documentsui"}, {"Native Explorer", "com.android.documentsui"}};
-        boolean found = false; PackageManager pm = getPackageManager();
-        for (String[] exp : explorers) {
-            String name = exp[0]; String pkg = exp[1];
-            try {
-                pm.getPackageInfo(pkg, 0); found = true;
-                addDrawerMenuItem(container, "⧉", Color.parseColor("#5A5E6B"), name, () -> {
-                    try { Intent intent = new Intent(Intent.ACTION_GET_CONTENT); intent.setType("image/*"); intent.setPackage(pkg); startActivityForResult(intent, 1003); }
-                    catch (Exception e) { try { Intent fb = new Intent(Intent.ACTION_OPEN_DOCUMENT); fb.setType("image/*"); fb.setPackage(pkg); startActivityForResult(fb, 1003); } catch (Exception ignored) {} }
-                });
-            } catch (Exception ignored) {}
-        }
-        if (!found) { TextView info = new TextView(this); info.setText("No file explorer installed.\nPlease install Cx File Explorer or X-plore."); info.setTextColor(Color.LTGRAY); info.setTextSize(14); info.setPadding(dpToPx(12), dpToPx(12), dpToPx(12), dpToPx(12)); container.addView(info); }
-        sideDrawerContentScrollView.addView(container); toggleSideDrawer(true);
-    }
+    
 
     
 

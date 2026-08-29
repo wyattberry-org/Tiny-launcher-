@@ -120,6 +120,8 @@ public class LauncherActivity extends Activity {
     private int currentWallpaperIndex = 0;
     private long lastWallpaperChangeTime = 0L;
     private boolean isWallpaperLoaded = false;
+    private boolean isWallpaperDecoding = false;
+    private boolean hasEvaluatedRestart = false;
     private boolean isSideDrawerOpen = false;
     private boolean isInSubmenu = false;
     private int lastMainMenuIdx = 0;

@@ -1687,6 +1687,36 @@ public class LauncherActivity extends Activity {
         }
     }
 
+        private void startWallpaperRotation() {
+        wallpaperHandler.removeCallbacks(wallpaperRunnable);
+        long interval = prefs.getLong("SlideshowInterval", 30000L);
+        wallpaperRunnable = new Runnable() {
+            @Override public void run() {
+                if (wallpaperFiles.isEmpty()) { loadWallpapers(); return; }
+                advanceWallpaper();
+                long curInt = prefs.getLong("SlideshowInterval", 30000L);
+                if (curInt > 0) wallpaperHandler.postDelayed(this, curInt);
+            }
+        };
+        if (interval > 0) wallpaperHandler.postDelayed(wallpaperRunnable, interval);
+    }
+
+    private void enableWallpaperTransitions() {
+        if (wallpaperSwitcher != null && wallpaperSwitcher.getInAnimation() == null) {
+            android.view.animation.Animation in = android.view.animation.AnimationUtils.loadAnimation(this, android.R.anim.slide_in_left);
+            android.view.animation.Animation out = android.view.animation.AnimationUtils.loadAnimation(this, android.R.anim.slide_out_right);
+            if (in != null) in.setDuration(1000); if (out != null) out.setDuration(1000);
+            wallpaperSwitcher.setInAnimation(in); wallpaperSwitcher.setOutAnimation(out);
+        }
+    }
+
+    private void setAndRecycleWallpaper(Bitmap newBmp) {
+        if (wallpaperSwitcher == null || newBmp == null) return;
+        wallpaperSwitcher.setFocusable(false);
+        wallpaperSwitcher.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
+        wallpaperSwitcher.setImageDrawable(new BitmapDrawable(getResources(), newBmp));
+    }
+
     private void loadWallpaperAtIndex(int targetIndex) {
         if (wallpaperFiles.isEmpty() || isWallpaperDecoding) return;
         if (targetIndex < 0 || targetIndex >= wallpaperFiles.size()) targetIndex = 0;

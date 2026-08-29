@@ -1647,7 +1647,9 @@ public class LauncherActivity extends Activity {
         };
 
         if (!isWallpaperLoaded) {
-            wallpaperHandler.post(wallpaperRunnable);
+            if (!isWallpaperDecoding) {
+                wallpaperHandler.post(wallpaperRunnable);
+            }
         } else if (interval > 0) {
             long elapsed = System.currentTimeMillis() - lastWallpaperChangeTime;
             long remaining = Math.max(1000L, interval - elapsed);

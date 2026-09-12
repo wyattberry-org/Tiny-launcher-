@@ -110,6 +110,7 @@ public class LauncherActivity extends Activity {
     private final Handler wallpaperHandler = new Handler(Looper.getMainLooper());
     
     private Runnable clockRunnable, idleRunnable, wallpaperRunnable;
+    private final Runnable wallpaperRetryRunnable = this::loadWallpapers;
 
     // --- Wallpapers & State ---
     private final java.util.concurrent.ExecutorService bgExecutor = java.util.concurrent.Executors.newSingleThreadExecutor();
@@ -1614,7 +1615,7 @@ public class LauncherActivity extends Activity {
             }
             opt.inSampleSize = Math.max(1, inSample);
             opt.inJustDecodeBounds = false;
-            opt.inPreferredConfig = Bitmap.Config.ARGB_8888;
+            opt.inPreferredConfig = Bitmap.Config.RGB_565;
             return BitmapFactory.decodeFile(path, opt);
         } catch (Exception e) { return null; }
     }
@@ -1667,7 +1668,10 @@ public class LauncherActivity extends Activity {
         if (!wallpaperFiles.isEmpty()) {
             if (forceDisplayFirst) { loadWallpaperAtIndex(0); }
             else if (!hasEvaluatedRestart) { hasEvaluatedRestart = true; onScreenWakeOrRestart(); }
-        } else { wallpaperHandler.postDelayed(this::loadWallpapers, 200L); }
+        } else {
+            wallpaperHandler.removeCallbacks(wallpaperRetryRunnable);
+            wallpaperHandler.postDelayed(wallpaperRetryRunnable, 2000L);
+        }
     }
 
     private void onScreenWakeOrRestart() {
@@ -1690,6 +1694,7 @@ public class LauncherActivity extends Activity {
 
         private void startWallpaperRotation() {
         wallpaperHandler.removeCallbacks(wallpaperRunnable);
+        wallpaperHandler.removeCallbacks(wallpaperRetryRunnable);
         long interval = prefs.getLong("SlideshowInterval", 30000L);
         wallpaperRunnable = new Runnable() {
             @Override public void run() {
@@ -1746,7 +1751,7 @@ public class LauncherActivity extends Activity {
                         }
                     }
                 });
-                saveBitmapToPrivateFrame(file);
+                if (!getFileStreamPath("last_frame.jpg").exists()) saveBitmapToPrivateFrame(file);
             });
         } else { isWallpaperDecoding = false; }
     }
@@ -1856,7 +1861,9 @@ public class LauncherActivity extends Activity {
             .withEndAction(() -> {
                 itemA.setTranslationX(0);
                 itemB.setTranslationX(0);
-
+                if (horizontalAppContainer == null || fromIdx >= appList.size() || toIdx >= appList.size() || horizontalAppContainer.indexOfChild(itemA) == -1) {
+                    isAnimatingMove = false; return;
+                }
                 if (horizontalAppScrollView != null) horizontalAppScrollView.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
                 horizontalAppContainer.removeView(itemA);
                 horizontalAppContainer.addView(itemA, toIdx);
@@ -2138,13 +2145,14 @@ public class LauncherActivity extends Activity {
             hidden.add(app.packageName());
             prefs.edit().putStringSet("HiddenApps", hidden).apply();
             
-            if (position >= 0 && position < appList.size()) {
-                appList.remove(position);
-                if (horizontalAppContainer != null && position < horizontalAppContainer.getChildCount()) {
-                    horizontalAppContainer.removeViewAt(position);
+            int curIdx = appList.indexOf(app);
+            if (curIdx != -1) {
+                appList.remove(curIdx);
+                if (horizontalAppContainer != null && curIdx < horizontalAppContainer.getChildCount()) {
+                    horizontalAppContainer.removeViewAt(curIdx);
                 }
                 updateTileFocusTraps();
-                lastFocusedAppIdx = Math.max(0, Math.min(position, appList.size() - 1));
+                lastFocusedAppIdx = Math.max(0, Math.min(curIdx, appList.size() - 1));
                 if (horizontalAppContainer != null && horizontalAppContainer.getChildCount() > 0) {
                     View child = horizontalAppContainer.getChildAt(lastFocusedAppIdx);
                     if (child instanceof LinearLayout && ((LinearLayout) child).getChildCount() > 0) {
@@ -2275,6 +2283,7 @@ public class LauncherActivity extends Activity {
         startLiveClock();
         resetIdleTimer();
         if (!wallpaperFiles.isEmpty()) startWallpaperRotation();
+        else loadWallpapers();
     }
 
     @Override
@@ -2282,6 +2291,7 @@ public class LauncherActivity extends Activity {
         super.onStop();
         clockHandler.removeCallbacks(clockRunnable);
         wallpaperHandler.removeCallbacks(wallpaperRunnable);
+        wallpaperHandler.removeCallbacks(wallpaperRetryRunnable);
         idleHandler.removeCallbacks(idleRunnable);
     }
 

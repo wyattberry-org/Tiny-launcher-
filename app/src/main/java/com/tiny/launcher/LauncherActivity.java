@@ -1193,8 +1193,8 @@ public class LauncherActivity extends Activity {
     }
 
     private int[] getWallpaperTargetResolution() {
-        String res = prefs.getString("WallpaperResolution", "4k RGB565");
-        if ("2k RGB565".equals(res)) return new int[]{1920, 1080};
+        String res = prefs.getString("WallpaperResolution", "4k ARGB8888");
+        if ("2k ARGB8888".equals(res)) return new int[]{1920, 1080};
         return new int[]{3840, 2160};
     }
 
@@ -1213,7 +1213,7 @@ public class LauncherActivity extends Activity {
     }
 
     private void addWallpaperResolutionMenuItem(LinearLayout container) {
-        String curRes = prefs.getString("WallpaperResolution", "4k RGB565");
+        String curRes = prefs.getString("WallpaperResolution", "4k ARGB8888");
         View row = addDrawerStatusItem(container, "⧈", "Wallpaper resolution", curRes, null);
         if (row != null) {
             row.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
@@ -1222,8 +1222,8 @@ public class LauncherActivity extends Activity {
             row.setOnKeyListener((v, keyCode, event) -> {
                 if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
                 if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT || keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
-                    String cur = prefs.getString("WallpaperResolution", "4k RGB565");
-                    String next = "4k RGB565".equals(cur) ? "2k RGB565" : "4k RGB565";
+                    String cur = prefs.getString("WallpaperResolution", "4k ARGB8888");
+                    String next = "4k ARGB8888".equals(cur) ? "2k ARGB8888" : "4k ARGB8888";
                     prefs.edit().putString("WallpaperResolution", next).apply();
                     TextView tv = row.findViewById(1001); if (tv != null) tv.setText(next);
                     refreshCurrentWallpaper();
@@ -1615,7 +1615,7 @@ public class LauncherActivity extends Activity {
             }
             opt.inSampleSize = Math.max(1, inSample);
             opt.inJustDecodeBounds = false;
-            opt.inPreferredConfig = Bitmap.Config.RGB_565;
+            opt.inPreferredConfig = Bitmap.Config.ARGB_8888;
             return BitmapFactory.decodeFile(path, opt);
         } catch (Exception e) { return null; }
     }
